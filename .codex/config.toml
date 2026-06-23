@@ -1,0 +1,12 @@
+# Config do Codex para o fitapp.
+# O modelo NÃO é fixado aqui de propósito: escolha via `codex login`/seletor
+# ou descomente abaixo com um alias válido na sua versão (confira no Codex).
+# model = "gpt-5.5"
+# review_model = "gpt-5.5"
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+
+[sandbox_workspace_write]
+network_access = false
