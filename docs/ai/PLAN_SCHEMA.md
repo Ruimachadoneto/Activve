@@ -72,23 +72,28 @@ training
    ├─ name          string
    ├─ focus?        string   ex.: "Peito e tríceps"
    └─ exercises[]
-      ├─ id            string ESTÁVEL  (ex.: "bench_press") — chave de histórico
-      ├─ name          string
-      ├─ mediaId?      string  (id no banco de mídia; resolvido pelo app)
-      ├─ instructions? string  (≤ 500, escapado)
-      ├─ sets          int 1–20
-      ├─ reps          string  ("8-12", "10", "AMRAP")
-      ├─ load_kg?      number 0–500  (sugestão inicial; pode faltar p/ casa)
-      ├─ rest_s        int 0–600
-      ├─ effortTarget? int 6–10 (RPE)
-      ├─ primaryMuscles?   muscle[]  (principais — alimenta o MAPA DO CORPO e o volume por grupo)
+      ├─ id              string ESTÁVEL  (ex.: "bench_press") — chave de histórico
+      ├─ name            string
+      ├─ equipment?      enum  barbell|dumbbell|machine|cable|bodyweight|band|kettlebell|other
+      ├─ sets            int 1–20
+      ├─ reps            string  ("8-12", "10", "AMRAP")
+      ├─ load_kg?        number 0–500  (sugestão inicial; pode faltar p/ casa)
+      ├─ rest_s          int 0–600
+      ├─ effortTarget?   int 6–10 (RPE)
+      ├─ primaryMuscles    muscle[]  (≥1 — alimenta MAPA DO CORPO e volume por grupo)
       ├─ secondaryMuscles? muscle[]  (auxiliares)
-      └─ alternatives? [{ id, name, mediaId? }]  (variações do mesmo grupo)
+      ├─ howTo           OBRIGATÓRIO  { steps:string[]≥1, images?:url[], gifUrl?:url, videoUrl?:url, mediaId? }
+      └─ alternatives    OBRIGATÓRIO ≥2  [{ id, name, equipment?, primaryMuscles?, howTo }]
 ```
 
-**`muscle` (vocabulário fechado)** — usar estes ids estáveis p/ o mapa do corpo e o volume por grupo:
+**`muscle` (vocabulário fechado)** — ids estáveis p/ o mapa do corpo e o volume por grupo:
 `chest · upper_back · lats · traps · lower_back · front_delts · side_delts · rear_delts · biceps · triceps · forearms · abs · obliques · glutes · quads · hamstrings · adductors · abductors · calves · neck`.
 Recuperação no app é **heurística** (ex.: ~48–72h, escalada por volume/esforço), configurável — não promessa científica.
+
+### 3.6.1 "Como fazer" e variações — OBRIGATÓRIOS (regra de produto)
+- **Todo exercício (e toda variação) tem `howTo`.** `howTo.steps` (texto) é sempre obrigatório. Deve haver **pelo menos 1 recurso visual** (`images`, `gifUrl`, `videoUrl` ou `mediaId`); se nenhum vier, o app garante o fallback **"ver vídeo"** por busca do nome — nunca um exercício sem orientação. Objetivo: o máximo de pessoas conseguir executar corretamente.
+- **Todo exercício tem `alternatives` com ≥2 itens**, mesmo grupo muscular, idealmente variando `equipment` (ex.: barra → halter → peso do corpo/elástico) para resolver **máquina ocupada, fila, equipamento ausente, casa vs. academia**. Cada alternativa carrega o próprio `howTo`.
+- Estas são **obrigações do gerador**: ele deve emitir variações e mídia; o app **valida** e sinaliza plano incompleto.
 
 ### 3.7 `diet` (obrigatório)
 ```
@@ -109,6 +114,9 @@ diet
 - Campos obrigatórios presentes; tipos corretos; enums válidos; números dentro das faixas acima.
 - `weekSchedule` referencia apenas `workoutId` existentes ou `"rest"`.
 - `id`s de workout e exercise únicos dentro do arquivo.
+- **Todo exercício tem `howTo.steps` (≥1).** Erro se faltar.
+- **Todo exercício tem `alternatives` com ≥2 itens**, cada um com `howTo`. Erro/aviso se < 2.
+- **Todo exercício tem `primaryMuscles` (≥1)** (necessário p/ mapa do corpo e volume).
 - Todo texto exibível é **escapado** ao renderizar.
 - Tamanho do arquivo ≤ (limite a definir, ex.: 512 KB).
 - Falha de validação → erro com **campo + motivo** (ex.: `profile.age fora da faixa (12–100)`).
@@ -167,8 +175,7 @@ diet
           {
             "id": "goblet_squat",
             "name": "Agachamento goblet",
-            "mediaId": "goblet_squat",
-            "instructions": "Desça controlando, joelhos alinhados aos pés.",
+            "equipment": "dumbbell",
             "sets": 3,
             "reps": "10-12",
             "load_kg": 12,
@@ -176,8 +183,36 @@ diet
             "effortTarget": 8,
             "primaryMuscles": ["quads", "glutes"],
             "secondaryMuscles": ["hamstrings", "abs"],
+            "howTo": {
+              "steps": [
+                "Segure o halter junto ao peito, pés na largura dos ombros.",
+                "Desça controlando, joelhos alinhados aos pés.",
+                "Suba empurrando o chão, sem travar o joelho."
+              ],
+              "images": ["goblet_squat_start", "goblet_squat_end"],
+              "mediaId": "goblet_squat"
+            },
             "alternatives": [
-              { "id": "leg_press", "name": "Leg press", "mediaId": "leg_press" }
+              {
+                "id": "leg_press",
+                "name": "Leg press",
+                "equipment": "machine",
+                "primaryMuscles": ["quads", "glutes"],
+                "howTo": {
+                  "steps": ["Apoie os pés na plataforma na largura dos ombros.", "Desça até ~90° e empurre sem travar o joelho."],
+                  "mediaId": "leg_press"
+                }
+              },
+              {
+                "id": "bodyweight_squat",
+                "name": "Agachamento livre (peso do corpo)",
+                "equipment": "bodyweight",
+                "primaryMuscles": ["quads", "glutes"],
+                "howTo": {
+                  "steps": ["Pés na largura dos ombros, braços à frente.", "Desça controlando e suba.", "Para casa / sem equipamento."],
+                  "videoUrl": "https://www.youtube.com/results?search_query=agachamento+livre+como+fazer"
+                }
+              }
             ]
           }
         ]

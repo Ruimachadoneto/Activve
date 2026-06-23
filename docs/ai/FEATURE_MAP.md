@@ -17,7 +17,9 @@
 - **Fundação local-first:** IndexedDB como fonte de verdade; PWA instalável; offline total.
 - **Import do plano:** upload `.json` + colar texto; **validação com erro claro** (campo + motivo); **preview/confirmar** antes de aplicar; rejeição de `schemaVersion` incompatível.
 - **Empty states e erros** em toda tela (sem plano, sem treino hoje, falha de import).
-- **Treino:** treino de hoje (agenda flexível) · execução **série a série** com steppers (sem teclado) · **timer de descanso** · marcar série/exercício/treino · "como fazer" (instrução/mídia por `mediaId` com fallback) · trocar por variação.
+- **Treino:** treino de hoje (agenda flexível) · execução **série a série** com steppers (sem teclado) · **timer de descanso** · marcar série/exercício/treino.
+- **"Como fazer" obrigatório em TODOS os exercícios:** texto (passos) sempre + foto/gif/vídeo; fallback "ver vídeo" por busca do nome garante 100% de cobertura.
+- **≥2 variações por exercício** (com `equipment`): trocar na hora resolve máquina ocupada, fila, equipamento ausente, casa vs. academia. Cada variação também tem "como fazer".
 - **Dieta:** refeições do dia + macros/kcal · **marcar refeição feita**.
 - **Meta/Corpo:** meta do plano · registrar peso e medidas · progresso visual (tendência).
 - **Histórico/continuidade:** sessões e logs persistidos por período; subir plano novo preserva histórico.
@@ -53,6 +55,7 @@
 ## Banco de casos extremos (viram requisitos/validação)
 **Import:** inválido / versão incompatível · parcial (treino ok, dieta faltando — definir: aceitar parcial?) · re-subir o mesmo (idempotência) · 0 treinos/refeições · `mediaId` inexistente (fallback) · unidade lb vs kg · macros que não fecham com kcal · arquivo grande (perf) · subir 2º plano (novo período, preserva histórico).
 **Treino:** treinou fora do dia agendado · pulou dias (catch-up, sem culpa) · interrompeu no meio (retomar) · casa sem peso (carga opcional) · exercício que não pode fazer (swap/skip com motivo) · timer em background/tela bloqueada · navegador fechou/celular morreu (não perder séries) · academia sem internet (já é offline) · deload.
+**Variações/mídia:** a variação também está ocupada (ter ≥2, e idealmente uma sem equipamento) · mídia não carrega (cair pra texto + "ver vídeo") · exercício de máquina específica sem alternativa caseira óbvia (gerador ainda deve dar alt viável) · usuário fixa uma variação preferida (persistir a escolha).
 **Dieta/Corpo:** comeu fora do plano (sem culpa) · meta batida → sugerir novo plano · data da meta passou sem bater (re-planejar) · oscilação de peso (tendência) · fotos (privacidade/tamanho).
 **Dados:** limpar dados do navegador (risco de perda → reforça export) · trocar de aparelho (export/import manual no v1) · IndexedDB cheio/cota.
 **Mapa do corpo:** exercício sem músculos declarados (fallback por `mediaId` ou ocultar) · músculo nunca treinado (estado neutro, sem cobrança) · recuperação é heurística, não ciência exata (deixar claro, configurável).
