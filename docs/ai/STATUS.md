@@ -5,7 +5,7 @@
 - Versão/release: `0.1.0` (scaffold inicial)
 - Nome do produto: **Activve** (repo/pasta local já = `activve`; **repo GitHub ainda `fitapp` — renomear em Settings**).
 - Objetivo atual: **TASK-001 — fundação de produto** (greenfield, **v1 local-first**: Next 16 + TS + Tailwind v4 + IndexedDB/PWA; Supabase = Fase 2). Arquitetura **plan-file driven**.
-- Progresso TASK-001: ✅ `PRODUCT.md` · ✅ `PLAN_SCHEMA.md` (contrato JSON v1.0) · ✅ `FEATURE_MAP.md` (brainstorm MoSCoW + casos extremos + decisões) · ⏳ gerador de anamnese · ⏳ ADR-001 · ⏳ benchmark/direção visual.
+- Progresso TASK-001: ✅ `PRODUCT.md` · ✅ `PLAN_SCHEMA.md` (contrato JSON v1.0) · ✅ `FEATURE_MAP.md` (MoSCoW + casos extremos) · ✅ `BENCHMARK.md` (pesquisa de mercado: absorver/melhorar/inovar) · ⏳ gerador de anamnese · ⏳ ADR-001 · ⏳ direção visual/design system.
 - Próximo passo: escrever o **gerador (prompt/artifact)** que emite planos válidos + **ADR-001** (arquitetura/dados/sync/import) + **benchmark fitness**.
 - Riscos conhecidos: 2 vulnerabilidades moderadas reportadas pelo `npm` no scaffold (auditar); nenhum runner de testes configurado ainda; aliases de modelo do Codex não fixados (validar no `codex`).
 - Dívidas relevantes: testes (unit/integration/e2e) `[A CONFIGURAR]`; PWA (manifest/service worker) ainda não adicionada; Supabase ainda não provisionado.
