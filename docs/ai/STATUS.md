@@ -5,8 +5,8 @@
 - Versão/release: `0.1.0` (scaffold inicial)
 - Nome do produto: **Activve** (repo/pasta local já = `activve`; **repo GitHub ainda `fitapp` — renomear em Settings**).
 - Objetivo atual: **TASK-001 — fundação de produto** (greenfield, **v1 local-first**: Next 16 + TS + Tailwind v4 + IndexedDB/PWA; Supabase = Fase 2). Arquitetura **plan-file driven**.
-- Progresso TASK-001: ✅ `PRODUCT.md` · ✅ `PLAN_SCHEMA.md` (entrada, +músculos/variações/howTo) · ✅ `REPORT_SCHEMA.md` (saída/ciclo fechado) · ✅ `FEATURE_MAP.md` (MoSCoW + casos extremos) · ✅ `BENCHMARK.md` (mercado) · ✅ `DECISIONS.md` (ADR-001 local-first, ADR-002 plan-file ciclo fechado) · ⏳ gerador de anamnese · ⏳ direção visual/design system.
-- Próximo passo: **direção visual + design system** (identidade própria, contemplando mapa do corpo, seletor de variação e "como fazer"); depois o **gerador de anamnese**; então TASK-002 (1ª feature com código, Codex entra).
+- Progresso TASK-001: ✅ `PRODUCT.md` · ✅ `PLAN_SCHEMA.md` · ✅ `REPORT_SCHEMA.md` · ✅ `FEATURE_MAP.md` · ✅ `BENCHMARK.md` · ✅ `DECISIONS.md` (ADR-001/002) · ✅ **direção visual aprovada** ("Soft Tech Minimal" dark+teal, via mockups do GPT) + `docs/DESIGN_SYSTEM.md` (starter) · ⏳ gerador de anamnese.
+- Próximo passo: **TASK-002 — primeira tela em código** (provável: import do plano OU Hoje), batendo o `DESIGN_SYSTEM.md`. É onde o **Codex entra** (Lead Claude planeja → Codex implementa em worktree → revisão cruzada). Em paralelo: gerador de anamnese; sourcing do asset do mapa muscular.
 - Riscos conhecidos: 2 vulnerabilidades moderadas reportadas pelo `npm` no scaffold (auditar); nenhum runner de testes configurado ainda; aliases de modelo do Codex não fixados (validar no `codex`).
 - Dívidas relevantes: testes (unit/integration/e2e) `[A CONFIGURAR]`; PWA (manifest/service worker) ainda não adicionada; Supabase ainda não provisionado.
 
