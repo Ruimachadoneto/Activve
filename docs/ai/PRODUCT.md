@@ -3,14 +3,14 @@
 > Spec viva. Atualize ao mudar escopo/decisão. Origem: TASK-001.
 
 ## 1. Visão
-**Activve** é um app de fitness que transforma um **plano personalizado** (treino + dieta + metas), gerado a partir de uma anamnese, em uma experiência diária de execução e acompanhamento — no celular, offline, com contas e sincronização.
+**Activve** é um app de fitness que transforma um **plano personalizado** (treino + dieta + metas), gerado a partir de uma anamnese, em uma experiência diária de execução e acompanhamento — no celular, **offline e local-first**. Contas e sincronização entre aparelhos são evolução (Fase 2), não v1.
 
 A frase: *"Seu personal e seu nutri viram um app. Você responde a anamnese, gera o plano, sobe no Activve, e ele conduz seu dia a dia."*
 
 ## 2. Como funciona (o modelo "plan-file")
 1. **Anamnese (fora do app):** um gerador (artifact/Claude) pergunta objetivo, sexo, idade, altura, peso, onde treina (casa/academia/ambos), disponibilidade, restrições, preferências.
 2. **Geração:** o gerador produz um **arquivo de plano JSON** versionado (treino, dieta, meta, métricas-alvo).
-3. **Import:** o usuário loga no Activve e **sobe o arquivo**. O app valida e monta tudo.
+3. **Import:** o usuário abre o Activve e **sobe o arquivo** (sem login no v1). O app valida e monta tudo.
 4. **Uso diário:** Activve conduz o treino (execução série a série + descanso), mostra a dieta do dia, registra peso/medidas e acompanha a meta.
 5. **Evolução:** ao mudar objetivo, gera-se um novo plano e sobe de novo — **o histórico de progresso é preservado**.
 
@@ -25,16 +25,17 @@ Consequência: **o app não tem IA nem custo de API.** A inteligência é o outp
 - Importar um plano JSON válido e montar treino, dieta, meta e métricas a partir dele.
 - Conduzir a execução do treino (registro série a série + cronômetro de descanso).
 - Registrar progresso (peso, medidas) e mostrar avanço rumo à meta.
-- Contas + sync: o mesmo plano e progresso em qualquer aparelho.
-- Funcionar offline; sincronizar quando online.
+- Funcionar 100% offline, local-first (IndexedDB).
+- **Export/backup** (JSON) do plano e do progresso — substitui a nuvem no v1 (sem perder dados ao trocar de aparelho/limpar navegador).
 
 ## 5. Não-objetivos (v1)
 - Gerar o plano dentro do app (a anamnese/geração é externa).
 - IA no servidor / chat de coach no app.
+- **Contas/login e sync entre aparelhos (Fase 2).** v1 é local, por aparelho — backup/restauração é por export/import manual.
 - Rede social, comunidade, compartilhamento público.
 - Integração com wearables / Apple Health / Google Fit.
 - Cobrança/assinatura.
-- Tracking nutricional fino (contar tudo que comeu); v1 mostra o **plano** de dieta, não diário alimentar completo.
+- Tracking nutricional fino (contar tudo que comeu); v1 mostra o **plano** de dieta + marcar refeição feita, não diário alimentar completo.
 
 ## 6. User stories
 1. Como usuário, quero **criar conta e entrar**, para meus dados ficarem salvos e sincronizados.
@@ -48,9 +49,11 @@ Consequência: **o app não tem IA nem custo de API.** A inteligência é o outp
 9. Como usuário, quero usar **offline** na academia e ver tudo sincronizar depois.
 
 ## 7. Escopo do MVP (proposto)
-**Inclui:** contas/login (Supabase) · import + validação do plano JSON · Treino (render + execução série a série + timer) · orientação de exercício (instrução/mídia por id) · Dieta (visualização do plano do dia) · Meta + Métricas (peso/medidas + progresso) · offline + sync.
+**Inclui:** fundação local-first (IndexedDB, PWA, offline) · import + validação do plano JSON (com preview) · Treino (render + execução série a série + timer + mídia/instrução + variação, **agenda flexível**) · Dieta (ver o dia + **marcar refeição feita**) · Meta + Métricas (peso/medidas + progresso) · **export/backup** · settings (unidades/tema) · design anti-culpa.
 
-**Fica para v2+:** diário alimentar completo, fotos de progresso, analytics avançado, progressão de carga automática, wearables, geração de plano embutida.
+**Fica para fases futuras:** **contas + sync (Fase 2)**, diário alimentar completo, fotos de progresso, analytics avançado, progressão de carga automática, wearables, geração de plano embutida.
+
+Detalhe completo (MoSCoW + casos extremos + decisões) em `FEATURE_MAP.md`.
 
 ## 8. Métricas de sucesso (norte, não vaidade)
 - Import de um plano válido funciona de primeira (taxa de erro de parse ~0 em planos do gerador oficial).

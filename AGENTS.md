@@ -11,12 +11,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 Entregar alterações corretas, verificáveis, pequenas o suficiente para revisão e coerentes com a arquitetura e o produto. Qualidade não é "parece funcionar"; qualidade exige evidência.
 
 ## 2. Contexto do projeto
-- **Produto:** fitapp — parceiro de treino/coach/personal/nutri na palma da mão. Cobre treino (academia/casa), dieta, acompanhamento de meta, peso e medidas corporais. **Greenfield**, do zero, mirando produto superior. Não é evolução de app anterior.
-- **Coach:** conteúdo curado + regras no cliente. **Sem IA de servidor** (sem chave de API, sem custo por uso).
-- **Usuários:** multiusuário com **contas e sync** entre aparelhos.
-- **Stack principal:** Next.js 16 (App Router) + TypeScript + Tailwind v4 + Supabase (Postgres, Auth, Row-Level Security, Storage). PWA instalável, **local-first** (IndexedDB) com sincronização quando online.
-- **Diretórios críticos:** `src/app` (rotas/telas), `src/components` (UI — a criar), `src/lib` (domínio, supabase, storage local — a criar), `supabase/` (schema/migrations — a criar), `docs/ai/` (governança e contratos).
-- **Arquitetura relevante:** dados isolados por usuário via RLS no Postgres; cópia local em IndexedDB; sync idempotente. Detalhe em `docs/ai/DECISIONS.md` quando houver ADR.
+- **Produto:** Activve — parceiro de treino/coach/personal/nutri na palma da mão. Cobre treino (academia/casa), dieta, acompanhamento de meta, peso e medidas corporais. **Greenfield**, do zero, mirando produto superior. Não é evolução de app anterior.
+- **Arquitetura "plan-file":** gerador externo (artifact) faz a anamnese e emite um **arquivo de plano JSON** (contrato em `docs/ai/PLAN_SCHEMA.md`); o app importa/valida/monta/rastreia. **Sem IA de servidor** (sem chave de API, sem custo).
+- **v1 = LOCAL-FIRST, SEM CONTA.** Dados em IndexedDB, 100% offline, por aparelho; backup via export/import JSON. **Sem Supabase/auth/sync no v1.**
+- **Contas + sync + multiusuário = Fase 2** (isolada; não reescreve o v1).
+- **Stack v1:** Next.js 16 (App Router) + TypeScript + Tailwind v4 + IndexedDB, como **PWA** instalável. Supabase entra só na Fase 2.
+- **Decisões de produto:** agenda de treino **flexível** (sugestão, não rígida); dieta = ver + **marcar refeição**; **design anti-culpa** (sem streak punitivo, sem BMI/% gordura em destaque); continuidade de histórico ao trocar de plano. Ver `docs/ai/FEATURE_MAP.md`.
+- **Diretórios críticos:** `src/app` (rotas/telas), `src/components` (UI — a criar), `src/lib` (domínio, import/validação do plano, storage IndexedDB — a criar), `docs/ai/` (governança e contratos).
+- **Arquitetura relevante:** IndexedDB como fonte de verdade no v1; modelo de planos/períodos/logs/medidas; import valida contra o schema. Detalhe em `docs/ai/DECISIONS.md` (ADR-001).
 - **Ambiente suportado:** Node 22, npm. Windows (dev). Hospedagem alvo a definir (Vercel provável).
 
 ### Comandos obrigatórios
