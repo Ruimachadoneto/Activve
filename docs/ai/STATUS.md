@@ -5,14 +5,15 @@
 - Versão/release: `0.1.0` (scaffold inicial)
 - Nome do produto: **Activve** (repo/pasta local já = `activve`; **repo GitHub ainda `fitapp` — renomear em Settings**).
 - Objetivo atual: **TASK-001 — fundação de produto** (greenfield, **v1 local-first**: Next 16 + TS + Tailwind v4 + IndexedDB/PWA; Supabase = Fase 2). Arquitetura **plan-file driven**.
-- Progresso TASK-001: ✅ `PRODUCT.md` · ✅ `PLAN_SCHEMA.md` (contrato JSON v1.0) · ✅ `FEATURE_MAP.md` (MoSCoW + casos extremos) · ✅ `BENCHMARK.md` (pesquisa de mercado: absorver/melhorar/inovar) · ⏳ gerador de anamnese · ⏳ ADR-001 · ⏳ direção visual/design system.
+- Progresso TASK-001: ✅ `PRODUCT.md` · ✅ `PLAN_SCHEMA.md` (entrada, +músculos) · ✅ `REPORT_SCHEMA.md` (saída/ciclo fechado) · ✅ `FEATURE_MAP.md` (MoSCoW + casos extremos) · ✅ `BENCHMARK.md` (mercado) · ⏳ gerador de anamnese · ⏳ ADR-001 · ⏳ direção visual/design system.
 - Próximo passo: escrever o **gerador (prompt/artifact)** que emite planos válidos + **ADR-001** (arquitetura/dados/sync/import) + **benchmark fitness**.
 - Riscos conhecidos: 2 vulnerabilidades moderadas reportadas pelo `npm` no scaffold (auditar); nenhum runner de testes configurado ainda; aliases de modelo do Codex não fixados (validar no `codex`).
 - Dívidas relevantes: testes (unit/integration/e2e) `[A CONFIGURAR]`; PWA (manifest/service worker) ainda não adicionada; Supabase ainda não provisionado.
 
 ## Contexto essencial
 - Produto: parceiro de treino/coach/nutri (treino, dieta, meta, peso, corpo). **Arquitetura plan-file:** gerador externo faz anamnese → emite **arquivo de plano JSON** → app importa/valida/monta/rastreia. **Sem IA de servidor.** Multiusuário com contas/sync.
-- Formato do plano: **JSON + schema (Zod), versionado** — contrato em `docs/ai/PLAN_SCHEMA.md`.
+- Formato do plano: **JSON + schema (Zod), versionado** — entrada `docs/ai/PLAN_SCHEMA.md`, saída `docs/ai/REPORT_SCHEMA.md`.
+- **Ciclo fechado:** `plano → executa → relatório → Artifact ajusta → novo plano`. App exporta relatório estruturado; sem backend/IA. Feature-destaque: **mapa do corpo** (músculos + recuperação).
 - **Decisões do brainstorm:** v1 **local-first sem conta** (IndexedDB; contas+sync = Fase 2) · agenda **flexível** · dieta = ver + **marcar refeição** · **anti-culpa** · export/backup é MUST no v1. Ver `FEATURE_MAP.md`.
 - Referência de conceito (NÃO copiar código): app da Bárbara em `C:\Users\Rui Neto\Downloads\barbara-fit-pwa`.
 - Stack v1: Next 16 + TS + Tailwind v4 + IndexedDB (PWA). Supabase só na Fase 2. Detalhar em ADR-001.

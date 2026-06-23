@@ -10,6 +10,8 @@
 4. **Continuidade de histórico.** Subir plano novo cria um **período**; nunca apaga logs antigos (casados por `exercise.id`). O modelo local já nasce assim.
 5. **Princípio anti-culpa** (restrição de produto). Proíbe: streak punitivo, "você falhou X dias", BMI/% gordura em destaque, anéis de meta a fechar. Progresso é enquadrado de forma positiva; oscilação de peso vira tendência, não vergonha.
 6. **Risco técnico aceito:** cronômetro de descanso em PWA com app em background/tela bloqueada é frágil (iOS). Prototipar cedo; plano B = som/notificação/aviso ao reabrir.
+7. **Ciclo fechado de coaching (decisão central).** O app **exporta um relatório estruturado** (treino/dieta/progresso/período) que o **Artifact re-ingere** para analisar e gerar o próximo plano: `plano → executa → relatório → Artifact ajusta → novo plano`. O export é a **direção de saída do contrato plan-file** (versionado, parseável + resumo legível). Contrato em `docs/ai/REPORT_SCHEMA.md`. Mantém zero backend / zero IA no app.
+8. **Mapa do corpo é feature-destaque.** Visual do corpo mostrando músculos trabalhados e **status de recuperação** (heurística local de 48–72h escalada por volume/esforço). Exige que cada exercício declare os músculos no plano (`primaryMuscles`/`secondaryMuscles` — adicionado ao `PLAN_SCHEMA`). App pode ter mapa de fallback por `mediaId`.
 
 ## MUST (v1)
 - **Fundação local-first:** IndexedDB como fonte de verdade; PWA instalável; offline total.
@@ -20,10 +22,12 @@
 - **Meta/Corpo:** meta do plano · registrar peso e medidas · progresso visual (tendência).
 - **Histórico/continuidade:** sessões e logs persistidos por período; subir plano novo preserva histórico.
 - **Export/backup** (JSON) e **import do backup** — substitui a nuvem no v1.
+- **Relatório/export estruturado pro Artifact** (ciclo fechado): treino, dieta, progresso à meta, período — formato versionado (`REPORT_SCHEMA`) + resumo legível. É a alma do produto (coaching contínuo).
 - **Settings:** unidades (kg/cm), tema, gerenciar/limpar dados.
 - **Design anti-culpa** aplicado.
 
 ## SHOULD (v1 se couber, senão v1.1)
+- **★ Mapa do corpo (feature-destaque):** músculos trabalhados + status de recuperação (heurística local). Fundação de dados (músculos no plano) entra no v1; a visualização completa pode ir pra v1.1.
 - Referência da **última sessão** por exercício · **sugestão de progressão de carga** (bateu o topo das reps).
 - **Lista de compras** e prep (do plano) · troca de refeição.
 - **Fotos de progresso** (local; cuidado com tamanho no IndexedDB).
@@ -51,6 +55,8 @@
 **Treino:** treinou fora do dia agendado · pulou dias (catch-up, sem culpa) · interrompeu no meio (retomar) · casa sem peso (carga opcional) · exercício que não pode fazer (swap/skip com motivo) · timer em background/tela bloqueada · navegador fechou/celular morreu (não perder séries) · academia sem internet (já é offline) · deload.
 **Dieta/Corpo:** comeu fora do plano (sem culpa) · meta batida → sugerir novo plano · data da meta passou sem bater (re-planejar) · oscilação de peso (tendência) · fotos (privacidade/tamanho).
 **Dados:** limpar dados do navegador (risco de perda → reforça export) · trocar de aparelho (export/import manual no v1) · IndexedDB cheio/cota.
+**Mapa do corpo:** exercício sem músculos declarados (fallback por `mediaId` ou ocultar) · músculo nunca treinado (estado neutro, sem cobrança) · recuperação é heurística, não ciência exata (deixar claro, configurável).
+**Relatório/loop:** relatório referencia plano que já não é o vigente (carimbar `planId`+período) · pouco dado no período (relatório honesto, sem inventar) · Artifact ignora/!entende versão do relatório (versionar) · usuário nunca volta com plano novo (app segue funcionando com o plano atual).
 
 ## Próximo
 ADR-001 deve registrar: **v1 local-first (IndexedDB, sem Supabase)**, modelo de dados local (planos/períodos/logs/medidas), estratégia de import/validação, export/backup, e o **caminho de evolução para Fase 2 (Supabase/contas/sync)** sem reescrever o v1.

@@ -81,8 +81,14 @@ training
       ├─ load_kg?      number 0–500  (sugestão inicial; pode faltar p/ casa)
       ├─ rest_s        int 0–600
       ├─ effortTarget? int 6–10 (RPE)
+      ├─ primaryMuscles?   muscle[]  (principais — alimenta o MAPA DO CORPO e o volume por grupo)
+      ├─ secondaryMuscles? muscle[]  (auxiliares)
       └─ alternatives? [{ id, name, mediaId? }]  (variações do mesmo grupo)
 ```
+
+**`muscle` (vocabulário fechado)** — usar estes ids estáveis p/ o mapa do corpo e o volume por grupo:
+`chest · upper_back · lats · traps · lower_back · front_delts · side_delts · rear_delts · biceps · triceps · forearms · abs · obliques · glutes · quads · hamstrings · adductors · abductors · calves · neck`.
+Recuperação no app é **heurística** (ex.: ~48–72h, escalada por volume/esforço), configurável — não promessa científica.
 
 ### 3.7 `diet` (obrigatório)
 ```
@@ -168,6 +174,8 @@ diet
             "load_kg": 12,
             "rest_s": 90,
             "effortTarget": 8,
+            "primaryMuscles": ["quads", "glutes"],
+            "secondaryMuscles": ["hamstrings", "abs"],
             "alternatives": [
               { "id": "leg_press", "name": "Leg press", "mediaId": "leg_press" }
             ]

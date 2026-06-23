@@ -12,9 +12,12 @@ A frase: *"Seu personal e seu nutri viram um app. Você responde a anamnese, ger
 2. **Geração:** o gerador produz um **arquivo de plano JSON** versionado (treino, dieta, meta, métricas-alvo).
 3. **Import:** o usuário abre o Activve e **sobe o arquivo** (sem login no v1). O app valida e monta tudo.
 4. **Uso diário:** Activve conduz o treino (execução série a série + descanso), mostra a dieta do dia, registra peso/medidas e acompanha a meta.
-5. **Evolução:** ao mudar objetivo, gera-se um novo plano e sobe de novo — **o histórico de progresso é preservado**.
+5. **Relatório (ciclo fechado):** o app **exporta um relatório estruturado** (treino, dieta, avanço à meta, do período/mês) que volta ao gerador para análise.
+6. **Ajuste:** o gerador analisa o relatório, ajusta treino/dieta e produz **um novo plano**; sobe de novo e **o histórico de progresso é preservado**.
 
-Consequência: **o app não tem IA nem custo de API.** A inteligência é o output do gerador.
+Ciclo: `plano → executa → relatório → ajusta → novo plano`. O gerador e o app viram **parceiros contínuos** do usuário.
+
+Consequência: **o app não tem IA nem custo de API.** A inteligência é o output do gerador; o app executa, mede e devolve evidência.
 
 ## 3. Público-alvo
 - **Primário:** pessoa que treina pelo celular e quer um plano estruturado sem pagar mensalidade de personal/nutri. Usa diariamente, na academia ou em casa.
@@ -49,7 +52,7 @@ Consequência: **o app não tem IA nem custo de API.** A inteligência é o outp
 9. Como usuário, quero usar **offline** na academia e ver tudo sincronizar depois.
 
 ## 7. Escopo do MVP (proposto)
-**Inclui:** fundação local-first (IndexedDB, PWA, offline) · import + validação do plano JSON (com preview) · Treino (render + execução série a série + timer + mídia/instrução + variação, **agenda flexível**) · Dieta (ver o dia + **marcar refeição feita**) · Meta + Métricas (peso/medidas + progresso) · **export/backup** · settings (unidades/tema) · design anti-culpa.
+**Inclui:** fundação local-first (IndexedDB, PWA, offline) · import + validação do plano JSON (com preview) · Treino (render + execução série a série + timer + mídia/instrução + variação, **agenda flexível**) · Dieta (ver o dia + **marcar refeição feita**) · Meta + Métricas (peso/medidas + progresso) · **export/backup** · **relatório estruturado pro Artifact (ciclo fechado)** · **mapa do corpo** (fundação de músculos no schema; visualização completa pode ir pra v1.1) · settings (unidades/tema) · design anti-culpa.
 
 **Fica para fases futuras:** **contas + sync (Fase 2)**, diário alimentar completo, fotos de progresso, analytics avançado, progressão de carga automática, wearables, geração de plano embutida.
 
