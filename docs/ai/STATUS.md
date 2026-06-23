@@ -3,21 +3,24 @@
 - Atualizado em: `2026-06-22`
 - Branch estável: `main`
 - Versão/release: `0.1.0` (scaffold inicial)
-- Objetivo atual: **fundação do fitapp** — projeto greenfield (Next 16 + TS + Tailwind v4 + Supabase) nascendo com o kit Claude+Codex instalado.
-- Próxima tarefa prioritária: **TASK-001 — definição de produto + ADR de arquitetura + direção visual** (Lead/Planner; ainda sem código de produto).
+- Nome do produto: **Activve** (repo/pasta local já = `activve`; **repo GitHub ainda `fitapp` — renomear em Settings**).
+- Objetivo atual: **TASK-001 — fundação de produto** (greenfield, Next 16 + TS + Tailwind v4 + Supabase, kit Claude+Codex). Arquitetura **plan-file driven**.
+- Progresso TASK-001: ✅ `PRODUCT.md` · ✅ `PLAN_SCHEMA.md` (contrato JSON v1.0 + exemplo) · ⏳ gerador de anamnese · ⏳ ADR-001 · ⏳ benchmark/direção visual.
+- Próximo passo: escrever o **gerador (prompt/artifact)** que emite planos válidos + **ADR-001** (arquitetura/dados/sync/import) + **benchmark fitness**.
 - Riscos conhecidos: 2 vulnerabilidades moderadas reportadas pelo `npm` no scaffold (auditar); nenhum runner de testes configurado ainda; aliases de modelo do Codex não fixados (validar no `codex`).
 - Dívidas relevantes: testes (unit/integration/e2e) `[A CONFIGURAR]`; PWA (manifest/service worker) ainda não adicionada; Supabase ainda não provisionado.
 
 ## Contexto essencial
-- Produto: parceiro de treino/coach/personal/nutri (treino, dieta, meta, peso, corpo). Coach = conteúdo curado + regras, **sem IA de servidor**. Multiusuário com contas/sync.
+- Produto: parceiro de treino/coach/nutri (treino, dieta, meta, peso, corpo). **Arquitetura plan-file:** gerador externo faz anamnese → emite **arquivo de plano JSON** → app importa/valida/monta/rastreia. **Sem IA de servidor.** Multiusuário com contas/sync.
+- Formato do plano: **JSON + schema (Zod), versionado** — contrato em `docs/ai/PLAN_SCHEMA.md`.
 - Referência de conceito (NÃO copiar código): app da Bárbara em `C:\Users\Rui Neto\Downloads\barbara-fit-pwa`.
-- Decisão de stack: ver futura ADR-001 em `DECISIONS.md`. Supabase escolhido por Auth+RLS+Storage+sync no tier grátis.
+- Stack: Next 16 + TS + Tailwind v4 + Supabase (Auth/RLS/Storage/sync, tier grátis). Detalhar em ADR-001.
 
 ## Tarefas ativas
 
 | ID | Título | Status | Implementer | Reviewer | Branch |
 |---|---|---|---|---|---|
-| TASK-001 | Definição de produto + arquitetura + direção visual | A INICIAR | — | — | — |
+| TASK-001 | Fundação de produto (spec + schema + gerador + ADR + direção visual) | EM ANDAMENTO | Claude (Lead) | humano | main (docs) |
 
 ## Última entrega validada
 

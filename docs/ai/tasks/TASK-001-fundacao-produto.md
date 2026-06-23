@@ -12,22 +12,28 @@
 
 ## Objetivo
 
-Produzir a base de decisão do fitapp — **sem implementar telas** — para que a primeira feature já nasça certa. Entregáveis verificáveis:
+Produzir a base de decisão do **Activve** — **sem implementar telas** — para que a primeira feature já nasça certa. Entregáveis verificáveis:
 1. `docs/ai/PRODUCT.md` — spec: público, objetivos, **não-objetivos**, user stories, recorte do MVP.
-2. `docs/ai/DECISIONS.md` (ADR-001) — arquitetura: Next 16 + Supabase, modelo de dados multiusuário, RLS, estratégia offline/sync.
-3. Direção visual: benchmark do segmento fitness + esboço de `docs/DESIGN_SYSTEM.md` com **identidade própria** (conforme `VISUAL_QUALITY.md §3-5`).
+2. **`docs/ai/PLAN_SCHEMA.md` + schema JSON versionado** — o contrato do arquivo de plano (treino/dieta/meta/métricas) que o gerador produz e o app importa. Artefato CENTRAL do projeto.
+3. **Gerador (prompt/artifact) de anamnese** que emite arquivos compatíveis com o schema — projetado junto com o schema (dois lados do mesmo contrato).
+4. `docs/ai/DECISIONS.md` (ADR-001) — arquitetura: Next 16 + Supabase, modelo de dados, RLS, import/validação do plano, offline/sync, continuidade entre planos (histórico).
+5. Direção visual: benchmark do segmento fitness + esboço de `docs/DESIGN_SYSTEM.md` com **identidade própria** (conforme `VISUAL_QUALITY.md §3-5`).
 
 ## Contexto
 
 - Problema: produto greenfield ambicioso (treino, dieta, meta, peso, corpo) que precisa de fundação sólida antes de código.
-- Coach = conteúdo curado + regras, **sem IA de servidor**. Multiusuário com contas/sync.
+- **Arquitetura "plan-file driven":** um gerador externo (artifact) faz a anamnese e emite um **arquivo de plano JSON**; o Activve loga o usuário, importa/valida o arquivo e monta+rastreia tudo. Logo o app não tem IA — a curadoria é o output do gerador.
+- Coach = conteúdo curado via gerador, **sem IA de servidor**. Multiusuário com contas/sync.
+- Formato do plano decidido: **JSON validado por schema (Zod), com `schemaVersion`**.
 - Referência de conceito (NÃO copiar): `C:\Users\Rui Neto\Downloads\barbara-fit-pwa`.
 
 ## Restrições
 
-- Sem chave de API de IA; inteligência = conteúdo + regras no cliente.
+- Sem chave de API de IA; inteligência = output do gerador (arquivo de plano).
 - Segredos do Supabase só em `.env.local`; `service_role` nunca no cliente.
 - Local-first (IndexedDB) + sync idempotente; RLS isola dados por usuário.
+- **Upload = entrada não confiável:** validar contra o schema, checar ranges sãos (peso/reps/calorias), escapar texto renderizado (anti-XSS), limitar tamanho do arquivo, e dar erro claro em plano inválido/versão incompatível.
+- Schema do plano **versionado**; o app rejeita/migra versões que não entende.
 
 ## Fora de escopo
 
