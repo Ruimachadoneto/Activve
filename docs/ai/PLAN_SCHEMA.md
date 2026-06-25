@@ -91,7 +91,7 @@ training
 Recuperação no app é **heurística** (ex.: ~48–72h, escalada por volume/esforço), configurável — não promessa científica.
 
 ### 3.6.1 "Como fazer" e variações — OBRIGATÓRIOS (regra de produto)
-- **Todo exercício (e toda variação) tem `howTo`.** `howTo.steps` (texto) é sempre obrigatório. Deve haver **pelo menos 1 recurso visual** (`images`, `gifUrl`, `videoUrl` ou `mediaId`); se nenhum vier, o app garante o fallback **"ver vídeo"** por busca do nome — nunca um exercício sem orientação. Objetivo: o máximo de pessoas conseguir executar corretamente.
+- **Todo exercício (e toda variação) tem `howTo`.** `howTo.steps` (texto) é **sempre obrigatório** (o validador rejeita se faltar). O **recurso visual** (`images`, `gifUrl`, `videoUrl` ou `mediaId`) é **fortemente recomendado ao gerador, mas opcional no arquivo**: quando não vier, **o app garante o fallback "ver vídeo"** por busca do nome — por isso o validador **não** rejeita exercício texto-only (rejeitar quebraria planos válidos). Objetivo: nunca um exercício sem orientação, e o máximo de pessoas conseguindo executar corretamente.
 - **Todo exercício tem `alternatives` com ≥2 itens**, mesmo grupo muscular, idealmente variando `equipment` (ex.: barra → halter → peso do corpo/elástico) para resolver **máquina ocupada, fila, equipamento ausente, casa vs. academia**. Cada alternativa carrega o próprio `howTo`.
 - Estas são **obrigações do gerador**: ele deve emitir variações e mídia; o app **valida** e sinaliza plano incompleto.
 

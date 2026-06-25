@@ -85,6 +85,20 @@ export const trainingSchema = z
         });
       }
     });
+    // exercise.id deve ser único no arquivo inteiro (chave estável de histórico — ADR-002).
+    const exIds = new Set<string>();
+    training.workouts.forEach((w, wi) => {
+      w.exercises.forEach((ex, ei) => {
+        if (exIds.has(ex.id)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["workouts", wi, "exercises", ei, "id"],
+            message: `id de exercício duplicado: "${ex.id}" (precisa ser único no plano).`,
+          });
+        }
+        exIds.add(ex.id);
+      });
+    });
   });
 
 export const profileSchema = z.object({

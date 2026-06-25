@@ -28,7 +28,7 @@ Primeira tela em código: importar um arquivo de plano JSON, **validar com Zod**
 - [x] Plano válido (exemplo do PLAN_SCHEMA) valida (teste). Persistência/render: round-trip no browser pendente de verificação manual.
 - [x] Plano inválido (versão incompatível, exercício sem 2 variações, idade fora da faixa, weekSchedule órfão) → erro por campo (coberto por testes).
 - [x] `npm run typecheck`, `lint`, `build`, `test` verdes.
-- [ ] Revisão cruzada (Codex) sem P0/P1.
+- [x] Revisão cruzada (Codex) sem P0/P1. (2 achados P2: #2 `exercise.id` único — CORRIGIDO + teste; #1 visual obrigatório — DECLINADO com motivo, contrato clarificado.)
 - [ ] Verificação manual no browser (import → persiste → home mostra resumo).
 
 ## Validações

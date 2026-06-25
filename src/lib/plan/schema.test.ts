@@ -92,4 +92,15 @@ describe("parsePlan", () => {
     const result = parsePlan(JSON.stringify(plan));
     expect(result.ok).toBe(false);
   });
+
+  it("rejeita exercise.id duplicado no arquivo (continuidade de histórico)", () => {
+    const plan = validPlan();
+    const dup = JSON.parse(JSON.stringify(plan.training.workouts[0].exercises[0]));
+    plan.training.workouts[1].exercises = [dup];
+    const result = parsePlan(JSON.stringify(plan));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.some((e) => e.message.includes("duplicado"))).toBe(true);
+    }
+  });
 });

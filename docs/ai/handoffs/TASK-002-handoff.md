@@ -31,10 +31,15 @@ npm run build      → OK (rotas / e /import)
 - PT completo nas mensagens do zod (type-mismatch ainda em EN).
 - "Sync em todos os dispositivos" NÃO existe (v1 local-first) — não prometer na UI.
 
+## Revisão cruzada (Codex) — feita
+`codex review --base main`. Nenhum P0/P1. Dois P2:
+- #2 `exercise.id` não era validado como único no arquivo → **corrigido** (superRefine + teste). Bug real (quebraria continuidade de histórico, ADR-002).
+- #1 `howTo` sem exigir visual → **declinado** com motivo: o contrato prevê o fallback "ver vídeo" do app, logo texto-only é válido no arquivo; `PLAN_SCHEMA §3.6.1` clarificado para remover a ambiguidade que o revisor pegou.
+Gates re-rodados após o fix: typecheck/lint/build OK, testes 7/7.
+
 ## Próximos passos
-1. **Revisão cruzada (Codex)** do diff `main..ai/TASK-002-import-plano-claude`.
-2. Verificação manual no browser.
-3. Corrigir achados P0/P1 → merge → TASK-003 (Hoje / Modo treino).
+1. Verificação manual no browser (import → persiste → home).
+2. Merge em main (aprovação humana) → TASK-003 (Hoje / Modo treino).
 
 ## Referência
 - Branch: `ai/TASK-002-import-plano-claude` (base `origin/main`).
