@@ -106,7 +106,8 @@ export default function HojePage() {
         <div className="flex justify-between">
           {WEEK_DAYS.map((d, i) => {
             const isToday = i === ti;
-            const isRest = p.training.weekSchedule[i] === "rest";
+            const entry = p.training.weekSchedule[i];
+            const isRest = entry === "rest";
             return (
               <div key={i} className="flex flex-col items-center gap-1.5">
                 <div
@@ -121,6 +122,11 @@ export default function HojePage() {
                 >
                   {d}
                 </div>
+                <span
+                  className={`text-[10px] ${isToday ? "text-accent" : isRest ? "text-faint" : "text-muted"}`}
+                >
+                  {isRest ? "·" : entry}
+                </span>
               </div>
             );
           })}

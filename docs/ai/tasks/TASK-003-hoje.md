@@ -25,7 +25,7 @@ Substituir o stub da home pela tela **Hoje** real, no estilo do `docs/DESIGN_SYS
 - [x] Sem plano, mostra CTA de importar.
 - [x] Visão da semana reflete o `weekSchedule` real (sem "concluído" falso).
 - [x] `typecheck`, `lint`, `build`, `test` (13/13) verdes.
-- [ ] Revisão cruzada (Codex) sem P0/P1.
+- [x] Revisão cruzada (Codex) sem P0/P1. 1 achado P2 (visão da semana não mostrava qual treino A/B por dia) — CORRIGIDO + verificado no preview (S→A·T→··Q→B·Q→··S→A·S→B·D→·).
 
 ## Escopo entregue
 - Hoje (saudação por horário, card treino-de-hoje/descanso, CTA, visão da semana) + `/treino` (chips de treinos + lista de exercícios read-only, agenda flexível) + BottomNav (Hoje/Treino ativos; demais inativos) + `lucide-react`.
