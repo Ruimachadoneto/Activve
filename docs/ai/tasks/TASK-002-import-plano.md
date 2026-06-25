@@ -1,7 +1,7 @@
 # TASK-002 — Import do plano (parse + validação + storage local)
 
 ## Metadados
-- Status: `review`
+- Status: `review` → PRONTA P/ MERGE (todos os critérios atendidos; aguarda aprovação humana do merge)
 - Risco: `médio` (keystone: todas as telas dependem do plano importado; entrada não confiável)
 - Lead/Planner: `Claude`
 - Implementer: `Claude`
@@ -29,7 +29,7 @@ Primeira tela em código: importar um arquivo de plano JSON, **validar com Zod**
 - [x] Plano inválido (versão incompatível, exercício sem 2 variações, idade fora da faixa, weekSchedule órfão) → erro por campo (coberto por testes).
 - [x] `npm run typecheck`, `lint`, `build`, `test` verdes.
 - [x] Revisão cruzada (Codex) sem P0/P1. (2 achados P2: #2 `exercise.id` único — CORRIGIDO + teste; #1 visual obrigatório — DECLINADO com motivo, contrato clarificado.)
-- [ ] Verificação manual no browser (import → persiste → home mostra resumo).
+- [x] Verificação manual no browser (import → persiste → home mostra resumo). ✅ Confirmado com `examples/plano-exemplo.json`: home mostra "Olá, Rui." + plano ativo (Recomposição · 4x/semana · 2 treinos · 2100 kcal).
 
 ## Validações
 ```bash

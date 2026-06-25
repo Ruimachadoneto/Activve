@@ -23,7 +23,7 @@
 | ID | Título | Status | Implementer | Reviewer | Branch |
 |---|---|---|---|---|---|
 | TASK-001 | Fundação de produto (spec + schema + ADR + direção visual) | CONCLUÍDA | Claude (Lead) | humano | main (docs) |
-| TASK-002 | Import do plano (Zod + IndexedDB + tela /import) | EM REVISÃO | Claude | Codex (pendente) | ai/TASK-002-import-plano-claude |
+| TASK-002 | Import do plano (Zod + IndexedDB + tela /import) | PRONTA P/ MERGE | Claude | Codex (feito, sem P0/P1) | ai/TASK-002-import-plano-claude |
 
 ## Última entrega validada
 
