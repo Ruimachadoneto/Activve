@@ -4,9 +4,9 @@
 - Branch estável: `main`
 - Versão/release: `0.1.0` (scaffold inicial)
 - Nome do produto: **Activve** (repo/pasta local já = `activve`; **repo GitHub ainda `fitapp` — renomear em Settings**).
-- Objetivo atual: **TASK-001 — fundação de produto** (greenfield, **v1 local-first**: Next 16 + TS + Tailwind v4 + IndexedDB/PWA; Supabase = Fase 2). Arquitetura **plan-file driven**.
+- Objetivo atual: **TASK-002 — import do plano** EM REVISÃO (branch `ai/TASK-002-import-plano-claude`; gates verdes). TASK-001 (fundação) concluída. v1 local-first.
 - Progresso TASK-001: ✅ `PRODUCT.md` · ✅ `PLAN_SCHEMA.md` · ✅ `REPORT_SCHEMA.md` · ✅ `FEATURE_MAP.md` · ✅ `BENCHMARK.md` · ✅ `DECISIONS.md` (ADR-001/002) · ✅ **direção visual aprovada** ("Soft Tech Minimal" dark+teal, via mockups do GPT) + `docs/DESIGN_SYSTEM.md` (starter) · ⏳ gerador de anamnese.
-- Próximo passo: **TASK-002 — primeira tela em código** (provável: import do plano OU Hoje), batendo o `DESIGN_SYSTEM.md`. É onde o **Codex entra** (Lead Claude planeja → Codex implementa em worktree → revisão cruzada). Em paralelo: gerador de anamnese; sourcing do asset do mapa muscular.
+- Próximo passo: **revisão cruzada do Codex** no diff de TASK-002 + verificação manual no browser; corrigir P0/P1; merge. Depois TASK-003 (Hoje / Modo treino). Em paralelo: gerador de anamnese; sourcing do asset do mapa muscular.
 - Riscos conhecidos: 2 vulnerabilidades moderadas reportadas pelo `npm` no scaffold (auditar); nenhum runner de testes configurado ainda; aliases de modelo do Codex não fixados (validar no `codex`).
 - Dívidas relevantes: testes (unit/integration/e2e) `[A CONFIGURAR]`; PWA (manifest/service worker) ainda não adicionada; Supabase ainda não provisionado.
 
@@ -22,7 +22,8 @@
 
 | ID | Título | Status | Implementer | Reviewer | Branch |
 |---|---|---|---|---|---|
-| TASK-001 | Fundação de produto (spec + schema + gerador + ADR + direção visual) | EM ANDAMENTO | Claude (Lead) | humano | main (docs) |
+| TASK-001 | Fundação de produto (spec + schema + ADR + direção visual) | CONCLUÍDA | Claude (Lead) | humano | main (docs) |
+| TASK-002 | Import do plano (Zod + IndexedDB + tela /import) | EM REVISÃO | Claude | Codex (pendente) | ai/TASK-002-import-plano-claude |
 
 ## Última entrega validada
 
