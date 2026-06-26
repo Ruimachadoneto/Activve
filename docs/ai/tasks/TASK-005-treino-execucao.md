@@ -51,12 +51,12 @@ SetLog { done: boolean; reps?: number; load_kg?: number }   // alvo vem do plano
 - Sugestão de progressão de carga / referência da última sessão → SHOULD, depois.
 
 ## Critérios de aceite
-- [ ] Dado um treino do dia, quando marco uma série como feita e ajusto reps/carga nos steppers, então o estado persiste e sobrevive a um reload.
-- [ ] Dado um treino em andamento, quando reabro o `/treino`, então ele **retoma** as séries já marcadas.
-- [ ] Dado todas as séries feitas, quando concluo o treino, então a sessão vira `done` (`completedAt` gravado) com feedback positivo.
-- [ ] Subir um plano novo **não apaga** sessões/logs anteriores.
-- [ ] Nenhuma regressão no Hoje/import; migração v2 abre bases v1 sem perda.
-- [ ] Testes da camada de sessão passam; typecheck/lint/build/test verdes.
+- [x] Dado um treino do dia, quando marco uma série como feita e ajusto reps/carga nos steppers, então o estado persiste e sobrevive a um reload. _(verificado no preview: marca + 40→42,5kg + reload)_
+- [x] Dado um treino em andamento, quando reabro o `/treino`, então ele **retoma** as séries já marcadas.
+- [x] Dado as séries feitas, quando concluo o treino, então a sessão vira `done` (`completedAt`) com feedback positivo (anti-culpa: conclui em qualquer momento).
+- [x] Subir um plano novo **não apaga** sessões/logs anteriores. _(por design: sessões por `planId`; store separado)_
+- [x] Nenhuma regressão no Hoje/import; migração v2 abre bases v1 sem perda. _(verificado: base v1 → v2, plano intacto)_
+- [x] Testes da camada de sessão passam; typecheck/lint/build/test verdes (34 testes).
 
 ## Plano proposto
 1. **Tipos + storage:** `session.ts` (tipos + helpers puros: cria sessão a partir do workout, atualiza set), `sessions.ts` (store, migração v2, `getOrCreateTodaySession`, `saveSession`, `getSessionForDay`). Testes puros.
@@ -78,4 +78,6 @@ npm run typecheck && npm run lint && npm run test && npm run build
 ```
 
 ## Registro de execução
-- 2026-06-26 — contrato criado; modelo de sessão definido (store `sessions`, DB v2). Próximo: tipos + storage.
+- 2026-06-26 — contrato criado; modelo de sessão definido (store `sessions`, DB v2).
+- 2026-06-26 — Fase 1 (fundação): `session.ts` + `sessions.ts` + migração v1→v2; 6 testes; migração verificada não-destrutiva.
+- 2026-06-26 — Fase 2 (UI): `/treino` reescrito como execução série-a-série (steppers reps/carga sem teclado, toggle de série, barra de progresso, concluir treino). Sessão lazy (rascunho em memória, só persiste ao interagir; retoma do IndexedDB). Reps/carga pré-preenchidos do plano. **Verificado no preview**: marcar → steppers → reload retoma → concluir. Gates verdes (34 testes). **Pendente:** stretch dos checks reais da semana no Hoje (lê `sessions`). Fora: como-fazer/variações (TASK-006), timer (TASK-007).

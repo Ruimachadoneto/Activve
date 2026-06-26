@@ -44,6 +44,12 @@ export function sessionIdFor(planId: string, workoutId: string, date: string): s
   return `${planId}:${workoutId}:${date}`;
 }
 
+/** Extrai um número de reps do alvo do plano ("8-10" → 8, "12" → 12, "AMRAP" → undefined). */
+export function parseReps(reps?: string): number | undefined {
+  const m = reps?.match(/\d+/);
+  return m ? Number(m[0]) : undefined;
+}
+
 /** Cria uma sessão nova a partir do workout — séries pré-criadas, nada feito ainda. */
 export function createSession(
   planId: string,
@@ -59,7 +65,11 @@ export function createSession(
     startedAt: new Date().toISOString(),
     exercises: workout.exercises.map((ex) => ({
       exerciseId: ex.id,
-      sets: Array.from({ length: Math.max(1, ex.sets) }, () => ({ done: false })),
+      sets: Array.from({ length: Math.max(1, ex.sets || 0) }, () => ({
+        done: false,
+        reps: parseReps(ex.reps),
+        load_kg: ex.load_kg,
+      })),
     })),
   };
 }

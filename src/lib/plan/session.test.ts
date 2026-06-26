@@ -29,6 +29,14 @@ describe("createSession", () => {
     const s = createSession("pl1", { id: "B", exercises: [{ id: "x", sets: 0 }] });
     expect(s.exercises[0].sets.length).toBe(1);
   });
+
+  it("pré-preenche reps (do alvo) e carga do plano", () => {
+    const s = createSession("pl1", {
+      id: "C",
+      exercises: [{ id: "sup", sets: 2, reps: "8-10", load_kg: 40 }],
+    });
+    expect(s.exercises[0].sets[0]).toEqual({ done: false, reps: 8, load_kg: 40 });
+  });
 });
 
 describe("sessionProgress", () => {
