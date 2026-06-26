@@ -117,6 +117,16 @@ export default function TreinoPage() {
     void saveSession(next);
   }
 
+  function patchExercise(exerciseId: string, patch: Partial<WorkoutSession["exercises"][number]>) {
+    if (!session) return;
+    const next: WorkoutSession = {
+      ...session,
+      exercises: session.exercises.map((e) => (e.exerciseId === exerciseId ? { ...e, ...patch } : e)),
+    };
+    setStored(next);
+    void saveSession(next);
+  }
+
   function concluir() {
     if (!session) return;
     const next = completeSession(session);
@@ -181,18 +191,20 @@ export default function TreinoPage() {
                 {log?.sets.map((s, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <span className="w-4 text-center text-xs text-faint">{i + 1}</span>
-                    <Stepper
+                    <NumberStepper
                       value={s.reps ?? 0}
+                      step={1}
+                      inputMode="numeric"
                       label="reps"
-                      onDec={() => patchSet(ex.id, i, { reps: Math.max(0, (s.reps ?? 0) - 1) })}
-                      onInc={() => patchSet(ex.id, i, { reps: (s.reps ?? 0) + 1 })}
+                      onChange={(n) => patchSet(ex.id, i, { reps: Math.round(n) })}
                     />
-                    <Stepper
+                    <NumberStepper
                       value={s.load_kg ?? 0}
+                      step={LOAD_STEP}
+                      inputMode="decimal"
                       suffix="kg"
                       label="carga"
-                      onDec={() => patchSet(ex.id, i, { load_kg: Math.max(0, round1((s.load_kg ?? 0) - LOAD_STEP)) })}
-                      onInc={() => patchSet(ex.id, i, { load_kg: round1((s.load_kg ?? 0) + LOAD_STEP) })}
+                      onChange={(n) => patchSet(ex.id, i, { load_kg: round1(n) })}
                     />
                     <button
                       onClick={() => patchSet(ex.id, i, { done: !s.done })}
@@ -207,6 +219,14 @@ export default function TreinoPage() {
                   </div>
                 ))}
               </div>
+
+              <textarea
+                value={log?.note ?? ""}
+                onChange={(e) => patchExercise(ex.id, { note: e.target.value })}
+                placeholder="Observações (ex.: troquei por supino máquina)"
+                rows={2}
+                className="mt-3 w-full resize-none rounded-lg border border-line bg-surface2/30 px-3 py-2 text-sm text-ink outline-none placeholder:text-faint focus:border-accent/50"
+              />
             </article>
           );
         })}
@@ -230,36 +250,66 @@ export default function TreinoPage() {
   );
 }
 
-function Stepper({
+/** Stepper + entrada por teclado numérico (mantém o valor enquanto digita, normaliza no blur). */
+function NumberStepper({
   value,
-  onDec,
-  onInc,
+  onChange,
+  step,
+  inputMode,
   suffix,
   label,
 }: {
   value: number;
-  onDec: () => void;
-  onInc: () => void;
+  onChange: (n: number) => void;
+  step: number;
+  inputMode: "numeric" | "decimal";
   suffix?: string;
   label: string;
 }) {
+  const [text, setText] = useState(() => String(value));
+  const [prev, setPrev] = useState(value);
+  if (value !== prev) {
+    // mudança externa (stepper) — sincroniza o texto sem atrapalhar a digitação
+    setPrev(value);
+    setText(String(value));
+  }
+
+  const commit = (n: number) => onChange(Math.max(0, n));
+
   return (
     <div className="flex items-center gap-1">
       <button
-        onClick={onDec}
+        onClick={() => commit(round1(value - step))}
         aria-label={`Diminuir ${label}`}
-        className="flex h-7 w-7 items-center justify-center rounded-full border border-line text-muted active:bg-surface2"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-line text-muted active:bg-surface2"
       >
         <Minus size={14} aria-hidden />
       </button>
-      <span className="min-w-12 text-center text-sm tabular-nums">
-        {value}
-        {suffix ? <span className="text-xs text-faint"> {suffix}</span> : null}
+      <span className="inline-flex items-baseline">
+        <input
+          value={text}
+          inputMode={inputMode}
+          aria-label={label}
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => {
+            setText(e.target.value);
+            const n = parseFloat(e.target.value.replace(",", "."));
+            if (!Number.isNaN(n)) commit(n);
+          }}
+          onBlur={() => {
+            const n = parseFloat(text.replace(",", "."));
+            const v = Number.isNaN(n) ? 0 : Math.max(0, n);
+            commit(v);
+            setText(String(v));
+          }}
+          className="w-9 bg-transparent text-center text-sm tabular-nums outline-none focus:text-accent"
+        />
+        {suffix ? <span className="text-xs text-faint">{suffix}</span> : null}
       </span>
       <button
-        onClick={onInc}
+        onClick={() => commit(round1(value + step))}
         aria-label={`Aumentar ${label}`}
-        className="flex h-7 w-7 items-center justify-center rounded-full border border-line text-muted active:bg-surface2"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-line text-muted active:bg-surface2"
       >
         <Plus size={14} aria-hidden />
       </button>

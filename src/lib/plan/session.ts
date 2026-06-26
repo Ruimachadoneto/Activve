@@ -13,6 +13,8 @@ export type SetLog = {
 export type ExerciseLog = {
   exerciseId: string;
   sets: SetLog[];
+  /** Observação livre do usuário (ex.: "troquei por supino máquina, não tinha banco"). */
+  note?: string;
 };
 
 export type WorkoutSession = {

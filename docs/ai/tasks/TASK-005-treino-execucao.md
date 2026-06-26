@@ -38,7 +38,7 @@ SetLog { done: boolean; reps?: number; load_kg?: number }   // alvo vem do plano
 Índices: por `date` e por `planId` (consulta de conclusão p/ os checks da semana no Hoje).
 
 ## Restrições
-- Sem teclado: reps/carga por **steppers** (+/–). Carga em passos (ex.: 2,5 kg), reps passo 1.
+- Entrada rápida por **steppers** (+/–, carga passo 2,5 kg) **e** por **teclado numérico** (`inputMode`); **observações** por exercício (texto livre). _(Atualiza a decisão original "sem teclado": o usuário pediu digitar direto e anotar substituições de exercício.)_
 - Persistir **a cada mudança** (não perder série se o navegador fechar).
 - Migração IndexedDB **não pode** corromper planos existentes.
 - Anti-culpa: sem "você falhou", sem streak punitivo. Conclusão é celebratória e neutra.
@@ -82,3 +82,4 @@ npm run typecheck && npm run lint && npm run test && npm run build
 - 2026-06-26 — Fase 1 (fundação): `session.ts` + `sessions.ts` + migração v1→v2; 6 testes; migração verificada não-destrutiva.
 - 2026-06-26 — Fase 2 (UI): `/treino` reescrito como execução série-a-série (steppers reps/carga sem teclado, toggle de série, barra de progresso, concluir treino). Sessão lazy (rascunho em memória, só persiste ao interagir; retoma do IndexedDB). Reps/carga pré-preenchidos do plano. **Verificado no preview**: marcar → steppers → reload retoma → concluir. Gates verdes (34 testes). Fora: como-fazer/variações (TASK-006), timer (TASK-007).
 - 2026-06-26 — Stretch (fecha pendente da TASK-004): checks reais da semana no Hoje — `weekDates()` + lê `getSessionsForPlan`, dias com sessão `done` mostram ✓. **Verificado por DOM** (sexta concluída = check aceso; screenshot do ambiente estava flaky). Ajuste: `loading="eager"` na MuscleArt (LCP, sem voltar `priority`). Gates verdes (36 testes).
+- 2026-06-26 — Pedido do usuário: além dos steppers, **entrada por teclado numérico** (reps/carga viram inputs `inputMode` numeric/decimal, editáveis; `NumberStepper` mantém o valor enquanto digita e normaliza no blur) + **campo de observações por exercício** (`ExerciseLog.note`; ex.: registrar troca de exercício). **Verificado no preview**: digitar reps=12 e a nota persistem no IndexedDB. Gates verdes.
