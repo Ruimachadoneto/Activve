@@ -27,3 +27,4 @@ Reconstruir a tela Hoje para **bater a referência canônica** (`docs/ai/UI_REFE
 
 ## Registro
 - 2026-06-25 — disco C: estava 100% cheio (causava falha de branch e do screenshot); liberados ~2,1 GB (npm-cache + .next). Reconstrução do Hoje + nav 4 itens. Gates verdes; screenshot OK.
+- 2026-06-25 — mapa muscular ligado: `resolveMuscleImage(muscles)` (mapeia músculos primários dos exercícios → imagem), `<MuscleArt>` com fallback p/ placeholder, 11 testes do resolver. Kit de prompts em `docs/ai/asset-prompts-muscles.md`. **Pendente:** dropar os 10 PNGs em `public/muscles/` (nomes no README de lá). Gates verdes (typecheck/lint/build + 24 testes); fallback verificado no preview.

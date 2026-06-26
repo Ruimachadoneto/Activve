@@ -1,8 +1,15 @@
-import type { PlanFile } from "./schema";
+import type { Muscle, PlanFile } from "./schema";
 
 export type TodayResult =
   | { kind: "rest" }
-  | { kind: "workout"; workoutId: string; name: string; focus?: string; exerciseCount: number };
+  | {
+      kind: "workout";
+      workoutId: string;
+      name: string;
+      focus?: string;
+      exerciseCount: number;
+      muscles: Muscle[];
+    };
 
 /**
  * Treino de hoje a partir do weekSchedule (índice 0 = segunda).
@@ -23,6 +30,7 @@ export function getTodayWorkout(plan: PlanFile, now: Date = new Date()): TodayRe
     name: workout.name,
     focus: workout.focus,
     exerciseCount: workout.exercises.length,
+    muscles: workout.exercises.flatMap((e) => e.primaryMuscles),
   };
 }
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Bell, Dumbbell, Clock, Play, ChevronRight, User, Utensils } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
+import { MuscleArt } from "@/components/MuscleArt";
 import { getTodayWorkout, greeting, todayIndex, WEEK_DAYS } from "@/lib/plan/today";
 
 export default function HojePage() {
@@ -84,14 +85,7 @@ export default function HojePage() {
               <Play size={15} aria-hidden /> Começar treino
             </Link>
           </div>
-          {/* Slot da ilustração do grupo muscular (imagem gerada por grupo — encaixar aqui). */}
-          <div
-            className="pointer-events-none absolute right-0 top-0 flex h-full w-[42%] flex-col items-center justify-center bg-surface2/40 text-faint"
-            aria-hidden
-          >
-            <User size={56} strokeWidth={1} />
-            <span className="mt-1 text-[10px] uppercase tracking-wide">{firstMuscleLabel(today.focus)}</span>
-          </div>
+          <MuscleArt muscles={today.muscles} label={firstMuscleLabel(today.focus)} />
         </section>
       ) : (
         <section className="mt-5 rounded-card border border-line bg-surface p-5">
