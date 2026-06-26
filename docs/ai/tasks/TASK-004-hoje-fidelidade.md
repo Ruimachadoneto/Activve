@@ -1,0 +1,32 @@
+# TASK-004 — Hoje com fidelidade ao mockup
+
+## Metadados
+- Status: `in_progress`
+- Risco: `baixo` (UI; sem dados destrutivos)
+- Lead/Implementer: `Claude` · Reviewer: `Codex` + olhos do usuário (auditoria visual)
+- Branch: `ai/TASK-004-hoje-fidelidade-claude` (base `origin/main`)
+
+## Objetivo
+Reconstruir a tela Hoje para **bater a referência canônica** (`docs/ai/UI_REFERENCE.md`): header (badge A + sino), saudação, card de treino de hoje (com slot da ilustração do grupo muscular), card "ritmo da semana", cards Corpo e Alimentação, bottom nav (Hoje·Treino·Corpo·Mais).
+
+## Entregue nesta passada
+- Layout/componentes batendo a referência; tokens do design system; lucide.
+- Verificado por screenshot no preview (disco liberado destravou o capturador).
+
+## Pendências p/ ficar idêntico
+- [ ] **Ilustração do grupo muscular** no card (hoje há placeholder) — depende das imagens geradas por grupo (usuário gera; encaixar via `workout.primaryMuscles`/`focus`).
+- [ ] **Checks de conclusão** na semana — hoje mostra ids A/B (honesto; sem dados falsos). Vira check real quando houver **tracking de conclusão** (task futura).
+- [ ] Polish: profundidade do fundo (leve gradiente), barra de progresso da semana, micro-ajustes de espaçamento — refinar com comparação ao mockup.
+
+## Critérios de aceite
+- [x] `typecheck`, `lint`, `build`, `test` verdes.
+- [x] Estrutura/0layout batendo a referência (verificado no preview).
+- [ ] Ilustrações de grupo muscular encaixadas.
+- [ ] Aprovação visual do usuário (comparação com o mockup).
+- [ ] Revisão cruzada (Codex).
+
+## Registro
+- 2026-06-25 — disco C: estava 100% cheio (causava falha de branch e do screenshot); liberados ~2,1 GB (npm-cache + .next). Reconstrução do Hoje + nav 4 itens. Gates verdes; screenshot OK.
+- 2026-06-25 — mapa muscular ligado: `resolveMuscleImage(muscles)` (mapeia músculos primários dos exercícios → imagem), `<MuscleArt>` com fallback p/ placeholder, 11 testes do resolver. Kit de prompts em `docs/ai/asset-prompts-muscles.md`. **Pendente:** dropar os 10 PNGs em `public/muscles/` (nomes no README de lá). Gates verdes (typecheck/lint/build + 24 testes); fallback verificado no preview.
+- 2026-06-26 — 10 PNGs adicionados; fundo branco removido → alpha + downscale/compressão (15 MB → 5 MB) via `scripts/dewhite-muscles.py`; `<Image unoptimized>`. Verificado no preview (pull/push transparentes).
+- 2026-06-26 — **revisão Codex** (`codex review --base main`): 4 MAJOR + 2 MINOR. Aplicados: (1) reset do `failed` no MuscleArt via padrão ajustar-na-render; (2) resolver passa a cobrir braços (`bracos`) e core (`abdomen`); (3) perf — downscale + sem `priority`; (4) card Corpo não-navegável ("Em breve") até `/corpo`; (5) `-webkit-mask-image` p/ Safari/iOS; (6) guard defensivo no `/treino` (plano sem treinos / `alternatives`). Rejeitado c/ evidência: href em Corpo/Mais na nav (telas não existem → 404). Gates verdes (27 testes). **Gap deferido:** teste comportamental do reset de imagem (precisa RTL).

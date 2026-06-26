@@ -42,6 +42,15 @@ export default function TreinoPage() {
   }
 
   const p = plan.plan;
+
+  if (p.training.workouts.length === 0) {
+    return (
+      <main className="mx-auto flex w-full max-w-[440px] flex-1 items-center justify-center px-5 text-center">
+        <p className="text-sm text-muted">Este plano não tem treinos.</p>
+      </main>
+    );
+  }
+
   const today = getTodayWorkout(p);
   const activeId =
     selected ?? (today.kind === "workout" ? today.workoutId : p.training.workouts[0].id);
@@ -101,7 +110,7 @@ export default function TreinoPage() {
                 </span>
               ))}
               <span className="ml-auto text-[11px] text-faint">
-                {ex.alternatives.length} variações
+                {ex.alternatives?.length ?? 0} variações
               </span>
             </div>
           </article>
