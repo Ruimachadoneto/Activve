@@ -1,14 +1,31 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, Dumbbell, Clock, Play, User, Utensils } from "lucide-react";
+import { Bell, Check, Dumbbell, Clock, Play, User, Utensils } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { MuscleArt } from "@/components/MuscleArt";
-import { getTodayWorkout, greeting, todayIndex, WEEK_DAYS } from "@/lib/plan/today";
+import { getTodayWorkout, greeting, todayIndex, weekDates, WEEK_DAYS } from "@/lib/plan/today";
+import { getSessionsForPlan } from "@/lib/storage/sessions";
 
 export default function HojePage() {
   const { loading, plan } = useActivePlan();
+  const [doneDates, setDoneDates] = useState<Set<string>>(new Set());
+
+  // Dias da semana com treino concluído (lê as sessões do período ativo).
+  useEffect(() => {
+    if (!plan) return;
+    let cancelled = false;
+    getSessionsForPlan(plan.planId).then((sessions) => {
+      if (cancelled) return;
+      const done = new Set(sessions.filter((s) => s.status === "done").map((s) => s.date));
+      setDoneDates(() => done);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [plan]);
 
   if (loading) {
     return (
@@ -38,6 +55,7 @@ export default function HojePage() {
   const p = plan.plan;
   const today = getTodayWorkout(p);
   const ti = todayIndex();
+  const week = weekDates();
   const trainingDays = p.training.weekSchedule.filter((d) => d !== "rest").length;
   const mealsCount = p.diet.meals.length;
 
@@ -109,19 +127,20 @@ export default function HojePage() {
             const isToday = i === ti;
             const entry = p.training.weekSchedule[i];
             const isRest = entry === "rest";
+            const isDone = doneDates.has(week[i]);
             return (
               <div key={i} className="flex flex-col items-center gap-1.5">
                 <div
                   className={[
                     "flex h-8 min-w-8 items-center justify-center rounded-full px-1.5 text-[11px]",
-                    isToday
+                    isDone || isToday
                       ? "bg-accent text-on-accent"
                       : isRest
                         ? "border border-line text-faint"
                         : "border border-accent/40 text-accent",
                   ].join(" ")}
                 >
-                  {isRest ? d : entry}
+                  {isDone ? <Check size={14} aria-hidden /> : isRest ? d : entry}
                 </div>
                 <span className="text-[10px] text-faint">{d}</span>
               </div>

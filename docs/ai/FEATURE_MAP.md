@@ -17,7 +17,7 @@
 - **Fundação local-first:** IndexedDB como fonte de verdade; PWA instalável; offline total.
 - **Import do plano:** upload `.json` + colar texto; **validação com erro claro** (campo + motivo); **preview/confirmar** antes de aplicar; rejeição de `schemaVersion` incompatível.
 - **Empty states e erros** em toda tela (sem plano, sem treino hoje, falha de import).
-- **Treino:** treino de hoje (agenda flexível) · execução **série a série** com steppers (sem teclado) · **timer de descanso** · marcar série/exercício/treino.
+- **Treino:** treino de hoje (agenda flexível) · execução **série a série** com steppers **+ entrada por teclado numérico** · **observações por exercício** (texto livre; ex.: troca de exercício) · **timer de descanso** · marcar série/exercício/treino.
 - **"Como fazer" obrigatório em TODOS os exercícios:** texto (passos) sempre + foto/gif/vídeo; fallback "ver vídeo" por busca do nome garante 100% de cobertura.
 - **≥2 variações por exercício** (com `equipment`): trocar na hora resolve máquina ocupada, fila, equipamento ausente, casa vs. academia. Cada variação também tem "como fazer".
 - **Dieta:** refeições do dia + macros/kcal · **marcar refeição feita**.

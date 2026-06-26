@@ -46,6 +46,7 @@ export function MuscleArt({
           fill
           sizes="220px"
           unoptimized
+          loading="eager"
           onError={() => setFailed(true)}
           className="object-contain object-bottom"
         />
