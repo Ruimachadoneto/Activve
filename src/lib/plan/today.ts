@@ -58,3 +58,14 @@ export const WEEK_DAYS = ["S", "T", "Q", "Q", "S", "S", "D"] as const;
 export function todayIndex(now: Date = new Date()): number {
   return (now.getDay() + 6) % 7;
 }
+
+/** Datas (yyyy-mm-dd) da semana atual, segunda → domingo (alinha com weekSchedule). */
+export function weekDates(now: Date = new Date()): string[] {
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - todayIndex(now));
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${m}-${dd}`;
+  });
+}
