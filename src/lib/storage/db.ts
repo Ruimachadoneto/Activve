@@ -1,10 +1,11 @@
 import { openDB, type IDBPDatabase } from "idb";
 
 const DB_NAME = "activve";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const STORE_PLANS = "plans";
 export const STORE_KV = "kv";
+export const STORE_SESSIONS = "sessions";
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
@@ -19,11 +20,17 @@ export function getDB(): Promise<IDBPDatabase> {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
       upgrade(db) {
+        // Migração aditiva: só cria stores que faltam, nunca mexe nos existentes.
         if (!db.objectStoreNames.contains(STORE_PLANS)) {
           db.createObjectStore(STORE_PLANS, { keyPath: "planId" });
         }
         if (!db.objectStoreNames.contains(STORE_KV)) {
           db.createObjectStore(STORE_KV);
+        }
+        if (!db.objectStoreNames.contains(STORE_SESSIONS)) {
+          const sessions = db.createObjectStore(STORE_SESSIONS, { keyPath: "sessionId" });
+          sessions.createIndex("by-plan", "planId");
+          sessions.createIndex("by-date", "date");
         }
       },
     });
