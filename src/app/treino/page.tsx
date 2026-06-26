@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Check, Minus, Plus } from "lucide-react";
+import { ChevronLeft, Check, Minus, Plus, Info } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { getTodayWorkout } from "@/lib/plan/today";
 import { BottomNav } from "@/components/BottomNav";
@@ -14,17 +14,9 @@ import {
   type WorkoutSession,
 } from "@/lib/plan/session";
 import { getSession, saveSession } from "@/lib/storage/sessions";
-
-const EQUIP_LABEL: Record<string, string> = {
-  barbell: "Barra",
-  dumbbell: "Halteres",
-  machine: "Máquina",
-  cable: "Cabo",
-  bodyweight: "Peso do corpo",
-  band: "Elástico",
-  kettlebell: "Kettlebell",
-  other: "Outro",
-};
+import { resolveMovement } from "@/lib/plan/movement";
+import { equipmentLabel } from "@/lib/plan/labels";
+import { ExerciseSheet } from "@/components/ExerciseSheet";
 
 const LOAD_STEP = 2.5;
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -33,6 +25,7 @@ export default function TreinoPage() {
   const { loading, plan } = useActivePlan();
   const [selected, setSelected] = useState<string | null>(null);
   const [stored, setStored] = useState<WorkoutSession | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const p = plan?.plan;
   const planId = plan?.planId ?? null;
@@ -134,6 +127,11 @@ export default function TreinoPage() {
     void saveSession(next);
   }
 
+  const openExercise = openId ? (workout.exercises.find((e) => e.id === openId) ?? null) : null;
+  const openLog = openExercise
+    ? session.exercises.find((e) => e.exerciseId === openExercise.id)
+    : undefined;
+
   return (
     <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-8 pt-7">
       <header className="flex items-center gap-2">
@@ -184,14 +182,25 @@ export default function TreinoPage() {
       <div className="mt-4 flex flex-col gap-2.5">
         {workout.exercises.map((ex) => {
           const log = session.exercises.find((e) => e.exerciseId === ex.id);
+          const mov = resolveMovement(ex, log?.swappedToId);
           return (
             <article key={ex.id} className="rounded-card border border-line bg-surface p-4">
-              <div className="flex items-start justify-between gap-3">
-                <h3 className="font-medium">{ex.name}</h3>
-                <span className="shrink-0 text-xs text-faint">
-                  {ex.equipment ? EQUIP_LABEL[ex.equipment] ?? ex.equipment : "Livre"} · {ex.sets}×{ex.reps}
+              <button
+                onClick={() => setOpenId(ex.id)}
+                aria-label={`Como fazer: ${mov.name}`}
+                className="flex w-full items-center justify-between gap-3 text-left"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className="font-medium">{mov.name}</span>
+                  {mov.isSwapped ? (
+                    <span className="text-[10px] uppercase tracking-wide text-accent">trocado</span>
+                  ) : null}
+                  <Info size={14} className="text-faint" aria-hidden />
                 </span>
-              </div>
+                <span className="shrink-0 text-xs text-faint">
+                  {equipmentLabel(mov.equipment)} · {ex.sets}×{ex.reps}
+                </span>
+              </button>
 
               <div className="mt-3 flex flex-col gap-2">
                 {log?.sets.map((s, i) => (
@@ -251,6 +260,15 @@ export default function TreinoPage() {
         </button>
       )}
         </>
+      )}
+
+      {openExercise && (
+        <ExerciseSheet
+          exercise={openExercise}
+          swappedToId={openLog?.swappedToId}
+          onSwap={(altId) => patchExercise(openExercise.id, { swappedToId: altId })}
+          onClose={() => setOpenId(null)}
+        />
       )}
 
       <BottomNav active="treino" />
