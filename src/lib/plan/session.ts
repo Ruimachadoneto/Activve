@@ -15,6 +15,8 @@ export type ExerciseLog = {
   sets: SetLog[];
   /** Observação livre do usuário (ex.: "troquei por supino máquina, não tinha banco"). */
   note?: string;
+  /** Id da variação escolhida (ausente = exercício original). Só muda o movimento. */
+  swappedToId?: string;
 };
 
 export type WorkoutSession = {
