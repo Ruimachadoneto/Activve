@@ -1,11 +1,12 @@
 import { openDB, type IDBPDatabase } from "idb";
 
 const DB_NAME = "activve";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const STORE_PLANS = "plans";
 export const STORE_KV = "kv";
 export const STORE_SESSIONS = "sessions";
+export const STORE_BODYLOG = "bodylog";
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
@@ -31,6 +32,9 @@ export function getDB(): Promise<IDBPDatabase> {
           const sessions = db.createObjectStore(STORE_SESSIONS, { keyPath: "sessionId" });
           sessions.createIndex("by-plan", "planId");
           sessions.createIndex("by-date", "date");
+        }
+        if (!db.objectStoreNames.contains(STORE_BODYLOG)) {
+          db.createObjectStore(STORE_BODYLOG, { keyPath: "date" });
         }
       },
     });

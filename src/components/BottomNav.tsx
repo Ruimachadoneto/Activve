@@ -6,7 +6,7 @@ export type Tab = "hoje" | "treino" | "corpo" | "mais";
 const ITEMS: { id: Tab; label: string; Icon: LucideIcon; href?: string }[] = [
   { id: "hoje", label: "Hoje", Icon: Home, href: "/" },
   { id: "treino", label: "Treino", Icon: Dumbbell, href: "/treino" },
-  { id: "corpo", label: "Corpo", Icon: User },
+  { id: "corpo", label: "Corpo", Icon: User, href: "/corpo" },
   { id: "mais", label: "Mais", Icon: MoreHorizontal },
 ];
 
