@@ -38,6 +38,7 @@ export function MuscleArt({
           fill
           sizes="220px"
           priority
+          unoptimized
           onError={() => setFailed(true)}
           className="object-contain object-bottom"
         />

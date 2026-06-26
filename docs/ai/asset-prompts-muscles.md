@@ -119,6 +119,17 @@ Resolver por palavra-chave no `focus`/`primaryMuscles`: "empurrar"/peito+ombro+t
 peito+tríceps→`peito-triceps`; ombro+abdômen→`ombro-abdomen`; músculo único→a single correspondente;
 **fallback**→`corpo`.
 
+## ⚠️ Fundo branco → transparente (passo obrigatório)
+O GPT costuma exportar os PNGs com **fundo branco** (mesmo pedindo "transparent"). Num card
+escuro isso vira um retângulo branco. Depois de salvar as imagens em `public/muscles/`, rode:
+
+```bash
+python scripts/dewhite-muscles.py
+```
+
+Ele remove o branco (com borda suave) e faz backup dos originais no temp. É idempotente.
+O componente usa `<Image unoptimized>` pra servir o PNG cru (evita cache do otimizador).
+
 ## Dicas pra manter consistência no GPT
 1. Gere a **costas.png primeiro**. Nas próximas, comece o prompt com:
    `Same figure, pose, camera, framing, style and lighting as the previous image, but now ...`
