@@ -42,6 +42,18 @@ describe("resolveMuscleImage", () => {
     expect(resolveMuscleImage(["chest", "quads"])).toBe("corpo");
   });
 
+  it("abdômen dominante → abdomen", () => {
+    expect(resolveMuscleImage(["abs", "abs", "obliques"])).toBe("abdomen");
+  });
+
+  it("abdômen só acessório no leg day → pernas (não rouba)", () => {
+    expect(resolveMuscleImage(["quads", "quads", "glutes", "abs"])).toBe("pernas");
+  });
+
+  it("dia de braços (bíceps + tríceps) → bracos", () => {
+    expect(resolveMuscleImage(["biceps", "biceps", "triceps", "triceps"])).toBe("bracos");
+  });
+
   it("sem dados → corpo (fallback)", () => {
     expect(resolveMuscleImage([])).toBe("corpo");
   });

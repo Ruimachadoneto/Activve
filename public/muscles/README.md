@@ -16,6 +16,8 @@ transparente, portrait 2:3):
 | `posterior.png` | Glúteo + posterior + panturrilha |
 | `panturrilha.png` | Panturrilha |
 | `corpo.png` | Full body / fallback |
+| `abdomen.png` _(opcional)_ | Dia de abdômen / core |
+| `bracos.png` _(opcional)_ | Dia de braços (bíceps + tríceps) |
 
 O componente `MuscleArt` resolve a imagem pelos músculos do treino e cai para um
 placeholder se o arquivo não existir — então pode subir aos poucos.

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Dumbbell, Clock, Play, ChevronRight, User, Utensils } from "lucide-react";
+import { Bell, Dumbbell, Clock, Play, User, Utensils } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { MuscleArt } from "@/components/MuscleArt";
@@ -113,7 +113,7 @@ export default function HojePage() {
               <div key={i} className="flex flex-col items-center gap-1.5">
                 <div
                   className={[
-                    "flex h-8 w-8 items-center justify-center rounded-full text-[11px]",
+                    "flex h-8 min-w-8 items-center justify-center rounded-full px-1.5 text-[11px]",
                     isToday
                       ? "bg-accent text-on-accent"
                       : isRest
@@ -130,10 +130,8 @@ export default function HojePage() {
         </div>
       </section>
 
-      <Link
-        href="/treino"
-        className="mt-4 flex items-center gap-3 rounded-card border border-line bg-surface p-4"
-      >
+      {/* Card não-navegável até a tela /corpo existir (evita rota errada). */}
+      <div className="mt-4 flex items-center gap-3 rounded-card border border-line bg-surface p-4">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface2 text-accent">
           <User size={18} aria-hidden />
         </span>
@@ -141,8 +139,8 @@ export default function HojePage() {
           <span className="block text-sm font-medium">Corpo</span>
           <span className="block text-xs text-muted">Acompanhe sua evolução</span>
         </span>
-        <ChevronRight size={18} className="text-faint" aria-hidden />
-      </Link>
+        <span className="text-[10px] uppercase tracking-wide text-faint">Em breve</span>
+      </div>
 
       <div className="mt-3 flex items-center gap-3 rounded-card border border-line bg-surface p-4">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface2 text-accent">

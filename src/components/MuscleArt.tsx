@@ -18,12 +18,20 @@ export function MuscleArt({
   muscles: Muscle[];
   label: string;
 }) {
-  const [failed, setFailed] = useState(false);
   const key = resolveMuscleImage(muscles);
+  const [failed, setFailed] = useState(false);
+
+  // Reseta o fallback ao trocar de treino/imagem (padrão "ajustar estado na renderização"
+  // do React) — senão uma falha anterior "gruda" e impede a próxima imagem válida de carregar.
+  const [prevKey, setPrevKey] = useState(key);
+  if (key !== prevKey) {
+    setPrevKey(key);
+    setFailed(false);
+  }
 
   return (
     <div
-      className="pointer-events-none absolute inset-y-0 right-0 w-[46%] [mask-image:linear-gradient(to_right,transparent,#000_24%)]"
+      className="pointer-events-none absolute inset-y-0 right-0 w-[46%] [mask-image:linear-gradient(to_right,transparent,#000_24%)] [-webkit-mask-image:linear-gradient(to_right,transparent,#000_24%)]"
       aria-hidden
     >
       {failed ? (
@@ -37,7 +45,6 @@ export function MuscleArt({
           alt=""
           fill
           sizes="220px"
-          priority
           unoptimized
           onError={() => setFailed(true)}
           className="object-contain object-bottom"

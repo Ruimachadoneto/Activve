@@ -14,7 +14,9 @@ export type MuscleImageKey =
   | "pernas"
   | "gluteos"
   | "posterior"
-  | "panturrilha";
+  | "panturrilha"
+  | "abdomen"
+  | "bracos";
 
 /**
  * Resolve a ilustração do treino a partir dos músculos primários dos exercícios.
@@ -33,9 +35,14 @@ export function resolveMuscleImage(muscles: Muscle[]): MuscleImageKey {
   const hams = n("hamstrings");
   const glutes = n("glutes");
   const calves = n("calves");
+  const abs = n("abs") + n("obliques");
 
   const upper = chest + back + delts + biceps + triceps;
   const lower = quads + hams + glutes + calves;
+
+  // Core/abdômen dominante (ex.: dia de abdômen). Só rouba o card se for maioria clara,
+  // pra não pegar treinos onde abdômen é só acessório.
+  if (abs > 0 && abs > upper && abs > lower) return "abdomen";
 
   // Mistura superior + inferior no mesmo dia (full body / upper-lower) → corpo inteiro.
   if (upper > 0 && lower > 0) return "corpo";
@@ -55,5 +62,6 @@ export function resolveMuscleImage(muscles: Muscle[]): MuscleImageKey {
   if (chest > 0) return delts > 0 || triceps > 0 ? "empurrar" : "peito";
   if (back > 0) return biceps > 0 ? "puxar" : "costas";
   if (delts > 0) return "ombros";
-  return "corpo"; // braços isolados ou sem dados → fallback
+  if (biceps + triceps > 0) return "bracos"; // dia de braços (bíceps + tríceps)
+  return "corpo"; // sem dados → fallback
 }
