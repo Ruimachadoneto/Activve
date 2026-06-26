@@ -38,10 +38,23 @@ export function resolveMovement(exercise: Exercise, swappedToId?: string): Movem
   };
 }
 
-/** Link de vídeo: usa o do plano se houver, senão cai numa busca por nome no YouTube. */
+/** Só http(s) é seguro como href (bloqueia `javascript:`/`data:` vindos do plano importado). */
+function isSafeHttpUrl(url: string): boolean {
+  try {
+    const protocol = new URL(url).protocol;
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Link de vídeo: usa o `videoUrl` do plano apenas se for http(s) — senão (ausente ou
+ * esquema perigoso como `javascript:`) cai numa busca por nome no YouTube. O plano é
+ * input externo e o schema valida `videoUrl` só como string, então não dá pra confiar.
+ */
 export function videoHref(mov: Movement): string {
-  return (
-    mov.howTo.videoUrl ??
-    `https://www.youtube.com/results?search_query=${encodeURIComponent(`como fazer ${mov.name}`)}`
-  );
+  const url = mov.howTo.videoUrl;
+  if (url && isSafeHttpUrl(url)) return url;
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`como fazer ${mov.name}`)}`;
 }

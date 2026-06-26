@@ -35,7 +35,7 @@ export function ExerciseSheet({
       aria-modal="true"
       aria-label={mov.name}
     >
-      <button className="absolute inset-0 bg-black/60" aria-label="Fechar" onClick={onClose} />
+      <button type="button" className="absolute inset-0 bg-black/60" aria-label="Fechar" onClick={onClose} />
 
       <div className="relative max-h-[85vh] w-full max-w-[440px] overflow-y-auto rounded-t-2xl border border-line bg-surface p-5 pb-8">
         <div className="flex items-start justify-between gap-3">
@@ -46,7 +46,7 @@ export function ExerciseSheet({
               {mov.isSwapped ? <span className="text-accent"> · variação</span> : null}
             </p>
           </div>
-          <button onClick={onClose} aria-label="Fechar" autoFocus className="-mr-1 -mt-1 p-1 text-faint">
+          <button type="button" onClick={onClose} aria-label="Fechar" autoFocus className="-mr-1 -mt-1 p-1 text-faint">
             <X size={20} aria-hidden />
           </button>
         </div>
@@ -109,6 +109,7 @@ function VariationRow({
 }) {
   return (
     <button
+      type="button"
       onClick={onUse}
       aria-pressed={active}
       className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${

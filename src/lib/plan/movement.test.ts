@@ -44,4 +44,17 @@ describe("videoHref", () => {
     expect(href).toContain("youtube.com/results");
     expect(href).toContain(encodeURIComponent("Supino reto"));
   });
+
+  it("bloqueia videoUrl perigoso (javascript:) e cai no YouTube", () => {
+    const evil = {
+      ...exercise,
+      alternatives: [
+        { id: "x", name: "X", howTo: { steps: ["a"], videoUrl: "javascript:alert(document.cookie)" } },
+        exercise.alternatives[1],
+      ],
+    } as unknown as Exercise;
+    const href = videoHref(resolveMovement(evil, "x"));
+    expect(href).toContain("youtube.com/results");
+    expect(href).not.toContain("javascript");
+  });
 });
