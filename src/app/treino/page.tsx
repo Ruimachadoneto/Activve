@@ -160,6 +160,12 @@ export default function TreinoPage() {
         })}
       </div>
 
+      {workout.exercises.length === 0 ? (
+        <p className="mt-6 rounded-card border border-line bg-surface p-4 text-center text-sm text-muted">
+          Este treino ainda não tem exercícios no plano.
+        </p>
+      ) : (
+        <>
       <div className="mt-4">
         <div className="flex items-center justify-between text-xs">
           <span className="uppercase tracking-wider text-faint">{workout.name}</span>
@@ -244,6 +250,8 @@ export default function TreinoPage() {
           Concluir treino{progress.allDone ? "" : ` · ${progress.doneSets}/${progress.totalSets}`}
         </button>
       )}
+        </>
+      )}
 
       <BottomNav active="treino" />
     </main>
@@ -268,8 +276,11 @@ function NumberStepper({
 }) {
   const [text, setText] = useState(() => String(value));
   const [prev, setPrev] = useState(value);
-  if (value !== prev) {
-    // mudança externa (stepper) — sincroniza o texto sem atrapalhar a digitação
+  const [focused, setFocused] = useState(false);
+  // Sincroniza com mudança externa (stepper) só quando NÃO está digitando — senão o
+  // valor normalizado colapsa estados decimais intermediários (ex.: "42.") e impede
+  // digitar cargas como 42,5 pelo teclado.
+  if (value !== prev && !focused) {
     setPrev(value);
     setText(String(value));
   }
@@ -290,13 +301,17 @@ function NumberStepper({
           value={text}
           inputMode={inputMode}
           aria-label={label}
-          onFocus={(e) => e.target.select()}
+          onFocus={(e) => {
+            setFocused(true);
+            e.target.select();
+          }}
           onChange={(e) => {
             setText(e.target.value);
             const n = parseFloat(e.target.value.replace(",", "."));
             if (!Number.isNaN(n)) commit(n);
           }}
           onBlur={() => {
+            setFocused(false);
             const n = parseFloat(text.replace(",", "."));
             const v = Number.isNaN(n) ? 0 : Math.max(0, n);
             commit(v);
