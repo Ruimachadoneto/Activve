@@ -14,6 +14,12 @@
   --color-danger: #e5614f;
   --color-warn: #f2c94c;
 
+  /* Heat de recuperação muscular (Corpo) — ver docs/DESIGN_SYSTEM.md §2 */
+  --color-ready: #2fd4b6;
+  --color-recovering: #f2c94c;
+  --color-worked: #f2854a;
+  --color-rested: #6b7688;
+
   --radius-card: 16px;
 
   --font-sans: var(--font-geist-sans);

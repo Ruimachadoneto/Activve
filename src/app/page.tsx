@@ -6,6 +6,7 @@ import { Bell, Check, ChevronRight, Dumbbell, Clock, Play, User, Utensils } from
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { MuscleArt } from "@/components/MuscleArt";
+import { Logo } from "@/components/Logo";
 import { getTodayWorkout, greeting, todayIndex, weekDates, WEEK_DAYS } from "@/lib/plan/today";
 import { getSessionsForPlan } from "@/lib/storage/sessions";
 
@@ -38,8 +39,8 @@ export default function HojePage() {
   if (!plan) {
     return (
       <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col items-center justify-center px-5 text-center">
-        <div className="text-2xl font-medium tracking-tight">activve</div>
-        <p className="mt-2 max-w-xs text-sm text-muted">
+        <Logo size="lg" tagline />
+        <p className="mt-6 max-w-xs text-sm text-muted">
           Seu plano. Seu ritmo. Comece importando o arquivo do seu plano.
         </p>
         <Link
@@ -56,6 +57,7 @@ export default function HojePage() {
   const today = getTodayWorkout(p);
   const ti = todayIndex();
   const week = weekDates();
+  const doneThisWeek = week.filter((d) => doneDates.has(d)).length;
   const trainingDays = p.training.weekSchedule.filter((d) => d !== "rest").length;
   const mealsCount = p.diet.meals.length;
 
@@ -119,7 +121,9 @@ export default function HojePage() {
       <section className="mt-4 rounded-card border border-line bg-surface p-5">
         <div className="flex items-center justify-between">
           <p className="text-[11px] uppercase tracking-wider text-faint">Seu ritmo nesta semana</p>
-          <span className="text-xs text-muted">{trainingDays} treinos</span>
+          <span className="text-xs text-muted">
+            {doneThisWeek} de {trainingDays} treinos
+          </span>
         </div>
         <p className="mt-2 text-sm text-muted">Constância é o que constrói.</p>
         <div className="mt-4 flex justify-between">
@@ -146,6 +150,12 @@ export default function HojePage() {
               </div>
             );
           })}
+        </div>
+        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-surface2">
+          <div
+            className="h-full rounded-full bg-accent transition-all"
+            style={{ width: `${trainingDays ? (doneThisWeek / trainingDays) * 100 : 0}%` }}
+          />
         </div>
       </section>
 
