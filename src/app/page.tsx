@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, Check, Dumbbell, Clock, Play, User, Utensils } from "lucide-react";
+import { Bell, Check, ChevronRight, Dumbbell, Clock, Play, User, Utensils } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { MuscleArt } from "@/components/MuscleArt";
@@ -149,8 +149,10 @@ export default function HojePage() {
         </div>
       </section>
 
-      {/* Card não-navegável até a tela /corpo existir (evita rota errada). */}
-      <div className="mt-4 flex items-center gap-3 rounded-card border border-line bg-surface p-4">
+      <Link
+        href="/corpo"
+        className="mt-4 flex items-center gap-3 rounded-card border border-line bg-surface p-4"
+      >
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface2 text-accent">
           <User size={18} aria-hidden />
         </span>
@@ -158,8 +160,8 @@ export default function HojePage() {
           <span className="block text-sm font-medium">Corpo</span>
           <span className="block text-xs text-muted">Acompanhe sua evolução</span>
         </span>
-        <span className="text-[10px] uppercase tracking-wide text-faint">Em breve</span>
-      </div>
+        <ChevronRight size={18} className="text-faint" aria-hidden />
+      </Link>
 
       <div className="mt-3 flex items-center gap-3 rounded-card border border-line bg-surface p-4">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface2 text-accent">
