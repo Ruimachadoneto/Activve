@@ -37,4 +37,14 @@ npm run typecheck && npm run lint && npm run test && npm run build
 
 ## Registro
 - 2026-06-26 — Fase 1: tokens de recuperação; `Logo`; Hoje com barra da semana + "X de Y treinos".
-  Verificado por DOM (screenshot do ambiente intermitente). Gates verdes. Próximo: Modo Treino (timer em anel).
+  Verificado por DOM (screenshot do ambiente intermitente). Gates verdes.
+- 2026-06-26 — Assets resolvidos (open-source): mapa muscular = `react-muscle-highlighter` (MIT,
+  frente+costas, cor/intensidade por músculo); demonstração de exercício = `free-exercise-db`
+  (Unlicense, imagens + dados). Sem custo/licença restritiva.
+- 2026-06-26 — Fase 2: **Modo Treino** focado (1 exercício/vez) — header com posição (X de N),
+  botão Variação (reusa ExerciseSheet), slot de mídia (vídeo externo; imagem do free-exercise-db a integrar),
+  **tabela de séries** SÉRIE·CARGA·REPS·RPE (série ativa destacada), **anel de descanso** (`RestTimer`,
+  SVG, presets 30/60/90s, pausar/pular), Concluir série (marca + dispara descanso), anterior/próximo,
+  Concluir treino no último. RPE adicionado ao `SetLog` (pré-preenchido do `effortTarget`).
+  **Verificado**: screenshot do layout (bate o mockup) + DOM (concluir série marca, avança e o anel conta).
+  Gates verdes (47 testes). Próximo: mapa muscular de recuperação no Corpo (react-muscle-highlighter) + integrar imagens do free-exercise-db.

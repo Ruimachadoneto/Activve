@@ -8,6 +8,7 @@ export type SetLog = {
   done: boolean;
   reps?: number;
   load_kg?: number;
+  rpe?: number; // esforço percebido (6–10), opcional
 };
 
 export type ExerciseLog = {
@@ -33,7 +34,7 @@ export type WorkoutSession = {
 /** Subconjunto estrutural do workout do plano necessário para iniciar uma sessão. */
 type WorkoutLike = {
   id: string;
-  exercises: { id: string; sets: number; reps?: string; load_kg?: number }[];
+  exercises: { id: string; sets: number; reps?: string; load_kg?: number; effortTarget?: number }[];
 };
 
 /** Data local em yyyy-mm-dd (não usa UTC pra não "virar o dia" à noite). */
@@ -73,6 +74,7 @@ export function createSession(
         done: false,
         reps: parseReps(ex.reps),
         load_kg: ex.load_kg,
+        rpe: ex.effortTarget,
       })),
     })),
   };
