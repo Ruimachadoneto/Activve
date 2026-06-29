@@ -55,6 +55,20 @@ export function parseReps(reps?: string): number | undefined {
   return m ? Number(m[0]) : undefined;
 }
 
+/** Faixa válida de RPE (esforço percebido) no domínio do app — espelha o `effortTarget` do schema. */
+export const RPE_MIN = 6;
+export const RPE_MAX = 10;
+
+/**
+ * Normaliza um RPE para o domínio válido (6–10) antes de persistir.
+ * Vazio/NaN → undefined (RPE é opcional); fora da faixa é "grampeado" em vez de
+ * salvar lixo (ex.: 0 → 6, 42 → 10). Mantém a sessão consistente com o schema.
+ */
+export function clampRpe(value: number | undefined | null): number | undefined {
+  if (value == null || Number.isNaN(value)) return undefined;
+  return Math.min(RPE_MAX, Math.max(RPE_MIN, Math.round(value)));
+}
+
 /** Cria uma sessão nova a partir do workout — séries pré-criadas, nada feito ainda. */
 export function createSession(
   planId: string,

@@ -4,6 +4,7 @@ import {
   sessionProgress,
   completeSession,
   sessionIdFor,
+  clampRpe,
   isoDate,
   type WorkoutSession,
 } from "./session";
@@ -71,6 +72,31 @@ describe("helpers", () => {
 
   it("isoDate é yyyy-mm-dd local", () => {
     expect(isoDate(new Date(2026, 5, 7))).toBe("2026-06-07");
+  });
+});
+
+describe("clampRpe", () => {
+  it("mantém valores dentro da faixa 6–10", () => {
+    expect(clampRpe(6)).toBe(6);
+    expect(clampRpe(8)).toBe(8);
+    expect(clampRpe(10)).toBe(10);
+  });
+
+  it("grampeia valores fora da faixa em vez de salvar lixo", () => {
+    expect(clampRpe(0)).toBe(6);
+    expect(clampRpe(5)).toBe(6);
+    expect(clampRpe(42)).toBe(10);
+  });
+
+  it("arredonda decimais", () => {
+    expect(clampRpe(7.4)).toBe(7);
+    expect(clampRpe(8.6)).toBe(9);
+  });
+
+  it("vazio/NaN/null → undefined (RPE é opcional)", () => {
+    expect(clampRpe(undefined)).toBeUndefined();
+    expect(clampRpe(null)).toBeUndefined();
+    expect(clampRpe(NaN)).toBeUndefined();
   });
 });
 

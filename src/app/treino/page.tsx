@@ -14,6 +14,9 @@ import {
   createSession,
   sessionProgress,
   completeSession,
+  clampRpe,
+  RPE_MIN,
+  RPE_MAX,
   isoDate,
   type WorkoutSession,
 } from "@/lib/plan/session";
@@ -262,16 +265,10 @@ export default function TreinoPage() {
                     inputMode="numeric"
                   />
                 </div>
-                <input
-                  inputMode="numeric"
-                  aria-label={`RPE da série ${i + 1}`}
-                  value={s.rpe ?? ""}
-                  onChange={(e) => {
-                    const n = parseInt(e.target.value, 10);
-                    patchSet(ex.id, i, { rpe: Number.isNaN(n) ? undefined : n });
-                  }}
-                  placeholder="—"
-                  className="w-9 rounded-lg bg-surface2/40 py-1 text-center text-sm tabular-nums outline-none placeholder:text-faint focus:text-accent"
+                <RpeInput
+                  value={s.rpe}
+                  label={`RPE da série ${i + 1}`}
+                  onCommit={(rpe) => patchSet(ex.id, i, { rpe })}
                 />
                 <button
                   type="button"
@@ -288,6 +285,20 @@ export default function TreinoPage() {
             );
           })}
         </div>
+      </div>
+
+      <div className="mt-5">
+        <label htmlFor="exercise-note" className="text-[10px] uppercase tracking-wider text-faint">
+          Observações
+        </label>
+        <textarea
+          id="exercise-note"
+          value={log?.note ?? ""}
+          onChange={(e) => patchExercise(ex.id, { note: e.target.value })}
+          placeholder="Ex.: troquei por supino máquina, ombro reclamou na última."
+          rows={2}
+          className="mt-1.5 w-full resize-none rounded-xl border border-line bg-surface2/40 px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-accent/50"
+        />
       </div>
 
       <div className="mt-6 flex flex-col items-center">
@@ -348,6 +359,60 @@ export default function TreinoPage() {
 
       <BottomNav active="treino" />
     </main>
+  );
+}
+
+/**
+ * Input de RPE (esforço percebido) restrito ao domínio 6–10. Mantém um buffer de
+ * texto para permitir digitar "10" sem o clamp atrapalhar no meio; só persiste
+ * valor válido (durante a digitação) e grampeia no blur. Vazio → undefined.
+ */
+function RpeInput({
+  value,
+  label,
+  onCommit,
+}: {
+  value: number | undefined;
+  label: string;
+  onCommit: (rpe: number | undefined) => void;
+}) {
+  const [text, setText] = useState(() => (value == null ? "" : String(value)));
+  const [prev, setPrev] = useState(value);
+  const [focused, setFocused] = useState(false);
+  if (value !== prev && !focused) {
+    setPrev(value);
+    setText(value == null ? "" : String(value));
+  }
+
+  return (
+    <input
+      inputMode="numeric"
+      aria-label={label}
+      value={text}
+      placeholder="—"
+      onFocus={(e) => {
+        setFocused(true);
+        e.target.select();
+      }}
+      onChange={(e) => {
+        setText(e.target.value);
+        if (e.target.value.trim() === "") {
+          onCommit(undefined);
+          return;
+        }
+        const n = parseInt(e.target.value, 10);
+        // Só persiste em tempo real quando já está na faixa; o resto espera o blur.
+        if (!Number.isNaN(n) && n >= RPE_MIN && n <= RPE_MAX) onCommit(n);
+      }}
+      onBlur={() => {
+        setFocused(false);
+        const raw = text.trim() === "" ? undefined : parseInt(text, 10);
+        const rpe = clampRpe(Number.isNaN(raw as number) ? undefined : raw);
+        onCommit(rpe);
+        setText(rpe == null ? "" : String(rpe));
+      }}
+      className="w-9 rounded-lg bg-surface2/40 py-1 text-center text-sm tabular-nums outline-none placeholder:text-faint focus:text-accent"
+    />
   );
 }
 
