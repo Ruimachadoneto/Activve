@@ -8,6 +8,7 @@ export type SetLog = {
   done: boolean;
   reps?: number;
   load_kg?: number;
+  rpe?: number; // esforço percebido (6–10), opcional
 };
 
 export type ExerciseLog = {
@@ -33,7 +34,7 @@ export type WorkoutSession = {
 /** Subconjunto estrutural do workout do plano necessário para iniciar uma sessão. */
 type WorkoutLike = {
   id: string;
-  exercises: { id: string; sets: number; reps?: string; load_kg?: number }[];
+  exercises: { id: string; sets: number; reps?: string; load_kg?: number; effortTarget?: number }[];
 };
 
 /** Data local em yyyy-mm-dd (não usa UTC pra não "virar o dia" à noite). */
@@ -52,6 +53,20 @@ export function sessionIdFor(planId: string, workoutId: string, date: string): s
 export function parseReps(reps?: string): number | undefined {
   const m = reps?.match(/\d+/);
   return m ? Number(m[0]) : undefined;
+}
+
+/** Faixa válida de RPE (esforço percebido) no domínio do app — espelha o `effortTarget` do schema. */
+export const RPE_MIN = 6;
+export const RPE_MAX = 10;
+
+/**
+ * Normaliza um RPE para o domínio válido (6–10) antes de persistir.
+ * Vazio/NaN → undefined (RPE é opcional); fora da faixa é "grampeado" em vez de
+ * salvar lixo (ex.: 0 → 6, 42 → 10). Mantém a sessão consistente com o schema.
+ */
+export function clampRpe(value: number | undefined | null): number | undefined {
+  if (value == null || Number.isNaN(value)) return undefined;
+  return Math.min(RPE_MAX, Math.max(RPE_MIN, Math.round(value)));
 }
 
 /** Cria uma sessão nova a partir do workout — séries pré-criadas, nada feito ainda. */
@@ -73,6 +88,7 @@ export function createSession(
         done: false,
         reps: parseReps(ex.reps),
         load_kg: ex.load_kg,
+        rpe: ex.effortTarget,
       })),
     })),
   };
