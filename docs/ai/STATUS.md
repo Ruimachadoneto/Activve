@@ -1,33 +1,51 @@
-# Estado atual do projeto
+# Estado atual do projeto — CHECKPOINT DE RETOMADA
 
-- Atualizado em: `2026-06-22`
-- Branch estável: `main`
-- Versão/release: `0.1.0` (scaffold inicial)
-- Nome do produto: **Activve** (repo/pasta local já = `activve`; **repo GitHub ainda `fitapp` — renomear em Settings**).
-- Objetivo atual: **TASK-002 — import do plano** EM REVISÃO (branch `ai/TASK-002-import-plano-claude`; gates verdes). TASK-001 (fundação) concluída. v1 local-first.
-- Progresso TASK-001: ✅ `PRODUCT.md` · ✅ `PLAN_SCHEMA.md` · ✅ `REPORT_SCHEMA.md` · ✅ `FEATURE_MAP.md` · ✅ `BENCHMARK.md` · ✅ `DECISIONS.md` (ADR-001/002) · ✅ **direção visual aprovada** ("Soft Tech Minimal" dark+teal, via mockups do GPT) + `docs/DESIGN_SYSTEM.md` (starter) · ⏳ gerador de anamnese.
-- Próximo passo: **revisão cruzada do Codex** no diff de TASK-002 + verificação manual no browser; corrigir P0/P1; merge. Depois TASK-003 (Hoje / Modo treino). Em paralelo: gerador de anamnese; sourcing do asset do mapa muscular.
-- Riscos conhecidos: 2 vulnerabilidades moderadas reportadas pelo `npm` no scaffold (auditar); nenhum runner de testes configurado ainda; aliases de modelo do Codex não fixados (validar no `codex`).
-- Dívidas relevantes: testes (unit/integration/e2e) `[A CONFIGURAR]`; PWA (manifest/service worker) ainda não adicionada; Supabase ainda não provisionado.
+> Atualizado: `2026-06-26`. Este doc + `CLAUDE.md` + `docs/ai/tasks/*` + `docs/DESIGN_SYSTEM.md`
+> + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
-## Contexto essencial
-- Produto: parceiro de treino/coach/nutri (treino, dieta, meta, peso, corpo). **Arquitetura plan-file:** gerador externo faz anamnese → emite **arquivo de plano JSON** → app importa/valida/monta/rastreia. **Sem IA de servidor.** Multiusuário com contas/sync.
-- Formato do plano: **JSON + schema (Zod), versionado** — entrada `docs/ai/PLAN_SCHEMA.md`, saída `docs/ai/REPORT_SCHEMA.md`.
-- **Ciclo fechado:** `plano → executa → relatório → Artifact ajusta → novo plano`. App exporta relatório estruturado; sem backend/IA. Feature-destaque: **mapa do corpo** (músculos + recuperação).
-- **Decisões do brainstorm:** v1 **local-first sem conta** (IndexedDB; contas+sync = Fase 2) · agenda **flexível** · dieta = ver + **marcar refeição** · **anti-culpa** · export/backup é MUST no v1. Ver `FEATURE_MAP.md`.
-- Referência de conceito (NÃO copiar código): app da Bárbara em `C:\Users\Rui Neto\Downloads\barbara-fit-pwa`.
-- Stack v1: Next 16 + TS + Tailwind v4 + IndexedDB (PWA). Supabase só na Fase 2. Detalhar em ADR-001.
+## Onde estamos
+- **Branch atual:** `ai/TASK-008-design-system-claude` (overhaul visual; pushed, **NÃO mergeada**).
+- **`main`** está em `cd48227` com TASK-001→007 mergeadas.
+- Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
-## Tarefas ativas
+## O alvo (não-negociável)
+Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **"Calm Coach"** (dark + 1 acento teal, respiro, premium). Política: `docs/ai/VISUAL_QUALITY.md`. Sistema: `docs/DESIGN_SYSTEM.md`. **Anti-culpa** sempre. O usuário exige fidelidade ao mockup — qualidade menor não é aceita.
 
-| ID | Título | Status | Implementer | Reviewer | Branch |
-|---|---|---|---|---|---|
-| TASK-001 | Fundação de produto (spec + schema + ADR + direção visual) | CONCLUÍDA | Claude (Lead) | humano | main (docs) |
-| TASK-002 | Import do plano (Zod + IndexedDB + tela /import) | PRONTA P/ MERGE | Claude | Codex (feito, sem P0/P1) | ai/TASK-002-import-plano-claude |
+## Feito (mergeado em main)
+- **TASK-004** — Hoje com fidelidade + **mapa muscular** (10 PNGs transparentes em `public/muscles/`, `resolveMuscleImage`, `MuscleArt`). Script `scripts/dewhite-muscles.py`.
+- **TASK-005** — Treino execução série-a-série + persistência (IndexedDB store `sessions`, DB v2), checks da semana no Hoje. `session.ts`/`sessions.ts`.
+- **TASK-006** — "Como fazer" + troca de variações (`ExerciseSheet`, `movement.ts`). Fix P1 XSS: `videoHref` só http(s).
+- **TASK-007** — Corpo/evolução: peso + tendência anti-culpa (`body.ts`, store `bodylog` DB v3, `WeightChart`).
 
-## Última entrega validada
+## Em andamento — TASK-008 (overhaul visual, branch atual)
+- **Fase 1 (feita):** tokens de recuperação no `globals.css` (`ready/recovering/worked/rested`); `Logo`; Hoje com barra da semana + "X de Y treinos".
+- **Fase 2 (feita):** **Modo Treino** focado (`/treino` reescrito) — 1 exercício/vez, header (X de N), botão Variação (reusa `ExerciseSheet`), slot de mídia (link de vídeo externo), tabela SÉRIE·CARGA·REPS·RPE, **anel de descanso** (`RestTimer.tsx`), Concluir série, anterior/próximo. RPE no `SetLog`.
 
-- Tarefa: Fundação (scaffold + kit Claude+Codex)
-- Commit: (commit inicial deste setup)
-- Validações: `create-next-app` OK; estrutura criada; `AGENTS.md`/`CLAUDE.md` mesclados; script `typecheck` adicionado.
-- Observações: faltam rodar `npm run lint`/`typecheck`/`build` como gate antes de evoluir; provisionar Supabase; adicionar PWA.
+## PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
+1. **Refinar o descanso (pedido do usuário):** ao concluir uma série — **pelo botão OU pelo ✓ da linha** — o timer deve **subir como overlay/pop-up** (descanso em 1º plano, resto atrás), com "esperar ou pular". Hoje o `RestTimer` é inline e só dispara pelo botão "Concluir série". → transformar em overlay + disparar também no toggle ✓.
+2. **Mapa muscular de recuperação no Corpo (o 3º "uau"):** `npm i react-muscle-highlighter` (MIT). Frente+costas coloridos por **heurística de recuperação local** (48–72h, escalada por volume/esforço) lendo as **sessões concluídas** (`getSessionsForPlan`) + os `primaryMuscles`/`secondaryMuscles` de cada exercício. Estados: trabalhado/recuperando/pronto/descansado (tokens já existem). Mapear nosso vocabulário `MUSCLES` → slugs da lib (chest, biceps, triceps, deltoids, quadriceps, hamstring, gluteal, calves, abs, trapezius, lower-back, upper-back…). Abas do mockup: Visão geral / Medições / Fotos(fora por ora) / Desempenho.
+3. **Imagem real do exercício** no slot de mídia do Modo Treino: integrar `free-exercise-db` (Unlicense) — imagens em `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/<...>`; casar por nome/`primaryMuscles`. Manter o link "ver vídeo".
+4. Polish transversal + auditoria visual; depois **revisão Codex** (`codex review --base main`) e merge da TASK-008.
+
+## Assets (resolvidos, open-source — sem custo)
+- Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).
+- Demonstração de exercício: **`free-exercise-db`** (Unlicense) — 800+ exercícios com imagens + dados.
+
+## Como rodar / verificar
+- `npm run dev` (porta 3000). Gates: `npm run typecheck && npm run lint && npm run test && npm run build` (47 testes).
+- **Preview screenshot está intermitente** (trava, ainda mais com o timer rodando). Verificar por: **abrir `localhost:3000`** (olhos do usuário) + DOM via eval. Seed de teste: gravar plano + sessões direto no IndexedDB (store `plans`/`kv`/`sessions`/`bodylog`).
+- Fluxo de revisão cruzada: Codex revisa (`codex review --base main` no **Git Bash**, não PowerShell — modo restrito trava). Loop em `docs/ai/CODE_REVIEW.md` (P0–P3).
+
+## Notas de ambiente / git
+- Repo `Ruimachadoneto/Activve`; usuário tem 2 contas GitHub (`RuiMachadopmo` é colaborador). 403 = conta errada no GCM.
+- C: já esteve cheio (trava screenshot + git ENOSPC) — checar espaço se travar.
+- **Consumo do plano:** conversas longas + screenshots queimam orçamento rápido (o modelo relê todo o chat por turno). **Trabalhar em sessões curtas; minimizar screenshots; preferir DOM + olhos do usuário.**
+
+## Tarefas
+| ID | Título | Status | Branch |
+|---|---|---|---|
+| TASK-004 | Hoje fidelidade + mapa muscular | MERGEADA | main |
+| TASK-005 | Treino execução + persistência | MERGEADA | main |
+| TASK-006 | Como fazer + variações | MERGEADA | main |
+| TASK-007 | Corpo / evolução (peso+tendência) | MERGEADA | main |
+| TASK-008 | Overhaul visual (Modo Treino, branding) | EM ANDAMENTO | ai/TASK-008-design-system-claude |
