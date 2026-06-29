@@ -1,6 +1,6 @@
 # Estado atual do projeto — CHECKPOINT DE RETOMADA
 
-> Atualizado: `2026-06-26`. Este doc + `CLAUDE.md` + `docs/ai/tasks/*` + `docs/DESIGN_SYSTEM.md`
+> Atualizado: `2026-06-29`. Este doc + `CLAUDE.md` + `docs/ai/tasks/*` + `docs/DESIGN_SYSTEM.md`
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
@@ -20,12 +20,12 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
 ## Em andamento — TASK-008 (overhaul visual, branch atual)
 - **Fase 1 (feita):** tokens de recuperação no `globals.css` (`ready/recovering/worked/rested`); `Logo`; Hoje com barra da semana + "X de Y treinos".
 - **Fase 2 (feita):** **Modo Treino** focado (`/treino` reescrito) — 1 exercício/vez, header (X de N), botão Variação (reusa `ExerciseSheet`), slot de mídia (link de vídeo externo), tabela SÉRIE·CARGA·REPS·RPE, **anel de descanso** (`RestTimer.tsx`), Concluir série, anterior/próximo. RPE no `SetLog`.
+- **Fase 2.1 (feita 2026-06-29):** `RestTimer` agora é **overlay bottom-sheet** (`role=dialog`, backdrop `bg-black/70`, fecha por X/Esc/Pular/clique no backdrop). Dispara em **Concluir série E no ✓ da linha** (apenas no toggle false→true; desmarcar não dispara). `treino/page.tsx`: novo state `restOpen`, helper `toggleSetDone(i, done)`, seção inline de descanso removida — só o botão "Concluir série" permanece na coluna. Gates: typecheck ✓ · lint ✓ · 47/47 testes ✓ · build ✓. Verificado em `localhost:3000/treino` (Supino reto, rest 120s) com plano-exemplo semeado: dispara pelos dois caminhos, fecha em Pular, não dispara ao desmarcar.
 
 ## PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-1. **Refinar o descanso (pedido do usuário):** ao concluir uma série — **pelo botão OU pelo ✓ da linha** — o timer deve **subir como overlay/pop-up** (descanso em 1º plano, resto atrás), com "esperar ou pular". Hoje o `RestTimer` é inline e só dispara pelo botão "Concluir série". → transformar em overlay + disparar também no toggle ✓.
-2. **Mapa muscular de recuperação no Corpo (o 3º "uau"):** `npm i react-muscle-highlighter` (MIT). Frente+costas coloridos por **heurística de recuperação local** (48–72h, escalada por volume/esforço) lendo as **sessões concluídas** (`getSessionsForPlan`) + os `primaryMuscles`/`secondaryMuscles` de cada exercício. Estados: trabalhado/recuperando/pronto/descansado (tokens já existem). Mapear nosso vocabulário `MUSCLES` → slugs da lib (chest, biceps, triceps, deltoids, quadriceps, hamstring, gluteal, calves, abs, trapezius, lower-back, upper-back…). Abas do mockup: Visão geral / Medições / Fotos(fora por ora) / Desempenho.
-3. **Imagem real do exercício** no slot de mídia do Modo Treino: integrar `free-exercise-db` (Unlicense) — imagens em `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/<...>`; casar por nome/`primaryMuscles`. Manter o link "ver vídeo".
-4. Polish transversal + auditoria visual; depois **revisão Codex** (`codex review --base main`) e merge da TASK-008.
+1. **Mapa muscular de recuperação no Corpo (o 3º "uau"):** `npm i react-muscle-highlighter` (MIT). Frente+costas coloridos por **heurística de recuperação local** (48–72h, escalada por volume/esforço) lendo as **sessões concluídas** (`getSessionsForPlan`) + os `primaryMuscles`/`secondaryMuscles` de cada exercício. Estados: trabalhado/recuperando/pronto/descansado (tokens já existem). Mapear nosso vocabulário `MUSCLES` → slugs da lib (chest, biceps, triceps, deltoids, quadriceps, hamstring, gluteal, calves, abs, trapezius, lower-back, upper-back…). Abas do mockup: Visão geral / Medições / Fotos(fora por ora) / Desempenho.
+2. **Imagem real do exercício** no slot de mídia do Modo Treino: integrar `free-exercise-db` (Unlicense) — imagens em `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/<...>`; casar por nome/`primaryMuscles`. Manter o link "ver vídeo".
+3. Polish transversal + auditoria visual; depois **revisão Codex** (`codex review --base main`) e merge da TASK-008.
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).

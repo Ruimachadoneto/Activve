@@ -29,6 +29,7 @@ export default function TreinoPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [current, setCurrent] = useState(0);
   const [restToken, setRestToken] = useState(0);
+  const [restOpen, setRestOpen] = useState(false);
 
   const p = plan?.plan;
   const planId = plan?.planId ?? null;
@@ -127,10 +128,20 @@ export default function TreinoPage() {
     void saveSession(next);
   }
 
+  function startRest() {
+    setRestToken((t) => t + 1);
+    setRestOpen(true);
+  }
+
   function concluirSerie() {
     if (activeSet === -1) return;
     patchSet(ex.id, activeSet, { done: true });
-    setRestToken((t) => t + 1);
+    startRest();
+  }
+
+  function toggleSetDone(i: number, currentDone: boolean) {
+    patchSet(ex.id, i, { done: !currentDone });
+    if (!currentDone) startRest();
   }
 
   function concluirTreino() {
@@ -264,7 +275,7 @@ export default function TreinoPage() {
                 />
                 <button
                   type="button"
-                  onClick={() => patchSet(ex.id, i, { done: !s.done })}
+                  onClick={() => toggleSetDone(i, s.done)}
                   aria-pressed={s.done}
                   aria-label={`Série ${i + 1} feita`}
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors ${
@@ -280,15 +291,11 @@ export default function TreinoPage() {
       </div>
 
       <div className="mt-6 flex flex-col items-center">
-        <p className="text-[11px] uppercase tracking-wider text-faint">Descanso</p>
-        <div className="mt-3">
-          <RestTimer seconds={ex.rest_s ?? 60} runToken={restToken} />
-        </div>
         <button
           type="button"
           onClick={concluirSerie}
           disabled={activeSet === -1}
-          className="mt-5 w-full rounded-xl bg-accent px-5 py-3 text-sm font-medium text-on-accent transition-colors hover:bg-accent-press disabled:opacity-40"
+          className="w-full rounded-xl bg-accent px-5 py-3 text-sm font-medium text-on-accent transition-colors hover:bg-accent-press disabled:opacity-40"
         >
           {activeSet === -1 ? "Exercício concluído" : "Concluir série"}
         </button>
@@ -331,6 +338,13 @@ export default function TreinoPage() {
           onClose={() => setOpenId(null)}
         />
       ) : null}
+
+      <RestTimer
+        open={restOpen}
+        onClose={() => setRestOpen(false)}
+        seconds={ex.rest_s ?? 60}
+        runToken={restToken}
+      />
 
       <BottomNav active="treino" />
     </main>
