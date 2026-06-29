@@ -4,8 +4,8 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `ai/TASK-008-design-system-claude` (overhaul visual; pushed, **NÃO mergeada**).
-- **`main`** está em `cd48227` com TASK-001→007 mergeadas.
+- **Branch atual:** `main` (limpa; TASK-008 mergeada e pushed).
+- **`main`** está em `9a0d464` com **TASK-001→008 mergeadas** (push em `cd48227..9a0d464`).
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
 ## O alvo (não-negociável)
@@ -16,22 +16,15 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
 - **TASK-005** — Treino execução série-a-série + persistência (IndexedDB store `sessions`, DB v2), checks da semana no Hoje. `session.ts`/`sessions.ts`.
 - **TASK-006** — "Como fazer" + troca de variações (`ExerciseSheet`, `movement.ts`). Fix P1 XSS: `videoHref` só http(s).
 - **TASK-007** — Corpo/evolução: peso + tendência anti-culpa (`body.ts`, store `bodylog` DB v3, `WeightChart`).
-
-## Em andamento — TASK-008 (overhaul visual, branch atual)
-- **Fase 1 (feita):** tokens de recuperação no `globals.css` (`ready/recovering/worked/rested`); `Logo`; Hoje com barra da semana + "X de Y treinos".
-- **Fase 2 (feita):** **Modo Treino** focado (`/treino` reescrito) — 1 exercício/vez, header (X de N), botão Variação (reusa `ExerciseSheet`), slot de mídia (link de vídeo externo), tabela SÉRIE·CARGA·REPS·RPE, **anel de descanso** (`RestTimer.tsx`), Concluir série, anterior/próximo. RPE no `SetLog`.
-- **Fase 2.1 (feita 2026-06-29):** `RestTimer` agora é **overlay bottom-sheet** (`role=dialog`, backdrop `bg-black/70`, fecha por X/Esc/Pular/clique no backdrop). Dispara em **Concluir série E no ✓ da linha** (apenas no toggle false→true; desmarcar não dispara). `treino/page.tsx`: novo state `restOpen`, helper `toggleSetDone(i, done)`, seção inline de descanso removida — só o botão "Concluir série" permanece na coluna. Commit `5abcf98`. Gates: typecheck ✓ · lint ✓ · 47/47 testes ✓ · build ✓.
-- **Fase 2.2 — revisão Codex (ciclo 1, feita 2026-06-29):** `codex review --base main` apontou 2 achados, ambos **aceitos e corrigidos**:
-  - **[P1] Regressão:** a reescrita do `/treino` (TASK-008) dropou a **textarea de observações por exercício** que existia na TASK-005 (`ExerciseLog.note` ficou sem UI). → restaurada abaixo da tabela de séries (usa `patchExercise`).
-  - **[P2] Integridade:** o input de RPE persistia qualquer inteiro (0, 42), mas o domínio é 6–10 (`schema.ts` `effortTarget`). → novo helper puro `clampRpe` em `session.ts` (vazio→undefined; fora da faixa grampeia 6/10) + componente `RpeInput` com buffer de texto (só persiste valor válido na digitação, clampa no blur). +4 testes unitários.
-  - Gates: typecheck ✓ · lint ✓ · **51/51** testes ✓ · build ✓. Verificado em `localhost:3000/treino`: nota persiste no IndexedDB; RPE 42→10 e 0→6, nenhum valor inválido gravado; 0 erros no console.
-  - **Risco residual (pré-existente, não-bloqueante):** `patchSet`/`patchExercise` derivam o `session` do snapshot do render; **edições em campos diferentes no mesmo frame** (sub-100ms) podem se sobrescrever. Não ocorre com digitação humana (há re-render entre edições). Candidato a functional updater no futuro.
-- **Fase 2.3 — re-review Codex (ciclo 2, 2026-06-29): APROVADO.** `codex review --base main` confirmou os fixes do ciclo 1 — **nenhum achado novo, nenhum P0/P1 aberto**. Único risco residual apontado: **faltam testes de UI/interação** para o `/treino` novo e o fluxo do `RestTimer` (cobertura forte no domínio, fraca na interação — exigiria RTL/jsdom, hoje a infra é node-only). Pendente apenas o **gate humano de merge** (AGENTS.md §18).
+- **TASK-008** — Overhaul visual "Calm Coach" (merge `9a0d464`, 2026-06-29). Fase 1: tokens de recuperação (`globals.css`) + `Logo` + Hoje (barra da semana, "X de Y treinos"). Fase 2: **Modo Treino** focado (`/treino` reescrito) — 1 exercício/vez, Variação (reusa `ExerciseSheet`), slot de mídia, tabela SÉRIE·CARGA·REPS·RPE, anterior/próximo. Fase 2.1: **descanso em overlay bottom-sheet** (`RestTimer.tsx`, `role=dialog`), dispara por Concluir série **e** pelo ✓ da linha (toggle false→true). Fase 2.2 (review Codex ciclo 1): restaurada a **textarea de observações** (P1) e RPE normalizado **6–10** via `clampRpe`+`RpeInput` (P2) +4 testes. Fase 2.3: re-review Codex **aprovado, sem P0/P1**. Gates no merge: typecheck ✓ · lint ✓ · **51/51** ✓ · build ✓.
+  - **Risco residual (pré-existente, não-bloqueante):** `patchSet`/`patchExercise` derivam o `session` do snapshot do render; edições em campos diferentes no mesmo frame (<100ms) podem se sobrescrever. Não ocorre com digitação humana. Candidato a functional updater.
+  - **Dívida de teste:** faltam testes de UI/interação para `/treino` e `RestTimer` (infra é node-only; exigiria RTL/jsdom).
 
 ## PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-1. **Mapa muscular de recuperação no Corpo (o 3º "uau"):** `npm i react-muscle-highlighter` (MIT). Frente+costas coloridos por **heurística de recuperação local** (48–72h, escalada por volume/esforço) lendo as **sessões concluídas** (`getSessionsForPlan`) + os `primaryMuscles`/`secondaryMuscles` de cada exercício. Estados: trabalhado/recuperando/pronto/descansado (tokens já existem). Mapear nosso vocabulário `MUSCLES` → slugs da lib (chest, biceps, triceps, deltoids, quadriceps, hamstring, gluteal, calves, abs, trapezius, lower-back, upper-back…). Abas do mockup: Visão geral / Medições / Fotos(fora por ora) / Desempenho.
+**TASK-009 — Mapa muscular de recuperação no Corpo (o 3º "uau").** Partir da `main` (`9a0d464`), criar branch `ai/TASK-009-mapa-recuperacao-claude` + contrato em `docs/ai/tasks/`.
+1. `npm i react-muscle-highlighter` (MIT). Frente+costas coloridos por **heurística de recuperação local** (48–72h, escalada por volume/esforço) lendo as **sessões concluídas** (`getSessionsForPlan`) + `primaryMuscles`/`secondaryMuscles` de cada exercício. Estados: trabalhado/recuperando/pronto/descansado (tokens já existem). Mapear nosso vocabulário `MUSCLES` → slugs da lib (chest, biceps, triceps, deltoids, quadriceps, hamstring, gluteal, calves, abs, trapezius, lower-back, upper-back…). Abas do mockup: Visão geral / Medições / Fotos(fora por ora) / Desempenho.
 2. **Imagem real do exercício** no slot de mídia do Modo Treino: integrar `free-exercise-db` (Unlicense) — imagens em `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/<...>`; casar por nome/`primaryMuscles`. Manter o link "ver vídeo".
-3. Polish transversal + auditoria visual; nova **revisão Codex** (`codex review --base main`) confirmando os fixes do ciclo 1 sem novos P0/P1; depois merge da TASK-008.
+3. Polish transversal + auditoria visual; **revisão Codex** (`codex review --base main`) sem P0/P1; merge.
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).
@@ -54,4 +47,5 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
 | TASK-005 | Treino execução + persistência | MERGEADA | main |
 | TASK-006 | Como fazer + variações | MERGEADA | main |
 | TASK-007 | Corpo / evolução (peso+tendência) | MERGEADA | main |
-| TASK-008 | Overhaul visual (Modo Treino, branding) | EM ANDAMENTO | ai/TASK-008-design-system-claude |
+| TASK-008 | Overhaul visual (Modo Treino, branding) | MERGEADA | main (`9a0d464`) |
+| TASK-009 | Mapa muscular de recuperação no Corpo | PRÓXIMA | a criar: ai/TASK-009-mapa-recuperacao-claude |
