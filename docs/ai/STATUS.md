@@ -47,7 +47,8 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
   - **Revisão Codex (ciclo 2 do polish, 2026-06-30) — 2 achados, ambos corrigidos:**
     - **[P2] colisão de ids de alternativa** — `buildExerciseMuscles` punha todos os `alternatives[].id` num Map global, mas o schema só garante unicidade de `exercise.id`; dois exercícios com uma alt de mesmo id (ex.: "machine") faziam o swap ler músculos errados. → reescrito com **escopo por exercício** (cada base guarda sub-mapa das suas variações); `GetMuscles` agora é `(exerciseId, swappedToId?)`; `stimuliFromSessions` passa os dois. +2 testes (colisão não ocorre; swap desconhecido cai no base).
     - **[P3] sessões não recarregavam ao focar** — o handler de foco só atualizava `now`; treino concluído noutra aba com `/corpo` aberto não aparecia. → `loadSessions` (useCallback) recarrega no foco/visibility além do tick.
-    - Gates: typecheck ✓ · lint ✓ · **85/85** ✓ · build ✓. Re-review pendente.
+    - Gates: typecheck ✓ · lint ✓ · **85/85** ✓ · build ✓.
+  - **Re-review Codex (2026-06-30) — APROVADO, LIMPO:** "no discrete, actionable bugs… recovery-domain logic, page integration e muscle-map aggregation internamente consistentes e cobertos por testes". **TASK-009 chancelada de ponta a ponta (lógica + UI + polish + interação). Pendente só o gate humano de merge.**
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Revisão Codex final da TASK-009 completa** (`codex review --base main`, no Git Bash) — agora cobre também o polish: `RecoveryMap` (interação/tap, alpha, responsivo, a11y), `hoursToReady`, `slugRecoveryDetail`, `globals.css`. Loop de correção (P0–P3) se houver.
