@@ -94,6 +94,8 @@ npm run build
 - Data: 2026-06-29
 - Alterações de plano: `MUSCLES` tem 20 grupos (não 21).
 - Impedimentos: —
-- Resultado: **passo 1 (núcleo de domínio) CONCLUÍDO e aprovado por review Codex** (commit `d2d3e98`).
-  Ajuste do review: `stimuliFromSessions` agora filtra `status === "done"`. 15 testes, gates verdes.
-  **Pendente: passo 2 (UI — `react-muscle-highlighter` + `RecoveryMap` na tela Corpo).**
+- Resultado: **passo 1 (núcleo) CONCLUÍDO e aprovado por review Codex** (commit `d2d3e98`).
+  Ajuste do review: `stimuliFromSessions` filtra `status === "done"`. **Passo 2 (UI) CONCLUÍDO:**
+  `react-muscle-highlighter` (ADR-003), `RecoveryMap`, `muscleSlug`, `buildExerciseMuscles`, tela
+  Corpo com abas. 71 testes, gates verdes, verificado no browser (14 regiões acendem).
+  **Pendente: review Codex do passo 2 + merge.**

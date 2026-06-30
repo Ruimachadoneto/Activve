@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { WeightChart } from "@/components/WeightChart";
+import { RecoveryMap } from "@/components/RecoveryMap";
 import { getBodyLog, saveBodyEntry } from "@/lib/storage/bodylog";
+import { getSessionsForPlan } from "@/lib/storage/sessions";
 import { makeEntry, weightSeries, computeTrend, type BodyEntry } from "@/lib/plan/body";
+import {
+  buildExerciseMuscles,
+  computeRecovery,
+  stimuliFromSessions,
+} from "@/lib/plan/recovery";
+import type { WorkoutSession } from "@/lib/plan/session";
 
 const GOAL_LABEL: Record<string, string> = {
   lose_fat: "Perder gordura",
@@ -15,6 +23,8 @@ const GOAL_LABEL: Record<string, string> = {
   maintain: "Manter",
   performance: "Performance",
 };
+
+type Tab = "overview" | "measurements";
 
 function formatDate(iso?: string): string | null {
   if (!iso) return null;
@@ -27,7 +37,11 @@ function formatDate(iso?: string): string | null {
 export default function CorpoPage() {
   const { loading, plan } = useActivePlan();
   const [entries, setEntries] = useState<BodyEntry[]>([]);
+  const [sessions, setSessions] = useState<WorkoutSession[]>([]);
+  const [tab, setTab] = useState<Tab>("overview");
   const [input, setInput] = useState("");
+
+  const planId = plan?.planId ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +53,23 @@ export default function CorpoPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!planId) return;
+    let cancelled = false;
+    getSessionsForPlan(planId).then((list) => {
+      if (!cancelled) setSessions(list);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [planId]);
+
+  const recovery = useMemo(() => {
+    if (!plan) return null;
+    const getMuscles = buildExerciseMuscles(plan.plan);
+    return computeRecovery(stimuliFromSessions(sessions, getMuscles));
+  }, [plan, sessions]);
 
   if (loading) {
     return (
@@ -66,6 +97,7 @@ export default function CorpoPage() {
   const trend = computeTrend(entries, goal.targetWeight_kg);
   const latest = trend.latest ?? startWeight;
   const defaultWeight = trend.latest ?? startWeight;
+  const gender: "male" | "female" = p.profile.sex === "female" ? "female" : "male";
 
   async function save() {
     const n = parseFloat((input || String(defaultWeight)).replace(",", "."));
@@ -83,72 +115,103 @@ export default function CorpoPage() {
         <p className="mt-0.5 text-sm text-muted">Sua evolução, sem cobrança.</p>
       </header>
 
-      <section className="mt-5 rounded-card border border-line bg-surface p-5">
-        <p className="text-[11px] uppercase tracking-wider text-faint">Sua meta</p>
-        <h2 className="mt-1.5 text-lg font-medium">{GOAL_LABEL[goal.type] ?? goal.type}</h2>
-        {goal.summary ? <p className="mt-1 text-sm text-muted">{goal.summary}</p> : null}
-        {goal.targetWeight_kg || goal.targetDate ? (
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            {goal.targetWeight_kg ? (
-              <span className="text-muted">
-                Alvo: <span className="text-ink">{goal.targetWeight_kg} kg</span>
-              </span>
-            ) : null}
-            {formatDate(goal.targetDate) ? (
-              <span className="text-muted">até {formatDate(goal.targetDate)}</span>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
-
-      <section className="mt-4 rounded-card border border-line bg-surface p-5">
-        <p className="text-[11px] uppercase tracking-wider text-faint">Peso</p>
-        <div className="mt-1.5 flex items-end gap-1.5">
-          <span className="text-3xl font-medium leading-none">{latest}</span>
-          <span className="pb-0.5 text-sm text-muted">kg</span>
-        </div>
-        {trend.deltaKg !== undefined ? (
-          <p className="mt-1.5 text-sm text-muted">
-            {trend.deltaKg > 0 ? "+" : ""}
-            {trend.deltaKg} kg desde o início · oscilação é normal
-          </p>
-        ) : (
-          <p className="mt-1.5 text-sm text-faint">Peso inicial do plano.</p>
-        )}
-        {trend.toTargetKg !== undefined && trend.toTargetKg !== 0 ? (
-          <p className="mt-0.5 text-sm text-accent">{Math.abs(trend.toTargetKg)} kg até o alvo</p>
-        ) : null}
-
-        {series.length >= 2 ? (
-          <div className="mt-4">
-            <WeightChart series={series} target={goal.targetWeight_kg} />
-          </div>
-        ) : (
-          <p className="mt-3 text-xs text-faint">Registre mais um peso para ver a tendência.</p>
-        )}
-      </section>
-
-      <section className="mt-4 rounded-card border border-line bg-surface p-5">
-        <p className="text-[11px] uppercase tracking-wider text-faint">Registrar peso de hoje</p>
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            inputMode="decimal"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={String(defaultWeight)}
-            aria-label="Peso de hoje em kg"
-            className="w-24 rounded-xl border border-line bg-surface2/30 px-3 py-2.5 text-center text-sm tabular-nums outline-none focus:border-accent/50"
-          />
-          <span className="text-sm text-muted">kg</span>
+      <div className="mt-5 flex rounded-xl border border-line bg-surface p-1 text-sm">
+        {([
+          ["overview", "Visão geral"],
+          ["measurements", "Medições"],
+        ] as const).map(([key, label]) => (
           <button
+            key={key}
             type="button"
-            onClick={save}
-            className="ml-auto rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-on-accent transition-colors hover:bg-accent-press"
+            onClick={() => setTab(key)}
+            aria-pressed={tab === key}
+            className={`flex-1 rounded-lg py-2 font-medium transition-colors ${
+              tab === key ? "bg-accent text-on-accent" : "text-muted"
+            }`}
           >
-            Salvar
+            {label}
           </button>
-        </div>
-      </section>
+        ))}
+      </div>
+
+      {tab === "overview" ? (
+        <>
+          <section className="mt-4 rounded-card border border-line bg-surface p-5">
+            <p className="text-[11px] uppercase tracking-wider text-faint">Recuperação muscular</p>
+            <p className="mt-1 mb-4 text-sm text-muted">O que treinou e o que já está pronto.</p>
+            {recovery ? <RecoveryMap recovery={recovery} gender={gender} /> : null}
+          </section>
+
+          <section className="mt-4 rounded-card border border-line bg-surface p-5">
+            <p className="text-[11px] uppercase tracking-wider text-faint">Sua meta</p>
+            <h2 className="mt-1.5 text-lg font-medium">{GOAL_LABEL[goal.type] ?? goal.type}</h2>
+            {goal.summary ? <p className="mt-1 text-sm text-muted">{goal.summary}</p> : null}
+            {goal.targetWeight_kg || goal.targetDate ? (
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                {goal.targetWeight_kg ? (
+                  <span className="text-muted">
+                    Alvo: <span className="text-ink">{goal.targetWeight_kg} kg</span>
+                  </span>
+                ) : null}
+                {formatDate(goal.targetDate) ? (
+                  <span className="text-muted">até {formatDate(goal.targetDate)}</span>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
+        </>
+      ) : (
+        <>
+          <section className="mt-4 rounded-card border border-line bg-surface p-5">
+            <p className="text-[11px] uppercase tracking-wider text-faint">Peso</p>
+            <div className="mt-1.5 flex items-end gap-1.5">
+              <span className="text-3xl font-medium leading-none">{latest}</span>
+              <span className="pb-0.5 text-sm text-muted">kg</span>
+            </div>
+            {trend.deltaKg !== undefined ? (
+              <p className="mt-1.5 text-sm text-muted">
+                {trend.deltaKg > 0 ? "+" : ""}
+                {trend.deltaKg} kg desde o início · oscilação é normal
+              </p>
+            ) : (
+              <p className="mt-1.5 text-sm text-faint">Peso inicial do plano.</p>
+            )}
+            {trend.toTargetKg !== undefined && trend.toTargetKg !== 0 ? (
+              <p className="mt-0.5 text-sm text-accent">{Math.abs(trend.toTargetKg)} kg até o alvo</p>
+            ) : null}
+
+            {series.length >= 2 ? (
+              <div className="mt-4">
+                <WeightChart series={series} target={goal.targetWeight_kg} />
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-faint">Registre mais um peso para ver a tendência.</p>
+            )}
+          </section>
+
+          <section className="mt-4 rounded-card border border-line bg-surface p-5">
+            <p className="text-[11px] uppercase tracking-wider text-faint">Registrar peso de hoje</p>
+            <div className="mt-3 flex items-center gap-2">
+              <input
+                inputMode="decimal"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={String(defaultWeight)}
+                aria-label="Peso de hoje em kg"
+                className="w-24 rounded-xl border border-line bg-surface2/30 px-3 py-2.5 text-center text-sm tabular-nums outline-none focus:border-accent/50"
+              />
+              <span className="text-sm text-muted">kg</span>
+              <button
+                type="button"
+                onClick={save}
+                className="ml-auto rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-on-accent transition-colors hover:bg-accent-press"
+              >
+                Salvar
+              </button>
+            </div>
+          </section>
+        </>
+      )}
 
       <BottomNav active="corpo" />
     </main>

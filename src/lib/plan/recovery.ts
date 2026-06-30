@@ -14,7 +14,7 @@
  * Vocabulário anti-culpa: nenhum estado é "ruim". "Descansado" ≠ "abandonado".
  */
 
-import { MUSCLES, type Muscle } from "./schema";
+import { MUSCLES, type Muscle, type PlanFile } from "./schema";
 import type { WorkoutSession } from "./session";
 
 export type RecoveryState = "worked" | "recovering" | "ready" | "rested";
@@ -111,6 +111,28 @@ export function stimuliFromSessions(
     }
   }
   return out;
+}
+
+/**
+ * Constrói o lookup `exerciseId → músculos` a partir do plano, incluindo as variações
+ * (`alternatives`). Variação sem músculos próprios herda os do exercício pai.
+ */
+export function buildExerciseMuscles(plan: PlanFile): GetMuscles {
+  const map = new Map<string, ExerciseMuscles>();
+  for (const workout of plan.training.workouts) {
+    for (const ex of workout.exercises) {
+      map.set(ex.id, { primary: ex.primaryMuscles, secondary: ex.secondaryMuscles });
+      for (const alt of ex.alternatives ?? []) {
+        map.set(
+          alt.id,
+          alt.primaryMuscles?.length
+            ? { primary: alt.primaryMuscles }
+            : { primary: ex.primaryMuscles, secondary: ex.secondaryMuscles },
+        );
+      }
+    }
+  }
+  return (id) => map.get(id);
 }
 
 /**

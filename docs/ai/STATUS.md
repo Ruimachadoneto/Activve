@@ -4,7 +4,7 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `ai/TASK-009-mapa-recuperacao-claude` (TASK-009 em andamento; **passo 1/núcleo feito, NÃO mergeada**).
+- **Branch atual:** `ai/TASK-009-mapa-recuperacao-claude` (TASK-009 — **passos 1 e 2 feitos, NÃO mergeada**; aguardando review do passo 2).
 - **`main`** está em `4467540` (TASK-001→008 mergeadas; push de TASK-008 em `cd48227..9a0d464`).
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
@@ -27,9 +27,14 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
   - `recovery.test.ts`: 15 testes (4 estados + escala volume/esforço + adapter). Gates: typecheck ✓ · lint ✓ · **66/66** ✓.
   - **Review Codex do núcleo — APROVADO (2026-06-29).** Ciclo 1: 1 achado [P2] — `stimuliFromSessions` não filtrava `status === "done"` (contrato diz "sessões concluídas"); um treino em andamento acenderia o mapa. → adicionado `if (session.status !== "done") continue;` (consistente com o Hoje, que já filtra done) + teste "in_progress não gera estímulo". Ciclo 2: **re-review limpo, nenhum achado novo, nenhum P0/P1.** Núcleo chancelado — commit `d2d3e98`, branch pushada.
 
+- **Passo 2 — UI (FEITO 2026-06-29):** `react-muscle-highlighter` v1.2.0 (MIT) instalada — ADR-003. Componente `src/components/RecoveryMap.tsx` (lib via `next/dynamic ssr:false`; frente+costas; cor por estado via tokens; legenda dos 4 estados; hint quando vazio). Ponte `src/lib/plan/muscleSlug.ts` (`MUSCLE_TO_SLUG` + `slugRecoveryStates`, agrega pelo estado mais fatigado) +5 testes. `buildExerciseMuscles(plan)` em `recovery.ts` (lookup exerciseId→músculos, inclui variações). Tela Corpo (`corpo/page.tsx`) reescrita com **abas Visão geral / Medições**: Visão geral = mapa + meta; Medições = peso+registro (sem regressão).
+  - **Verificado no browser** (`localhost:3000/corpo`, DOM — screenshot trava nesta máquina): abas alternam; após semear 1 sessão concluída (supino+desenvolvimento, ~10h atrás), **14 regiões acendem em "trabalhado"** (chest/deltoids/triceps); aba Medições mantém peso+input; **0 erros no console**. Gates: typecheck ✓ · lint ✓ · **71/71** ✓ · build ✓.
+  - ⚠️ **Sessão de teste semeada** no IndexedDB do navegador (`pl_exemplo_2026_06:A:2026-06-29`) para a verificação — some ao limpar dados do site; o Hoje agora mostra "1 de 4".
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-1. **Passo 2 — UI:** `npm i react-muscle-highlighter` (MIT; registrar em DECISIONS). Componente `RecoveryMap` mapeando nosso `Muscle` → slugs da lib (chest, biceps, triceps, deltoids, quadriceps, hamstring, gluteal, calves, abs, trapezius, lower-back, upper-back…); cor por estado via tokens. Integrar na tela Corpo (`src/app/corpo/page.tsx`) com legenda dos 4 estados + abas (Visão geral / Medições). Construir o `getMuscles` lendo o plano ativo. **Verificar no browser** com plano+sessões semeados; **revisão Codex**; merge sob gate humano.
-2. **Tarefa futura — imagem real do exercício** no slot de mídia do Modo Treino: `free-exercise-db` (Unlicense) — imagens em `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/<...>`; casar por nome/`primaryMuscles`. Manter o link "ver vídeo".
+1. **Revisão Codex do passo 2** (`codex review --base main`) — foco: `RecoveryMap`/`corpo page` (hooks, SSR/dynamic, regressão do peso), `muscleSlug` (mapeamento/agrupamento), `buildExerciseMuscles` (variações). Loop de correção; depois **merge sob gate humano**.
+2. **Auditoria visual** do mapa (fidelidade ao mockup; tamanho/escala dos corpos; contraste no dark) — `docs/ai/VISUAL_QUALITY.md`.
+3. **Tarefa futura — imagem real do exercício** no Modo Treino: `free-exercise-db` (Unlicense).
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).
@@ -53,4 +58,4 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
 | TASK-006 | Como fazer + variações | MERGEADA | main |
 | TASK-007 | Corpo / evolução (peso+tendência) | MERGEADA | main |
 | TASK-008 | Overhaul visual (Modo Treino, branding) | MERGEADA | main (`9a0d464`) |
-| TASK-009 | Mapa muscular de recuperação no Corpo | EM ANDAMENTO (núcleo feito) | ai/TASK-009-mapa-recuperacao-claude |
+| TASK-009 | Mapa muscular de recuperação no Corpo | EM ANDAMENTO (UI feita, review pendente) | ai/TASK-009-mapa-recuperacao-claude |

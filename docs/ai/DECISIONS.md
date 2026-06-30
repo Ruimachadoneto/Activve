@@ -40,6 +40,20 @@ Registre somente decisões duráveis. Use uma entrada por decisão.
 
 ---
 
+## ADR-003 — `react-muscle-highlighter` para o mapa muscular de recuperação (TASK-009)
+
+- Data: 2026-06-29
+- Status: aceito
+- Contexto: a tela Corpo precisa de um mapa anatômico (frente+costas) colorido por estado de recuperação. O mockup pede um 3D fotorrealista; construir/manter SVGs anatômicos à mão é caro e fora do nosso foco.
+- Decisão: usar **`react-muscle-highlighter`** (v1.2.0, **MIT**, zero deps além de React) para desenhar o corpo. A inteligência (heurística de recuperação) é **nossa** e fica em `src/lib/plan/recovery.ts` (puro/testado); a lib é só camada de desenho. Ponte `Muscle→Slug` explícita em `src/lib/plan/muscleSlug.ts`. Carregada via `next/dynamic` (`ssr:false`) — dados vêm do IndexedDB no cliente.
+- Consequências positivas: entrega rápida do "uau" visual; licença permissiva; sem custo; lógica de recuperação desacoplada da lib (trocável); type-safe.
+- Consequências negativas: estilo **vetorial**, não o 3D fotorrealista do mockup (aceito para o v1, reavaliar depois); o vocabulário `MUSCLES` (20) não casa 1:1 com os 23 slugs (vários→mesma região; agregação pelo estado mais fatigado); +1 dependência de UI.
+- Alternativas descartadas: SVG anatômico à mão (caro/lento); imagem estática (sem por-músculo); manter só peso/tendência (não bate o mockup).
+- Substitui/é substituído por: —
+- Nota de segurança: 2 vulnerabilidades moderadas no `npm audit` são do `postcss` (transitivo do **Next**), **pré-existentes** e não introduzidas por esta lib; fix exige upgrade major do Next (fora do escopo da TASK-009).
+
+---
+
 ## ADR-[ID] — [Título]
 
 - Data:
