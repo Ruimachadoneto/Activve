@@ -97,7 +97,8 @@ const muscleTable: Record<string, ExerciseMuscles> = {
   rosca: { primary: ["biceps"] },
   supino_incl: { primary: ["chest"], secondary: ["front_delts"] },
 };
-const muscleMap: GetMuscles = (id) => muscleTable[id];
+// Resolver de teste: a variação (swap), quando houver, tem precedência sobre o base.
+const muscleMap: GetMuscles = (id, swap) => muscleTable[swap ?? id];
 
 describe("stimuliFromSessions", () => {
   it("primário fadiga mais que secundário (mesma sessão)", () => {
@@ -185,14 +186,21 @@ describe("buildExerciseMuscles", () => {
   });
 
   it("variação com primário próprio HERDA os secundários do pai (não os perde)", () => {
-    expect(getMuscles("supino_halter")).toEqual({
+    expect(getMuscles("supino", "supino_halter")).toEqual({
       primary: ["chest"],
       secondary: ["triceps", "front_delts"],
     });
   });
 
   it("variação sem primário próprio herda primário e secundário do pai", () => {
-    expect(getMuscles("crucifixo")).toEqual({
+    expect(getMuscles("supino", "crucifixo")).toEqual({
+      primary: ["chest"],
+      secondary: ["triceps", "front_delts"],
+    });
+  });
+
+  it("swap desconhecido cai no exercício base", () => {
+    expect(getMuscles("supino", "naoexiste")).toEqual({
       primary: ["chest"],
       secondary: ["triceps", "front_delts"],
     });
@@ -200,6 +208,35 @@ describe("buildExerciseMuscles", () => {
 
   it("exercício fora do plano → undefined", () => {
     expect(getMuscles("inexistente")).toBeUndefined();
+  });
+
+  it("ids de alternativa repetidos entre exercícios NÃO colidem (escopo por exercício)", () => {
+    const plan2 = {
+      training: {
+        workouts: [
+          {
+            exercises: [
+              {
+                id: "supino",
+                primaryMuscles: ["chest"],
+                secondaryMuscles: ["triceps"],
+                alternatives: [{ id: "machine", primaryMuscles: ["chest"] }],
+              },
+              {
+                id: "agachamento",
+                primaryMuscles: ["quads"],
+                secondaryMuscles: ["glutes"],
+                alternatives: [{ id: "machine", primaryMuscles: ["quads"] }],
+              },
+            ],
+          },
+        ],
+      },
+    } as unknown as PlanFile;
+    const gm = buildExerciseMuscles(plan2);
+    // mesma id "machine", mas cada uma resolve dentro do seu exercício base
+    expect(gm("supino", "machine")).toEqual({ primary: ["chest"], secondary: ["triceps"] });
+    expect(gm("agachamento", "machine")).toEqual({ primary: ["quads"], secondary: ["glutes"] });
   });
 });
 

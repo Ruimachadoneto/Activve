@@ -40,8 +40,14 @@ export type MuscleRecovery = {
 
 /** Músculos trabalhados por um exercício (resolvido a partir do plano). */
 export type ExerciseMuscles = { primary: Muscle[]; secondary?: Muscle[] };
-/** Lookup `exerciseId → músculos`. Retorna undefined se o exercício não existe no plano. */
-export type GetMuscles = (exerciseId: string) => ExerciseMuscles | undefined;
+/**
+ * Lookup de músculos. Resolve o exercício pelo `exerciseId` **base** e, se houver
+ * `swappedToId` (variação executada), procura essa variação **dentro** do exercício
+ * base — nunca num espaço global, porque ids de alternativa não são globalmente únicos
+ * (dois exercícios podem ter uma alternativa "machine"). Retorna undefined se o
+ * exercício base não existe no plano.
+ */
+export type GetMuscles = (exerciseId: string, swappedToId?: string) => ExerciseMuscles | undefined;
 
 // ---- Parâmetros da heurística (ajustáveis num só lugar) ----
 const PRIMARY_WEIGHT = 1;
@@ -100,7 +106,7 @@ export function stimuliFromSessions(
       const avgRpe = rpes.length ? rpes.reduce((a, b) => a + b, 0) / rpes.length : DEFAULT_RPE;
       const intensity = effortFactor(avgRpe) * volumeFactor(doneSets); // 0..1
 
-      const muscles = getMuscles(ex.swappedToId ?? ex.exerciseId);
+      const muscles = getMuscles(ex.exerciseId, ex.swappedToId);
       if (!muscles) continue;
       for (const muscle of muscles.primary) {
         out.push({ muscle, at, load: PRIMARY_WEIGHT * intensity });
@@ -114,26 +120,36 @@ export function stimuliFromSessions(
 }
 
 /**
- * Constrói o lookup `exerciseId → músculos` a partir do plano, incluindo as variações
- * (`alternatives`). Variação sem músculos próprios herda os do exercício pai.
+ * Constrói o lookup de músculos a partir do plano. Cada exercício base guarda os
+ * próprios músculos e um sub-mapa das suas variações (`alternatives`) — assim a
+ * resolução do swap é **escopada ao exercício**, sem colidir entre ids de alternativa
+ * repetidos em exercícios diferentes (ex.: duas "machine"). Variação sem músculos
+ * próprios herda os do pai; swap desconhecido cai no exercício base.
  */
 export function buildExerciseMuscles(plan: PlanFile): GetMuscles {
-  const map = new Map<string, ExerciseMuscles>();
+  type Entry = { muscles: ExerciseMuscles; alts: Map<string, ExerciseMuscles> };
+  const map = new Map<string, Entry>();
   for (const workout of plan.training.workouts) {
     for (const ex of workout.exercises) {
-      map.set(ex.id, { primary: ex.primaryMuscles, secondary: ex.secondaryMuscles });
+      const base: ExerciseMuscles = { primary: ex.primaryMuscles, secondary: ex.secondaryMuscles };
+      const alts = new Map<string, ExerciseMuscles>();
       for (const alt of ex.alternatives ?? []) {
-        // A alternativa só pode sobrescrever os PRIMÁRIOS (o schema não expressa
-        // secundários nela), então herda sempre os secundários do exercício pai —
-        // senão um swap subestima a fadiga (perde tríceps/deltoides/etc.).
-        map.set(alt.id, {
+        // A alternativa só sobrescreve os PRIMÁRIOS (o schema não expressa secundários
+        // nela); herda sempre os secundários do pai — senão um swap subestima a fadiga.
+        alts.set(alt.id, {
           primary: alt.primaryMuscles?.length ? alt.primaryMuscles : ex.primaryMuscles,
           secondary: ex.secondaryMuscles,
         });
       }
+      map.set(ex.id, { muscles: base, alts });
     }
   }
-  return (id) => map.get(id);
+  return (exerciseId, swappedToId) => {
+    const entry = map.get(exerciseId);
+    if (!entry) return undefined;
+    if (swappedToId) return entry.alts.get(swappedToId) ?? entry.muscles;
+    return entry.muscles;
+  };
 }
 
 /**

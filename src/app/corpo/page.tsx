@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
@@ -57,33 +57,37 @@ export default function CorpoPage() {
     };
   }, []);
 
-  useEffect(() => {
+  const loadSessions = useCallback(() => {
     if (!planId) return;
-    let cancelled = false;
-    getSessionsForPlan(planId).then((list) => {
-      if (!cancelled) setSessions(list);
-    });
-    return () => {
-      cancelled = true;
-    };
+    getSessionsForPlan(planId)
+      .then((list) => setSessions(list))
+      .catch(() => {});
   }, [planId]);
 
-  // Faz o mapa "envelhecer": tica a cada 5 min e atualiza ao voltar para a aba/app
-  // (cobre o caso de deixar a tela aberta por horas).
   useEffect(() => {
-    const tick = () => setNow(Date.now());
-    const id = window.setInterval(tick, 5 * 60 * 1000);
+    loadSessions();
+  }, [loadSessions]);
+
+  // Mantém o mapa fresco: tica o relógio a cada 5 min (envelhecimento) e, ao voltar
+  // para a aba/app, também recarrega as sessões — cobre treino concluído noutra aba
+  // com a tela aberta, além do simples passar do tempo.
+  useEffect(() => {
+    const refresh = () => {
+      setNow(Date.now());
+      loadSessions();
+    };
+    const id = window.setInterval(() => setNow(Date.now()), 5 * 60 * 1000);
     const onVisible = () => {
-      if (document.visibilityState === "visible") tick();
+      if (document.visibilityState === "visible") refresh();
     };
     document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", tick);
+    window.addEventListener("focus", refresh);
     return () => {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", tick);
+      window.removeEventListener("focus", refresh);
     };
-  }, []);
+  }, [loadSessions]);
 
   const recovery = useMemo(() => {
     if (!plan) return null;
