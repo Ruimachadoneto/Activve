@@ -4,7 +4,7 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `ai/TASK-009-mapa-recuperacao-claude` (TASK-009 lógica+integração **aprovada no review**; **polish visual em iteração**, NÃO mergeada). Próximo: iterar o visual do mapa com o usuário → aval → merge.
+- **Branch atual:** `ai/TASK-009-mapa-recuperacao-claude` (TASK-009 lógica+integração aprovada no review Codex; **polish visual APROVADO pelo usuário**; NÃO mergeada). Próximo: revisão Codex final (cobre o polish) → merge sob gate humano.
 - **`main`** está em `4467540` (TASK-001→008 mergeadas; push de TASK-008 em `cd48227..9a0d464`).
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
@@ -34,13 +34,17 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
   - **Review Codex do passo 2 (ciclo 1) — 1 achado [P2] aceito e corrigido:** o estado `rested` estava na heurística/legenda/critérios mas o mapa nunca o desenhava (`slugRecoveryStates` pulava rested → `defaultFill`, não o token). A legenda prometia 4 estados, o SVG mostrava 3. → `slugRecoveryStates` agora **inclui rested** (corpo todo pintado: músculos descansados em `#6b7688`, só partes não-musculares no fill padrão); hint passou a depender de "nenhum ativo". Verificado no browser: **99 regiões `rested` + 14 `worked`**, legenda condizente, 0 erros.
   - **Review Codex do passo 2 (ciclo 2) — 1 novo achado [P2] aceito e corrigido:** `buildExerciseMuscles` **perdia os secundários do pai** quando a variação tinha `primaryMuscles` próprios (`{ primary: alt.primaryMuscles }`). Como o schema das alternativas só expressa primários, um swap subestimava a fadiga (perdia tríceps/deltoides/etc.). → variação agora **sempre herda os secundários do pai** (sobrescreve só os primários). +4 testes de `buildExerciseMuscles` (78 testes no total).
   - **Review Codex do passo 2 (ciclo 3) — APROVADO (2026-06-29):** re-review **limpo, nenhum achado novo, nenhum P0/P1**. Risco residual baixo: só falta teste de **interação de UI no browser** para a aba Corpo (infra é node-only — mesma dívida da TASK-008; sem regressão acionável). **TASK-009 (lógica+integração) chancelada.**
-  - **Polish visual Fase 1 — vetor (2026-06-29, WIP, NÃO aprovado visualmente, NÃO mergeado):** o usuário viu o mapa e achou **"bem distante do mockup"** (que pede 3D realista — ver `public/muscles/corpo.png`/`costas.png`, estilo teal 3D). **Decisão:** por ora **polir o vetor** (não trocar por asset realista ainda — caminho realista fica como Fase 2 futura, lógica já está pronta pra troca). Fase 1 feita em `RecoveryMap.tsx` + seção do `corpo/page.tsx`: paleta mais sóbria (coral `#ef7a52`/âmbar/teal/ardósia), stroke por músculo, **corpos maiores** (scale 0.82, 164×328), **spotlight** radial, **linha-resumo dinâmica do coach** ("Trabalhado há pouco: …"), legenda com glow, card com gradiente. Gates: typecheck ✓ · lint ✓ · 78/78 ✓ · build ✓. Screenshot funcionou desta vez (ver chat).
-    - **Avaliação:** salto real dentro do teto do vetor, mas ainda é o boneco vetorial (não o 3D). **Pendente: aval visual do usuário + iterar.** Levers acordados p/ empurrar mais (sem assets): (1) **domar o laranja** com `intensity` (recém-treino forte, antigo fraco); (2) corpos ainda maiores/dramáticos; (3) base muscular azul-aço (menos "diagrama"); (4) vinheta/spotlight mais forte.
+  - **Polish visual Fase 1 — vetor (2026-06-30, APROVADO VISUALMENTE pelo usuário):** decisão = polir o vetor agora (realista com assets fica p/ Fase 2 futura; lógica já pronta pra troca). 3 iterações:
+    - **1.1** paleta sóbria, stroke por músculo, corpos maiores, spotlight, resumo dinâmico, legenda com glow, card com gradiente.
+    - **1.2** `slugRecoveryDetail` (estado+fração); **gradação por intensidade** (alpha pela frescura do estímulo — doma o calor), base muscular azul-aço, scale maior, vinheta.
+    - **1.3** **toque-para-inspecionar** (mostra "Peito · Trabalhado · pronto em ~3 dias"; `hoursToReady` puro+testado), **corpos responsivos** (svg width 100%, cabem em 375px sem overflow), **animação de entrada** (`recovery-rise`, respeita reduced-motion), **a11y** (role/aria-label, hint).
+    - Gates: typecheck ✓ · lint ✓ · **83/83** ✓ · build ✓. Verificado por DOM + screenshots (375/440), 0 erros. Commits WIP `3a0114e`→`54886bd`. **Gate visual: PASS** (usuário aprovou 2026-06-30).
+    - Teto atingido: ganhos adicionais no vetor são marginais; salto seguinte (se desejado) = **Fase 2 realista** com assets.
 
-### PRÓXIMA AÇÃO EXATA (amanhã começa aqui)
-1. **Iterar o polish visual do mapa** com o usuário (caminho escolhido = polir o vetor). Aplicar os 4 levers acima conforme o feedback dele; obter **aval visual**. Arquivos: `src/components/RecoveryMap.tsx`, `src/app/corpo/page.tsx`. Verificar por DOM + olhos do usuário (screenshot é intermitente).
-2. Depois do aval visual: **revisão Codex** da TASK-009 completa (`codex review --base main`) e **merge sob gate humano**.
-3. **Fase 2 futura (se decidir):** trocar o vetor pelo **corpo realista** com assets do usuário (máscaras por músculo tingíveis sobre base 3D) — a lógica (`recovery.ts`/`muscleSlug.ts`) é reaproveitada.
+### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
+1. **Revisão Codex final da TASK-009 completa** (`codex review --base main`, no Git Bash) — agora cobre também o polish: `RecoveryMap` (interação/tap, alpha, responsivo, a11y), `hoursToReady`, `slugRecoveryDetail`, `globals.css`. Loop de correção (P0–P3) se houver.
+2. **Merge sob gate humano** (`--no-ff` → main, push, limpar branch) — como na TASK-008.
+3. **Fase 2 futura (se decidir):** trocar o vetor pelo **corpo realista** com assets do usuário (máscaras por músculo tingíveis sobre base 3D) — `recovery.ts`/`muscleSlug.ts`/interação são reaproveitados.
 4. **Tarefa futura — imagem real do exercício** no Modo Treino: `free-exercise-db` (Unlicense).
 
 > ⚠️ **Estado do IndexedDB de dev:** o plano de exemplo tem **2 sessões concluídas** (`A` supino+desenvolvimento, `B` puxada+agachamento) → o mapa acende ~9 grupos. É dado de teste local; some ao limpar dados do site. Não é bug.
