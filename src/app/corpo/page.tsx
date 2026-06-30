@@ -136,9 +136,19 @@ export default function CorpoPage() {
 
       {tab === "overview" ? (
         <>
-          <section className="mt-4 rounded-card border border-line bg-surface p-5">
-            <p className="text-[11px] uppercase tracking-wider text-faint">Recuperação muscular</p>
-            <p className="mt-1 mb-4 text-sm text-muted">O que treinou e o que já está pronto.</p>
+          <section
+            className="mt-4 rounded-card border border-line p-5"
+            style={{
+              background:
+                "linear-gradient(180deg, #16263a 0%, #101d2e 60%)",
+            }}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-faint">
+                Recuperação muscular
+              </p>
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
+            </div>
             {recovery ? <RecoveryMap recovery={recovery} gender={gender} /> : null}
           </section>
 
