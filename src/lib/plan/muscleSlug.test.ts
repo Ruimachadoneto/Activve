@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MUSCLE_TO_SLUG, slugRecoveryStates } from "./muscleSlug";
+import { MUSCLE_TO_SLUG, slugRecoveryStates, slugRecoveryDetail } from "./muscleSlug";
 import { MUSCLES, type Muscle } from "./schema";
 import { computeRecovery, type MuscleRecovery, type MuscleStimulus, type RecoveryState } from "./recovery";
 
@@ -17,6 +17,32 @@ describe("MUSCLE_TO_SLUG", () => {
   it("cobre todos os 20 músculos do vocabulário", () => {
     for (const m of MUSCLES) expect(MUSCLE_TO_SLUG[m]).toBeTruthy();
     expect(Object.keys(MUSCLE_TO_SLUG).length).toBe(MUSCLES.length);
+  });
+});
+
+describe("slugRecoveryDetail", () => {
+  const withFraction = (state: RecoveryState, fraction: number): MuscleRecovery => ({
+    state,
+    lastWorkedAt: 0,
+    hoursSince: 0,
+    recoveryHours: 1,
+    fraction,
+  });
+
+  it("propaga estado + fração por região", () => {
+    const r = recovery({});
+    r.chest = withFraction("worked", 0.2);
+    const d = slugRecoveryDetail(r);
+    expect(d.get("chest")).toEqual({ state: "worked", fraction: 0.2 });
+    expect(d.get("abs")).toEqual({ state: "rested", fraction: 1 }); // default
+  });
+
+  it("região compartilhada: empate de estado → vence a menor fração (mais fresco)", () => {
+    const r = recovery({});
+    // front_delts e side_delts → 'deltoids', ambos worked; o mais fresco (0.1) vence
+    r.front_delts = withFraction("worked", 0.4);
+    r.side_delts = withFraction("worked", 0.1);
+    expect(slugRecoveryDetail(r).get("deltoids")).toEqual({ state: "worked", fraction: 0.1 });
   });
 });
 

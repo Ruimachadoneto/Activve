@@ -42,22 +42,38 @@ const PRIORITY: Record<RecoveryState, number> = {
   rested: 0,
 };
 
+export type SlugRecovery = { state: RecoveryState; fraction: number };
+
 /**
- * Reduz o mapa de recuperação por músculo a um estado por região desenhável (slug).
- * Inclui **todos** os músculos — inclusive os `rested` —, pois "descansado" é um
- * estado real (token próprio, está na legenda). Assim cada região muscular sempre
- * carrega uma cor; só as partes não-musculares (cabeça/mãos/pés) usam o fill padrão.
- * Onde vários músculos caem na mesma região, vence o estado mais fatigado.
+ * Reduz o mapa de recuperação por músculo a **um estado + fração** por região
+ * desenhável (slug). Inclui **todos** os músculos — inclusive os `rested` —, pois
+ * "descansado" é um estado real (token próprio, está na legenda); só as partes não
+ * musculares (cabeça/mãos/pés) ficam de fora. Onde vários músculos caem na mesma
+ * região vence o **mais fatigado** (estado de maior prioridade; empate → menor fração,
+ * i.e. o mais "fresco" estímulo). A fração permite gradar a cor por intensidade.
  */
+export function slugRecoveryDetail(
+  recovery: Record<Muscle, MuscleRecovery>,
+): Map<Slug, SlugRecovery> {
+  const out = new Map<Slug, SlugRecovery>();
+  for (const muscle of Object.keys(recovery) as Muscle[]) {
+    const { state, fraction } = recovery[muscle];
+    const slug = MUSCLE_TO_SLUG[muscle];
+    const cur = out.get(slug);
+    const wins =
+      !cur ||
+      PRIORITY[state] > PRIORITY[cur.state] ||
+      (PRIORITY[state] === PRIORITY[cur.state] && fraction < cur.fraction);
+    if (wins) out.set(slug, { state, fraction });
+  }
+  return out;
+}
+
+/** Atalho: só o estado por região (deriva de `slugRecoveryDetail`). */
 export function slugRecoveryStates(
   recovery: Record<Muscle, MuscleRecovery>,
 ): Map<Slug, RecoveryState> {
   const out = new Map<Slug, RecoveryState>();
-  for (const muscle of Object.keys(recovery) as Muscle[]) {
-    const state = recovery[muscle].state;
-    const slug = MUSCLE_TO_SLUG[muscle];
-    const cur = out.get(slug);
-    if (!cur || PRIORITY[state] > PRIORITY[cur]) out.set(slug, state);
-  }
+  for (const [slug, detail] of slugRecoveryDetail(recovery)) out.set(slug, detail.state);
   return out;
 }

@@ -5,21 +5,21 @@ import type { ComponentType } from "react";
 import type { BodyProps, ExtendedBodyPart, Slug } from "react-muscle-highlighter";
 import type { Muscle } from "@/lib/plan/schema";
 import { RECOVERY_LABEL_PT, type MuscleRecovery, type RecoveryState } from "@/lib/plan/recovery";
-import { slugRecoveryStates } from "@/lib/plan/muscleSlug";
+import { slugRecoveryDetail } from "@/lib/plan/muscleSlug";
 
 // Lib só-cliente (SVG): carrega sem SSR — os dados vêm do IndexedDB de qualquer forma.
 const Body = dynamic(() => import("react-muscle-highlighter"), { ssr: false }) as ComponentType<BodyProps>;
 
-// Paleta de estados afinada para o navy "Calm Coach" (mais sóbria que os tokens crus).
+// Paleta de estados afinada para o navy "Calm Coach".
 const STATE_HEX: Record<RecoveryState, string> = {
-  worked: "#ef7a52", // coral quente, menos berrante que o laranja puro
-  recovering: "#f3c44d", // âmbar
+  worked: "#e8744a", // coral quente
+  recovering: "#eebd45", // âmbar
   ready: "#33d6b8", // teal de marca
-  rested: "#5b6c80", // ardósia calma (músculo em repouso)
+  rested: "#46586e", // azul-aço calmo (músculo em repouso = parte do corpo)
 };
-const BODY_FILL = "#13233a"; // partes não-musculares (cabeça/mãos/pés) — recuam no card
-const BODY_STROKE = "#0b1726"; // separa os músculos → leitura esculpida
-const BODY_BORDER = "#2b4150"; // silhueta
+const BODY_FILL = "#0f1d30"; // partes não-musculares (cabeça/mãos/pés) — recuam
+const BODY_STROKE = "#0a1524"; // separa os músculos → leitura esculpida
+const BODY_BORDER = "#314a5c"; // silhueta
 
 const LEGEND: RecoveryState[] = ["worked", "recovering", "ready", "rested"];
 
@@ -43,11 +43,34 @@ const SLUG_LABEL_PT: Partial<Record<Slug, string>> = {
   neck: "pescoço",
 };
 
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+const withAlpha = (hex: string, a: number) =>
+  hex + Math.round(clamp01(a) * 255).toString(16).padStart(2, "0");
+
+/**
+ * Cor final por região: a cor do estado, com opacidade modulada pela "frescura" do
+ * estímulo (heat = 1 − fração). Músculo recém-trabalhado fica forte; quanto mais
+ * recuperado, mais discreto — isso "dома" o calor quando há muito grupo trabalhado.
+ * Pronto/descansado têm opacidade fixa (são estados estáveis, não graduados).
+ */
+function colorFor(state: RecoveryState, fraction: number): string {
+  const heat = clamp01(1 - fraction);
+  switch (state) {
+    case "worked":
+      return withAlpha(STATE_HEX.worked, 0.55 + 0.45 * heat);
+    case "recovering":
+      return withAlpha(STATE_HEX.recovering, 0.5 + 0.4 * heat);
+    case "ready":
+      return withAlpha(STATE_HEX.ready, 0.92);
+    case "rested":
+      return STATE_HEX.rested;
+  }
+}
+
 function listNames(names: string[]): string {
   const shown = names.slice(0, 3);
   const extra = names.length - shown.length;
-  const base = shown.join(", ");
-  return extra > 0 ? `${base} +${extra}` : base;
+  return extra > 0 ? `${shown.join(", ")} +${extra}` : shown.join(", ");
 }
 
 export function RecoveryMap({
@@ -57,24 +80,23 @@ export function RecoveryMap({
   recovery: Record<Muscle, MuscleRecovery>;
   gender?: "male" | "female";
 }) {
-  const slugStates = slugRecoveryStates(recovery);
-  const data: ExtendedBodyPart[] = [...slugStates.entries()].map(([slug, state]) => ({
+  const detail = slugRecoveryDetail(recovery);
+  const data: ExtendedBodyPart[] = [...detail.entries()].map(([slug, d]) => ({
     slug,
-    color: STATE_HEX[state],
+    color: colorFor(d.state, d.fraction),
   }));
 
   const namesIn = (state: RecoveryState) =>
-    [...slugStates.entries()]
-      .filter(([, s]) => s === state)
+    [...detail.entries()]
+      .filter(([, d]) => d.state === state)
       .map(([slug]) => SLUG_LABEL_PT[slug])
       .filter((n): n is string => Boolean(n));
 
   const worked = namesIn("worked");
   const recovering = namesIn("recovering");
-  const anyReady = [...slugStates.values()].includes("ready");
+  const anyReady = [...detail.values()].some((d) => d.state === "ready");
   const anyActive = worked.length > 0 || recovering.length > 0 || anyReady;
 
-  // Resumo do coach (anti-culpa, orientado à ação).
   const summary = worked.length
     ? `Trabalhado há pouco: ${listNames(worked)}.`
     : recovering.length
@@ -85,34 +107,42 @@ export function RecoveryMap({
 
   return (
     <div>
-      <p className="mb-4 text-sm text-muted">{summary}</p>
+      <p className="mb-5 text-sm text-muted">{summary}</p>
 
       <div className="relative">
-        {/* Spotlight: dá profundidade e foco aos corpos */}
+        {/* Spotlight + vinheta: foco e profundidade nos corpos */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(120% 80% at 50% 38%, rgba(51,214,184,0.08), transparent 70%)",
+              "radial-gradient(70% 58% at 50% 36%, rgba(51,214,184,0.14), rgba(51,214,184,0.04) 45%, transparent 72%)",
           }}
         />
-        <div className="relative flex items-start justify-center gap-2">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.45) 100%)",
+          }}
+        />
+        <div className="relative flex items-start justify-center gap-1">
           {(["front", "back"] as const).map((side) => (
             <div key={side} className="flex flex-1 flex-col items-center">
-              <div style={{ filter: "drop-shadow(0 10px 18px rgba(0,0,0,0.5))" }}>
+              <div style={{ filter: "drop-shadow(0 14px 22px rgba(0,0,0,0.55))" }}>
                 <Body
                   data={data}
                   side={side}
                   gender={gender}
-                  scale={0.82}
+                  scale={0.95}
                   border={BODY_BORDER}
                   defaultFill={BODY_FILL}
                   defaultStroke={BODY_STROKE}
                   defaultStrokeWidth={0.5}
                 />
               </div>
-              <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.12em] text-faint">
+              <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-faint">
                 {side === "front" ? "Frente" : "Costas"}
               </span>
             </div>
