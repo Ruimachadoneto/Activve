@@ -34,3 +34,24 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+/* Entrada sutil do mapa de recuperação (Corpo). */
+@keyframes recovery-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes recovery-rise {
+    from,
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
