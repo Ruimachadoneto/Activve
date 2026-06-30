@@ -183,6 +183,18 @@ function rested(): MuscleRecovery {
   return { state: "rested", lastWorkedAt: null, hoursSince: null, recoveryHours: null, fraction: 1 };
 }
 
+/**
+ * Horas estimadas até o músculo ficar "pronto" — `null` se já recuperado ou descansado
+ * (não há contagem a mostrar). Usado para o detalhe "pronto em ~X" ao tocar um músculo.
+ */
+export function hoursToReady(
+  r: Pick<MuscleRecovery, "hoursSince" | "recoveryHours">,
+): number | null {
+  if (r.hoursSince == null || r.recoveryHours == null) return null; // descansado
+  const left = r.recoveryHours - r.hoursSince;
+  return left > 0 ? left : null; // ≤ 0 = já pronto
+}
+
 /** Variável CSS do token de cor para cada estado (ver globals.css). */
 export function recoveryColorVar(state: RecoveryState): string {
   switch (state) {

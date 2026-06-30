@@ -33,8 +33,8 @@ describe("slugRecoveryDetail", () => {
     const r = recovery({});
     r.chest = withFraction("worked", 0.2);
     const d = slugRecoveryDetail(r);
-    expect(d.get("chest")).toEqual({ state: "worked", fraction: 0.2 });
-    expect(d.get("abs")).toEqual({ state: "rested", fraction: 1 }); // default
+    expect(d.get("chest")).toMatchObject({ state: "worked", fraction: 0.2 });
+    expect(d.get("abs")).toMatchObject({ state: "rested", fraction: 1 }); // default
   });
 
   it("região compartilhada: empate de estado → vence a menor fração (mais fresco)", () => {
@@ -42,7 +42,7 @@ describe("slugRecoveryDetail", () => {
     // front_delts e side_delts → 'deltoids', ambos worked; o mais fresco (0.1) vence
     r.front_delts = withFraction("worked", 0.4);
     r.side_delts = withFraction("worked", 0.1);
-    expect(slugRecoveryDetail(r).get("deltoids")).toEqual({ state: "worked", fraction: 0.1 });
+    expect(slugRecoveryDetail(r).get("deltoids")).toMatchObject({ state: "worked", fraction: 0.1 });
   });
 });
 

@@ -3,6 +3,7 @@ import {
   computeRecovery,
   stimuliFromSessions,
   buildExerciseMuscles,
+  hoursToReady,
   recoveryColorVar,
   RECOVERY_LABEL_PT,
   type MuscleStimulus,
@@ -199,6 +200,18 @@ describe("buildExerciseMuscles", () => {
 
   it("exercício fora do plano → undefined", () => {
     expect(getMuscles("inexistente")).toBeUndefined();
+  });
+});
+
+describe("hoursToReady", () => {
+  it("retorna as horas restantes quando ainda em recuperação", () => {
+    expect(hoursToReady({ hoursSince: 20, recoveryHours: 72 })).toBe(52);
+  });
+  it("null quando já recuperado (≤0)", () => {
+    expect(hoursToReady({ hoursSince: 80, recoveryHours: 72 })).toBeNull();
+  });
+  it("null quando descansado (sem timestamps)", () => {
+    expect(hoursToReady({ hoursSince: null, recoveryHours: null })).toBeNull();
   });
 });
 

@@ -42,7 +42,12 @@ const PRIORITY: Record<RecoveryState, number> = {
   rested: 0,
 };
 
-export type SlugRecovery = { state: RecoveryState; fraction: number };
+export type SlugRecovery = {
+  state: RecoveryState;
+  fraction: number;
+  hoursSince: number | null;
+  recoveryHours: number | null;
+};
 
 /**
  * Reduz o mapa de recuperação por músculo a **um estado + fração** por região
@@ -57,14 +62,14 @@ export function slugRecoveryDetail(
 ): Map<Slug, SlugRecovery> {
   const out = new Map<Slug, SlugRecovery>();
   for (const muscle of Object.keys(recovery) as Muscle[]) {
-    const { state, fraction } = recovery[muscle];
+    const { state, fraction, hoursSince, recoveryHours } = recovery[muscle];
     const slug = MUSCLE_TO_SLUG[muscle];
     const cur = out.get(slug);
     const wins =
       !cur ||
       PRIORITY[state] > PRIORITY[cur.state] ||
       (PRIORITY[state] === PRIORITY[cur.state] && fraction < cur.fraction);
-    if (wins) out.set(slug, { state, fraction });
+    if (wins) out.set(slug, { state, fraction, hoursSince, recoveryHours });
   }
   return out;
 }
