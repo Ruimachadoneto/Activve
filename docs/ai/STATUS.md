@@ -4,8 +4,8 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `ai/TASK-009-mapa-recuperacao-claude` (TASK-009 lógica+integração aprovada no review Codex; **polish visual APROVADO pelo usuário**; NÃO mergeada). Próximo: revisão Codex final (cobre o polish) → merge sob gate humano.
-- **`main`** está em `4467540` (TASK-001→008 mergeadas; push de TASK-008 em `cd48227..9a0d464`).
+- **Branch atual:** `main` (limpa; TASK-009 mergeada e pushed). Sem branches de feature abertas.
+- **`main`** está em `abacf6c` com **TASK-001→009 mergeadas** (TASK-009 push em `4467540..abacf6c`).
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
 ## O alvo (não-negociável)
@@ -48,22 +48,22 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
     - **[P2] colisão de ids de alternativa** — `buildExerciseMuscles` punha todos os `alternatives[].id` num Map global, mas o schema só garante unicidade de `exercise.id`; dois exercícios com uma alt de mesmo id (ex.: "machine") faziam o swap ler músculos errados. → reescrito com **escopo por exercício** (cada base guarda sub-mapa das suas variações); `GetMuscles` agora é `(exerciseId, swappedToId?)`; `stimuliFromSessions` passa os dois. +2 testes (colisão não ocorre; swap desconhecido cai no base).
     - **[P3] sessões não recarregavam ao focar** — o handler de foco só atualizava `now`; treino concluído noutra aba com `/corpo` aberto não aparecia. → `loadSessions` (useCallback) recarrega no foco/visibility além do tick.
     - Gates: typecheck ✓ · lint ✓ · **85/85** ✓ · build ✓.
-  - **Re-review Codex (2026-06-30) — APROVADO, LIMPO:** "no discrete, actionable bugs… recovery-domain logic, page integration e muscle-map aggregation internamente consistentes e cobertos por testes". **TASK-009 chancelada de ponta a ponta (lógica + UI + polish + interação). Pendente só o gate humano de merge.**
+  - **Re-review Codex (2026-06-30) — APROVADO, LIMPO:** "no discrete, actionable bugs… recovery-domain logic, page integration e muscle-map aggregation internamente consistentes e cobertos por testes".
+  - **MERGEADA em `main` (`abacf6c`, 2026-06-30)** via `--no-ff`; gates revalidados na main (85 testes, build ok); branch apagada (local+remota). Visual aprovado pelo usuário; 3 ciclos de review Codex (último limpo).
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-1. **Revisão Codex final da TASK-009 completa** (`codex review --base main`, no Git Bash) — agora cobre também o polish: `RecoveryMap` (interação/tap, alpha, responsivo, a11y), `hoursToReady`, `slugRecoveryDetail`, `globals.css`. Loop de correção (P0–P3) se houver.
-2. **Merge sob gate humano** (`--no-ff` → main, push, limpar branch) — como na TASK-008.
-3. **Fase 2 futura (se decidir):** trocar o vetor pelo **corpo realista** com assets do usuário (máscaras por músculo tingíveis sobre base 3D) — `recovery.ts`/`muscleSlug.ts`/interação são reaproveitados.
-4. **Tarefa futura — imagem real do exercício** no Modo Treino: `free-exercise-db` (Unlicense).
-
-> ⚠️ **Estado do IndexedDB de dev:** o plano de exemplo tem **2 sessões concluídas** (`A` supino+desenvolvimento, `B` puxada+agachamento) → o mapa acende ~9 grupos. É dado de teste local; some ao limpar dados do site. Não é bug.
+TASK-009 concluída. Backlog (escolher com o usuário):
+1. **Fase 2 — corpo realista (se o usuário quiser fechar 100% o mockup):** trocar o vetor `react-muscle-highlighter` por **corpo 3D realista** com assets do usuário (máscaras por músculo tingíveis sobre base estilo `public/muscles/corpo.png`). Reaproveita `recovery.ts`/`muscleSlug.ts`/interação (tap, gradação, prontidão). Eu defino o spec dos PNGs; usuário gera no GPT.
+2. **Imagem real do exercício** no Modo Treino: `free-exercise-db` (Unlicense) — casar por nome/`primaryMuscles`; manter o link de vídeo.
+3. **Dívida conhecida:** sem testes de **interação de UI** (RTL/jsdom) para `/treino` e `/corpo`; infra é node-only. `sex: "other"` usa corpo male (limitação da lib; resolvível na Fase 2).
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).
 - Demonstração de exercício: **`free-exercise-db`** (Unlicense) — 800+ exercícios com imagens + dados.
 
 ## Como rodar / verificar
-- `npm run dev` (porta 3000). Gates: `npm run typecheck && npm run lint && npm run test && npm run build` (47 testes).
+- `npm run dev` (porta 3000). Gates: `npm run typecheck && npm run lint && npm run test && npm run build` (85 testes).
+- ⚠️ **IndexedDB do preview é efêmero entre sessões** — pra ver `/corpo` aceso, semear plano de exemplo (`examples/plano-exemplo.json`) + sessões concluídas direto no IndexedDB (stores `plans`/`kv`/`sessions`).
 - **Preview screenshot está intermitente** (trava, ainda mais com o timer rodando). Verificar por: **abrir `localhost:3000`** (olhos do usuário) + DOM via eval. Seed de teste: gravar plano + sessões direto no IndexedDB (store `plans`/`kv`/`sessions`/`bodylog`).
 - Fluxo de revisão cruzada: Codex revisa (`codex review --base main` no **Git Bash**, não PowerShell — modo restrito trava). Loop em `docs/ai/CODE_REVIEW.md` (P0–P3).
 
@@ -80,4 +80,4 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
 | TASK-006 | Como fazer + variações | MERGEADA | main |
 | TASK-007 | Corpo / evolução (peso+tendência) | MERGEADA | main |
 | TASK-008 | Overhaul visual (Modo Treino, branding) | MERGEADA | main (`9a0d464`) |
-| TASK-009 | Mapa muscular de recuperação no Corpo | EM ANDAMENTO (lógica aprovada; polish visual em iteração) | ai/TASK-009-mapa-recuperacao-claude |
+| TASK-009 | Mapa muscular de recuperação no Corpo (+ polish visual) | MERGEADA | main (`abacf6c`) |
