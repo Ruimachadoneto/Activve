@@ -123,12 +123,13 @@ export function buildExerciseMuscles(plan: PlanFile): GetMuscles {
     for (const ex of workout.exercises) {
       map.set(ex.id, { primary: ex.primaryMuscles, secondary: ex.secondaryMuscles });
       for (const alt of ex.alternatives ?? []) {
-        map.set(
-          alt.id,
-          alt.primaryMuscles?.length
-            ? { primary: alt.primaryMuscles }
-            : { primary: ex.primaryMuscles, secondary: ex.secondaryMuscles },
-        );
+        // A alternativa só pode sobrescrever os PRIMÁRIOS (o schema não expressa
+        // secundários nela), então herda sempre os secundários do exercício pai —
+        // senão um swap subestima a fadiga (perde tríceps/deltoides/etc.).
+        map.set(alt.id, {
+          primary: alt.primaryMuscles?.length ? alt.primaryMuscles : ex.primaryMuscles,
+          secondary: ex.secondaryMuscles,
+        });
       }
     }
   }

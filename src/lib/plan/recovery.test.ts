@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   computeRecovery,
   stimuliFromSessions,
+  buildExerciseMuscles,
   recoveryColorVar,
   RECOVERY_LABEL_PT,
   type MuscleStimulus,
@@ -9,7 +10,7 @@ import {
   type ExerciseMuscles,
 } from "./recovery";
 import type { WorkoutSession, SetLog } from "./session";
-import { MUSCLES } from "./schema";
+import { MUSCLES, type PlanFile } from "./schema";
 
 const NOW = Date.UTC(2026, 5, 29, 12, 0, 0);
 const H = 3_600_000;
@@ -150,6 +151,54 @@ describe("stimuliFromSessions", () => {
       exercises: [{ exerciseId: "supino", sets: [set()] }],
     });
     expect(stimuliFromSessions([old], muscleMap, NOW)).toHaveLength(0);
+  });
+});
+
+describe("buildExerciseMuscles", () => {
+  const plan = {
+    training: {
+      workouts: [
+        {
+          exercises: [
+            {
+              id: "supino",
+              primaryMuscles: ["chest"],
+              secondaryMuscles: ["triceps", "front_delts"],
+              alternatives: [
+                { id: "supino_halter", primaryMuscles: ["chest"] }, // tem primário próprio
+                { id: "crucifixo" }, // sem primário próprio
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  } as unknown as PlanFile;
+  const getMuscles = buildExerciseMuscles(plan);
+
+  it("exercício base mantém primários e secundários", () => {
+    expect(getMuscles("supino")).toEqual({
+      primary: ["chest"],
+      secondary: ["triceps", "front_delts"],
+    });
+  });
+
+  it("variação com primário próprio HERDA os secundários do pai (não os perde)", () => {
+    expect(getMuscles("supino_halter")).toEqual({
+      primary: ["chest"],
+      secondary: ["triceps", "front_delts"],
+    });
+  });
+
+  it("variação sem primário próprio herda primário e secundário do pai", () => {
+    expect(getMuscles("crucifixo")).toEqual({
+      primary: ["chest"],
+      secondary: ["triceps", "front_delts"],
+    });
+  });
+
+  it("exercício fora do plano → undefined", () => {
+    expect(getMuscles("inexistente")).toBeUndefined();
   });
 });
 
