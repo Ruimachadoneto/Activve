@@ -21,8 +21,11 @@ describe("MUSCLE_TO_SLUG", () => {
 });
 
 describe("slugRecoveryStates", () => {
-  it("sem estímulo (tudo descansado) → mapa vazio (corpo usa fill padrão)", () => {
-    expect(slugRecoveryStates(recovery({})).size).toBe(0);
+  it("sem estímulo → todas as regiões musculares em 'descansado' (corpo todo pintado)", () => {
+    const m = slugRecoveryStates(recovery({}));
+    const distinctSlugs = new Set(Object.values(MUSCLE_TO_SLUG)).size;
+    expect(m.size).toBe(distinctSlugs);
+    expect([...m.values()].every((s) => s === "rested")).toBe(true);
   });
 
   it("agrega vários músculos numa região pelo estado mais fatigado", () => {
@@ -98,8 +101,8 @@ describe("integração — todos os músculos e estados", () => {
     expect(slugs.get("chest")).toBe("ready");
     expect(slugs.get("triceps")).toBe("ready");
     expect(slugs.get("deltoids")).toBe("ready");
-    // descansados não entram no mapa (usam fill padrão)
-    expect(slugs.has("abs")).toBe(false);
-    expect(slugs.has("neck")).toBe(false);
+    // descansados também entram no mapa, pintados com o token rested
+    expect(slugs.get("abs")).toBe("rested");
+    expect(slugs.get("neck")).toBe("rested");
   });
 });

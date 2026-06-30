@@ -34,6 +34,8 @@ export function RecoveryMap({
     slug,
     color: STATE_HEX[state],
   }));
+  // "Vazio" = nada treinado recentemente (tudo descansado) → mostra a dica.
+  const anyActive = [...slugStates.values()].some((s) => s !== "rested");
 
   return (
     <div>
@@ -68,7 +70,7 @@ export function RecoveryMap({
         ))}
       </ul>
 
-      {data.length === 0 ? (
+      {!anyActive ? (
         <p className="mt-3 text-center text-xs text-faint">
           Conclua um treino para ver seus músculos acenderem aqui.
         </p>

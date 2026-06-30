@@ -44,8 +44,10 @@ const PRIORITY: Record<RecoveryState, number> = {
 
 /**
  * Reduz o mapa de recuperação por músculo a um estado por região desenhável (slug).
- * Só inclui slugs que têm pelo menos um estímulo (estado ≠ rested), para o corpo
- * "em repouso" usar o fill padrão e só acender o que foi treinado.
+ * Inclui **todos** os músculos — inclusive os `rested` —, pois "descansado" é um
+ * estado real (token próprio, está na legenda). Assim cada região muscular sempre
+ * carrega uma cor; só as partes não-musculares (cabeça/mãos/pés) usam o fill padrão.
+ * Onde vários músculos caem na mesma região, vence o estado mais fatigado.
  */
 export function slugRecoveryStates(
   recovery: Record<Muscle, MuscleRecovery>,
@@ -53,7 +55,6 @@ export function slugRecoveryStates(
   const out = new Map<Slug, RecoveryState>();
   for (const muscle of Object.keys(recovery) as Muscle[]) {
     const state = recovery[muscle].state;
-    if (state === "rested") continue; // repouso = fill padrão, não pinta
     const slug = MUSCLE_TO_SLUG[muscle];
     const cur = out.get(slug);
     if (!cur || PRIORITY[state] > PRIORITY[cur]) out.set(slug, state);
