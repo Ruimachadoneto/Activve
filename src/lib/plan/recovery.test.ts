@@ -111,6 +111,15 @@ describe("stimuliFromSessions", () => {
     expect(r.chest.fraction).toBeLessThan(r.triceps.fraction); // peito "mais trabalhado"
   });
 
+  it("sessão em andamento (in_progress) não gera estímulo, mesmo com séries feitas", () => {
+    const s = session({
+      status: "in_progress",
+      completedAt: undefined,
+      exercises: [{ exerciseId: "supino", sets: [set(), set(), set(), set()] }],
+    });
+    expect(stimuliFromSessions([s], muscleMap, NOW)).toHaveLength(0);
+  });
+
   it("ignora séries não feitas; exercício sem série feita não gera estímulo", () => {
     const s = session({
       exercises: [

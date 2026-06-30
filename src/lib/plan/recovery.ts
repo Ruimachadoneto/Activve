@@ -78,8 +78,10 @@ function sessionTime(session: WorkoutSession): number {
 }
 
 /**
- * Converte sessões + lookup de músculos em estímulos pontuais. Só conta séries
- * efetivamente feitas (`done`). Usa a variação executada (`swappedToId`) quando houver.
+ * Converte sessões + lookup de músculos em estímulos pontuais. Considera apenas
+ * **sessões concluídas** (`status === "done"`) — um treino em andamento ainda pode
+ * mudar e não deve acender o mapa. Dentro delas, só conta séries efetivamente feitas
+ * (`done`). Usa a variação executada (`swappedToId`) quando houver.
  */
 export function stimuliFromSessions(
   sessions: WorkoutSession[],
@@ -88,6 +90,7 @@ export function stimuliFromSessions(
 ): MuscleStimulus[] {
   const out: MuscleStimulus[] = [];
   for (const session of sessions) {
+    if (session.status !== "done") continue; // só treinos concluídos contam
     const at = sessionTime(session);
     if (now - at > LOOKBACK_H * H_IN_MS) continue; // muito antigo, irrelevante
     for (const ex of session.exercises) {

@@ -24,7 +24,8 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
 - **Passo 1 — núcleo de domínio (FEITO 2026-06-29):** `src/lib/plan/recovery.ts` puro e testado.
   - `stimuliFromSessions(sessions, getMuscles, now)`: sessões → estímulos (só séries `done`; usa `swappedToId`; primário peso 1, secundário 0.5; intensidade = esforço(RPE 6–10→0.2..1) × volume(séries/4)).
   - `computeRecovery(stimuli, now)`: por músculo → estado `worked|recovering|ready|rested` (janela `48 + 24×boutLoad` h; <50%=trabalhado, <100%=recuperando, ≥100%=pronto; sem estímulo no lookback de 10d=descansado). Helpers `recoveryColorVar` (→tokens) e `RECOVERY_LABEL_PT` (anti-culpa).
-  - `recovery.test.ts`: 14 testes (4 estados + escala volume/esforço + adapter). Gates: typecheck ✓ · lint ✓ · **65/65** ✓.
+  - `recovery.test.ts`: 15 testes (4 estados + escala volume/esforço + adapter). Gates: typecheck ✓ · lint ✓ · **66/66** ✓.
+  - **Review Codex (ciclo 1) do núcleo — 1 achado [P2] aceito e corrigido:** `stimuliFromSessions` não filtrava `status === "done"` (contrato diz "sessões concluídas"); um treino em andamento acenderia o mapa. → adicionado `if (session.status !== "done") continue;` (consistente com o Hoje, que já filtra done) + teste "in_progress não gera estímulo". Re-review pendente.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Passo 2 — UI:** `npm i react-muscle-highlighter` (MIT; registrar em DECISIONS). Componente `RecoveryMap` mapeando nosso `Muscle` → slugs da lib (chest, biceps, triceps, deltoids, quadriceps, hamstring, gluteal, calves, abs, trapezius, lower-back, upper-back…); cor por estado via tokens. Integrar na tela Corpo (`src/app/corpo/page.tsx`) com legenda dos 4 estados + abas (Visão geral / Medições). Construir o `getMuscles` lendo o plano ativo. **Verificar no browser** com plano+sessões semeados; **revisão Codex**; merge sob gate humano.
