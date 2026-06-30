@@ -40,6 +40,9 @@ export default function CorpoPage() {
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [tab, setTab] = useState<Tab>("overview");
   const [input, setInput] = useState("");
+  // Relógio do mapa: a recuperação é função do tempo, então o `now` precisa avançar
+  // mesmo com a tela aberta (senão um músculo fica preso em "trabalhado" a noite toda).
+  const [now, setNow] = useState(() => Date.now());
 
   const planId = plan?.planId ?? null;
 
@@ -65,11 +68,28 @@ export default function CorpoPage() {
     };
   }, [planId]);
 
+  // Faz o mapa "envelhecer": tica a cada 5 min e atualiza ao voltar para a aba/app
+  // (cobre o caso de deixar a tela aberta por horas).
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    const id = window.setInterval(tick, 5 * 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", tick);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", tick);
+    };
+  }, []);
+
   const recovery = useMemo(() => {
     if (!plan) return null;
     const getMuscles = buildExerciseMuscles(plan.plan);
-    return computeRecovery(stimuliFromSessions(sessions, getMuscles));
-  }, [plan, sessions]);
+    return computeRecovery(stimuliFromSessions(sessions, getMuscles, now), now);
+  }, [plan, sessions, now]);
 
   if (loading) {
     return (
@@ -97,6 +117,10 @@ export default function CorpoPage() {
   const trend = computeTrend(entries, goal.targetWeight_kg);
   const latest = trend.latest ?? startWeight;
   const defaultWeight = trend.latest ?? startWeight;
+  // A lib de anatomia só oferece male/female (não há silhueta neutra). Os dados de
+  // recuperação são iguais para qualquer corpo (mesmos músculos) — só a silhueta muda;
+  // por isso `sex: "other"` cai em "male" como default ilustrativo. Corpo neutro é
+  // limitação conhecida, candidata à Fase 2 (assets realistas). Ver docs/ai/STATUS.md.
   const gender: "male" | "female" = p.profile.sex === "female" ? "female" : "male";
 
   async function save() {

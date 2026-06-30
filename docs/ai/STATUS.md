@@ -40,6 +40,10 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
     - **1.3** **toque-para-inspecionar** (mostra "Peito · Trabalhado · pronto em ~3 dias"; `hoursToReady` puro+testado), **corpos responsivos** (svg width 100%, cabem em 375px sem overflow), **animação de entrada** (`recovery-rise`, respeita reduced-motion), **a11y** (role/aria-label, hint).
     - Gates: typecheck ✓ · lint ✓ · **83/83** ✓ · build ✓. Verificado por DOM + screenshots (375/440), 0 erros. Commits WIP `3a0114e`→`54886bd`. **Gate visual: PASS** (usuário aprovou 2026-06-30).
     - Teto atingido: ganhos adicionais no vetor são marginais; salto seguinte (se desejado) = **Fase 2 realista** com assets.
+  - **Revisão Codex final do polish (2026-06-30) — 2 achados:**
+    - **[P2] ACEITO/corrigido** — o mapa não "envelhecia" com a tela aberta (`useMemo` da recovery só dependia de plan/sessions; `Date.now()` congelava). → `corpo/page.tsx` ganhou estado `now` que tica a cada 5 min + atualiza em `visibilitychange`/`focus`; `now` é passado a `stimuliFromSessions`/`computeRecovery`.
+    - **[P3] limitação conhecida documentada (não corrigível com a lib atual)** — `sex: "other"` cai em corpo `male`. A lib só tem male/female; **os dados de recuperação são idênticos** (mesmos músculos), só a silhueta muda. Escolha tornada explícita + comentada no código. Corpo neutro = candidato à **Fase 2** (assets realistas). Não bloqueia (P3).
+    - Gates: typecheck ✓ · lint ✓ · 83/83 ✓ · build ✓. Re-review pendente.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Revisão Codex final da TASK-009 completa** (`codex review --base main`, no Git Bash) — agora cobre também o polish: `RecoveryMap` (interação/tap, alpha, responsivo, a11y), `hoursToReady`, `slugRecoveryDetail`, `globals.css`. Loop de correção (P0–P3) se houver.
