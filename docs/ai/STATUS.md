@@ -4,8 +4,8 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `main` (limpa; TASK-008 mergeada e pushed).
-- **`main`** está em `9a0d464` com **TASK-001→008 mergeadas** (push em `cd48227..9a0d464`).
+- **Branch atual:** `ai/TASK-009-mapa-recuperacao-claude` (TASK-009 em andamento; **passo 1/núcleo feito, NÃO mergeada**).
+- **`main`** está em `4467540` (TASK-001→008 mergeadas; push de TASK-008 em `cd48227..9a0d464`).
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
 ## O alvo (não-negociável)
@@ -20,11 +20,15 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
   - **Risco residual (pré-existente, não-bloqueante):** `patchSet`/`patchExercise` derivam o `session` do snapshot do render; edições em campos diferentes no mesmo frame (<100ms) podem se sobrescrever. Não ocorre com digitação humana. Candidato a functional updater.
   - **Dívida de teste:** faltam testes de UI/interação para `/treino` e `RestTimer` (infra é node-only; exigiria RTL/jsdom).
 
-## PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**TASK-009 — Mapa muscular de recuperação no Corpo (o 3º "uau").** Partir da `main` (`9a0d464`), criar branch `ai/TASK-009-mapa-recuperacao-claude` + contrato em `docs/ai/tasks/`.
-1. `npm i react-muscle-highlighter` (MIT). Frente+costas coloridos por **heurística de recuperação local** (48–72h, escalada por volume/esforço) lendo as **sessões concluídas** (`getSessionsForPlan`) + `primaryMuscles`/`secondaryMuscles` de cada exercício. Estados: trabalhado/recuperando/pronto/descansado (tokens já existem). Mapear nosso vocabulário `MUSCLES` → slugs da lib (chest, biceps, triceps, deltoids, quadriceps, hamstring, gluteal, calves, abs, trapezius, lower-back, upper-back…). Abas do mockup: Visão geral / Medições / Fotos(fora por ora) / Desempenho.
-2. **Imagem real do exercício** no slot de mídia do Modo Treino: integrar `free-exercise-db` (Unlicense) — imagens em `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/<...>`; casar por nome/`primaryMuscles`. Manter o link "ver vídeo".
-3. Polish transversal + auditoria visual; **revisão Codex** (`codex review --base main`) sem P0/P1; merge.
+## TASK-009 — Mapa muscular de recuperação no Corpo (o 3º "uau"). Contrato: `docs/ai/tasks/TASK-009-mapa-recuperacao.md`.
+- **Passo 1 — núcleo de domínio (FEITO 2026-06-29):** `src/lib/plan/recovery.ts` puro e testado.
+  - `stimuliFromSessions(sessions, getMuscles, now)`: sessões → estímulos (só séries `done`; usa `swappedToId`; primário peso 1, secundário 0.5; intensidade = esforço(RPE 6–10→0.2..1) × volume(séries/4)).
+  - `computeRecovery(stimuli, now)`: por músculo → estado `worked|recovering|ready|rested` (janela `48 + 24×boutLoad` h; <50%=trabalhado, <100%=recuperando, ≥100%=pronto; sem estímulo no lookback de 10d=descansado). Helpers `recoveryColorVar` (→tokens) e `RECOVERY_LABEL_PT` (anti-culpa).
+  - `recovery.test.ts`: 14 testes (4 estados + escala volume/esforço + adapter). Gates: typecheck ✓ · lint ✓ · **65/65** ✓.
+
+### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
+1. **Passo 2 — UI:** `npm i react-muscle-highlighter` (MIT; registrar em DECISIONS). Componente `RecoveryMap` mapeando nosso `Muscle` → slugs da lib (chest, biceps, triceps, deltoids, quadriceps, hamstring, gluteal, calves, abs, trapezius, lower-back, upper-back…); cor por estado via tokens. Integrar na tela Corpo (`src/app/corpo/page.tsx`) com legenda dos 4 estados + abas (Visão geral / Medições). Construir o `getMuscles` lendo o plano ativo. **Verificar no browser** com plano+sessões semeados; **revisão Codex**; merge sob gate humano.
+2. **Tarefa futura — imagem real do exercício** no slot de mídia do Modo Treino: `free-exercise-db` (Unlicense) — imagens em `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/<...>`; casar por nome/`primaryMuscles`. Manter o link "ver vídeo".
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).
@@ -48,4 +52,4 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
 | TASK-006 | Como fazer + variações | MERGEADA | main |
 | TASK-007 | Corpo / evolução (peso+tendência) | MERGEADA | main |
 | TASK-008 | Overhaul visual (Modo Treino, branding) | MERGEADA | main (`9a0d464`) |
-| TASK-009 | Mapa muscular de recuperação no Corpo | PRÓXIMA | a criar: ai/TASK-009-mapa-recuperacao-claude |
+| TASK-009 | Mapa muscular de recuperação no Corpo | EM ANDAMENTO (núcleo feito) | ai/TASK-009-mapa-recuperacao-claude |
