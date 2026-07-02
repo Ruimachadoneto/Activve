@@ -112,3 +112,37 @@ export function sessionProgress(session: WorkoutSession): SessionProgress {
 export function completeSession(session: WorkoutSession, now: Date = new Date()): WorkoutSession {
   return { ...session, status: "done", completedAt: session.completedAt ?? now.toISOString() };
 }
+
+export type PreviousSetPerf = { load_kg?: number; reps?: number; date: string };
+
+/**
+ * "Última vez": desempenho da série no treino ANTERIOR (memória de progressão).
+ * Olha só sessões concluídas, ignorando a sessão atual; pega a mais recente que
+ * tenha o exercício com alguma série feita. Prefere a série de mesmo índice
+ * (série 3 de hoje vs série 3 de lá); se ela não foi feita, cai na última feita.
+ */
+export function previousPerformance(
+  sessions: WorkoutSession[],
+  exerciseId: string,
+  setIndex: number,
+  excludeSessionId: string,
+): PreviousSetPerf | null {
+  const candidates = sessions
+    .filter((s) => s.status === "done" && s.sessionId !== excludeSessionId)
+    .filter((s) =>
+      s.exercises.some((e) => e.exerciseId === exerciseId && e.sets.some((x) => x.done)),
+    )
+    .sort((a, b) =>
+      a.date === b.date
+        ? (a.completedAt ?? "").localeCompare(b.completedAt ?? "")
+        : a.date.localeCompare(b.date),
+    );
+  const last = candidates[candidates.length - 1];
+  if (!last) return null;
+  const log = last.exercises.find((e) => e.exerciseId === exerciseId);
+  if (!log) return null;
+  const same = log.sets[setIndex];
+  const set = same?.done ? same : [...log.sets].reverse().find((x) => x.done);
+  if (!set) return null;
+  return { load_kg: set.load_kg, reps: set.reps, date: last.date };
+}

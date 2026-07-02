@@ -5,6 +5,7 @@ import {
   completeSession,
   sessionIdFor,
   clampRpe,
+  previousPerformance,
   isoDate,
   type WorkoutSession,
 } from "./session";
@@ -97,6 +98,66 @@ describe("clampRpe", () => {
     expect(clampRpe(undefined)).toBeUndefined();
     expect(clampRpe(null)).toBeUndefined();
     expect(clampRpe(NaN)).toBeUndefined();
+  });
+});
+
+describe("previousPerformance", () => {
+  const mk = (
+    date: string,
+    status: WorkoutSession["status"],
+    sets: { done: boolean; load_kg?: number; reps?: number }[],
+    exerciseId = "ex1",
+  ): WorkoutSession => ({
+    sessionId: `p:A:${date}`,
+    planId: "p",
+    workoutId: "A",
+    date,
+    status,
+    startedAt: `${date}T10:00:00Z`,
+    completedAt: status === "done" ? `${date}T11:00:00Z` : undefined,
+    exercises: [{ exerciseId, sets }],
+  });
+
+  it("retorna a série de mesmo índice do treino concluído mais recente", () => {
+    const sessions = [
+      mk("2026-06-20", "done", [{ done: true, load_kg: 50, reps: 10 }, { done: true, load_kg: 55, reps: 8 }]),
+      mk("2026-06-27", "done", [{ done: true, load_kg: 60, reps: 10 }, { done: true, load_kg: 62.5, reps: 8 }]),
+    ];
+    expect(previousPerformance(sessions, "ex1", 1, "p:A:2026-06-30")).toEqual({
+      load_kg: 62.5,
+      reps: 8,
+      date: "2026-06-27",
+    });
+  });
+
+  it("exclui a sessão atual e ignora sessões em andamento", () => {
+    const sessions = [
+      mk("2026-06-27", "done", [{ done: true, load_kg: 60, reps: 10 }]),
+      mk("2026-06-29", "in_progress", [{ done: true, load_kg: 70, reps: 10 }]),
+      mk("2026-06-30", "done", [{ done: true, load_kg: 80, reps: 10 }]), // sessão atual
+    ];
+    expect(previousPerformance(sessions, "ex1", 0, "p:A:2026-06-30")?.load_kg).toBe(60);
+  });
+
+  it("série de mesmo índice não feita → cai na última série feita", () => {
+    const sessions = [
+      mk("2026-06-27", "done", [
+        { done: true, load_kg: 60, reps: 10 },
+        { done: true, load_kg: 65, reps: 8 },
+        { done: false, load_kg: 70 },
+      ]),
+    ];
+    expect(previousPerformance(sessions, "ex1", 2, "p:A:2026-06-30")).toEqual({
+      load_kg: 65,
+      reps: 8,
+      date: "2026-06-27",
+    });
+  });
+
+  it("sem histórico do exercício → null", () => {
+    const sessions = [mk("2026-06-27", "done", [{ done: true, load_kg: 60 }], "outro_ex")];
+    expect(previousPerformance(sessions, "ex1", 0, "p:A:2026-06-30")).toBeNull();
+    expect(previousPerformance([], "ex1", 0, "x")).toBeNull();
   });
 });
 

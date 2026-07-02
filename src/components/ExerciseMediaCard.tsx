@@ -65,7 +65,7 @@ export function ExerciseMediaCard({
           alt={i === 0 ? alt : ""}
           loading={i === 0 ? "eager" : "lazy"}
           onError={() => setFailed(true)}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+          className={`media-drift absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
             frame === i ? "opacity-100" : "opacity-0"
           }`}
           style={{ filter: "saturate(0.85) brightness(0.92) contrast(1.02)" }}
@@ -101,6 +101,22 @@ export function ExerciseMediaCard({
       </a>
     </div>
   );
+}
+
+/**
+ * Pré-carrega fotos (do PRÓXIMO exercício) em segundo plano para a navegação
+ * parecer instantânea. Renderiza nada.
+ */
+export function PreloadImages({ urls }: { urls: string[] }) {
+  const key = urls.join("|");
+  useEffect(() => {
+    for (const url of key.split("|")) {
+      if (!url) continue;
+      const img = new window.Image();
+      img.src = url;
+    }
+  }, [key]);
+  return null;
 }
 
 /** Thumbnail quadrada pequena (próximo exercício / variações). Sem foto → ícone. */

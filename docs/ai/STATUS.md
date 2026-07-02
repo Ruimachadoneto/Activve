@@ -68,8 +68,18 @@ Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISU
     card **PRÓXIMO EXERCÍCIO** (thumb+nome+séries; último → Concluir treino); **VARIAÇÕES inline**
     (original+alternativas c/ thumb e seleção; swap reusa `patchExercise`); rodapé mantido.
   - `RestTimer`: rótulo **Sugestão** + presets incluem o `rest_s` do exercício (30/60/90/120+plano).
-  - Gates: typecheck ✓ · lint ✓ · **90/90** ✓ · build ✓ · console limpo. Verificado em 375px: fotos
-    reais carregando (Puxada→Wide-Grip_Lat_Pulldown; Remada→Bent_Over_Barbell_Row), sem overflow.
+  - **Ajuste de UX (pedido do usuário):** carga/reps 100% digitáveis pelo teclado com cara de input
+    (caixa com borda, 44px, seleciona ao focar, aceita vírgula) — e correção do overflow que isso
+    causou em 375px (medido por DOM: checks dentro do card, 17px entre colunas).
+  - **Camada "surpreendente" (2026-07-02):**
+    - **"Última vez: X kg × N"** no card da série — memória de progressão da sessão anterior
+      (`previousPerformance` puro em session.ts, prefere mesmo índice de série; +4 testes).
+    - **+15s** no descanso (estende sem reiniciar) e **vibração** ao fim (navigator.vibrate, guarded).
+    - **Drift Ken Burns** sutil na foto (`.media-drift`, respeita reduced-motion) e
+      **pré-carregamento** das fotos do próximo exercício (`PreloadImages`).
+    - Micro-feedback no CTA (scale no toque).
+  - Gates: typecheck ✓ · lint ✓ · **94/94** ✓ · build ✓ · console limpo. Verificado em 375px: fotos
+    reais carregando, "Última vez: 62.5 kg × 8" com histórico semeado, +15s (1:00→1:14), sem overflow.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Gate visual do usuário** no `/treino` novo + **review Codex** (`codex review --base main`, Git Bash).

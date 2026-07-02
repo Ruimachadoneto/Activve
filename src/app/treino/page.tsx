@@ -16,7 +16,7 @@ import { getTodayWorkout } from "@/lib/plan/today";
 import { BottomNav } from "@/components/BottomNav";
 import { ExerciseSheet } from "@/components/ExerciseSheet";
 import { RestTimer } from "@/components/RestTimer";
-import { ExerciseMediaCard, ExerciseThumb } from "@/components/ExerciseMediaCard";
+import { ExerciseMediaCard, ExerciseThumb, PreloadImages } from "@/components/ExerciseMediaCard";
 import { resolveMovement, videoHref } from "@/lib/plan/movement";
 import { resolveExerciseMedia } from "@/lib/plan/exerciseMedia";
 import { equipmentLabel } from "@/lib/plan/labels";
@@ -25,12 +25,13 @@ import {
   sessionProgress,
   completeSession,
   clampRpe,
+  previousPerformance,
   RPE_MIN,
   RPE_MAX,
   isoDate,
   type WorkoutSession,
 } from "@/lib/plan/session";
-import { getSession, saveSession } from "@/lib/storage/sessions";
+import { getSession, saveSession, getSessionsForPlan } from "@/lib/storage/sessions";
 
 const LOAD_STEP = 2.5;
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -44,6 +45,7 @@ export default function TreinoPage() {
   const [restToken, setRestToken] = useState(0);
   const [restOpen, setRestOpen] = useState(false);
   const [allSetsOpen, setAllSetsOpen] = useState(false);
+  const [history, setHistory] = useState<WorkoutSession[]>([]);
 
   const p = plan?.plan;
   const planId = plan?.planId ?? null;
@@ -73,6 +75,18 @@ export default function TreinoPage() {
       cancelled = true;
     };
   }, [draft]);
+
+  // Histórico do plano — alimenta o "Última vez" (memória de progressão) no card da série.
+  useEffect(() => {
+    if (!planId) return;
+    let cancelled = false;
+    getSessionsForPlan(planId).then((list) => {
+      if (!cancelled) setHistory(list);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [planId]);
 
   const session = stored && draft && stored.sessionId === draft.sessionId ? stored : draft;
 
@@ -119,6 +133,15 @@ export default function TreinoPage() {
   const nextEx = idx < total - 1 ? workout.exercises[idx + 1] : null;
   const nextLog = nextEx ? session.exercises.find((e) => e.exerciseId === nextEx.id) : null;
   const nextMov = nextEx ? resolveMovement(nextEx, nextLog?.swappedToId ?? undefined) : null;
+  const nextMedia = nextMov ? resolveExerciseMedia(nextMov.name) : null;
+
+  // "Última vez": o que foi feito nesta série no treino anterior (progressão consciente).
+  const prevPerf = previousPerformance(
+    history,
+    ex.id,
+    activeSet >= 0 ? activeSet : 0,
+    session.sessionId,
+  );
 
   function patchSet(
     exerciseId: string,
@@ -257,6 +280,16 @@ export default function TreinoPage() {
           ) : null}
         </div>
 
+        {prevPerf && activeSet !== -1 ? (
+          <p className="mt-3 text-center text-xs text-muted">
+            Última vez:{" "}
+            <span className="font-medium text-ink">
+              {prevPerf.load_kg != null ? `${prevPerf.load_kg} kg` : "—"}
+              {prevPerf.reps != null ? ` × ${prevPerf.reps}` : ""}
+            </span>
+          </p>
+        ) : null}
+
         {activeSet !== -1 && activeLog ? (
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div className="flex flex-col items-center gap-2">
@@ -292,7 +325,7 @@ export default function TreinoPage() {
           type="button"
           onClick={concluirSerie}
           disabled={activeSet === -1}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-medium text-on-accent transition-colors hover:bg-accent-press disabled:opacity-40"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-medium text-on-accent transition-all hover:bg-accent-press active:scale-[0.98] disabled:opacity-40"
         >
           {activeSet === -1 ? "Exercício concluído" : "Concluir série"}
           <Check size={16} aria-hidden />
@@ -398,13 +431,14 @@ export default function TreinoPage() {
       </div>
 
       {/* Próximo exercício (mockup) ou fechamento do treino */}
+      {nextMedia ? <PreloadImages urls={nextMedia.imageUrls} /> : null}
       {nextEx && nextMov ? (
         <button
           type="button"
           onClick={() => setCurrent((c) => Math.min(total - 1, c + 1))}
           className="mt-4 flex w-full items-center gap-3 rounded-card border border-line bg-surface p-3 text-left active:bg-surface2"
         >
-          <ExerciseThumb media={resolveExerciseMedia(nextMov.name)} className="h-12 w-12 shrink-0" />
+          <ExerciseThumb media={nextMedia} className="h-12 w-12 shrink-0" />
           <span className="min-w-0 flex-1">
             <span className="block text-[10px] uppercase tracking-wider text-faint">
               Próximo exercício

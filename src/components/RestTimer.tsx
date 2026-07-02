@@ -44,6 +44,12 @@ export function RestTimer({
       setRemaining((r) => {
         if (r <= 1) {
           clearInterval(id);
+          // Aviso tátil no fim do descanso (mobile; silenciosamente ignorado onde não há suporte).
+          try {
+            navigator.vibrate?.([180, 90, 180]);
+          } catch {
+            /* sem vibração disponível */
+          }
           return 0;
         }
         return r - 1;
@@ -71,6 +77,13 @@ export function RestTimer({
   function setPreset(p: number) {
     setDuration(p);
     setRemaining(p);
+    setRunning(true);
+  }
+
+  /** +15s sem reiniciar: estende o descanso atual (comum quando a série pesou). */
+  function addTime(extra: number) {
+    setDuration((d) => d + extra);
+    setRemaining((r) => r + extra);
     setRunning(true);
   }
 
@@ -157,6 +170,14 @@ export function RestTimer({
                   {preset}s
                 </button>
               ))}
+            <button
+              type="button"
+              onClick={() => addTime(15)}
+              aria-label="Adicionar 15 segundos ao descanso"
+              className="rounded-full border border-dashed border-line px-3 py-1.5 text-xs text-muted active:bg-surface2"
+            >
+              +15s
+            </button>
           </div>
 
           <div className="mt-5 flex w-full items-center gap-2">
