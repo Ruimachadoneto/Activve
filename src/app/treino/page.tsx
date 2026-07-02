@@ -319,12 +319,12 @@ export default function TreinoPage() {
         </button>
         {allSetsOpen ? (
           <div className="px-3 pb-3">
-            <div className="flex items-center gap-2 px-1 text-[10px] uppercase tracking-wider text-faint">
-              <span className="w-5">Série</span>
-              <span className="flex-1 text-center">Carga</span>
+            <div className="flex items-center gap-1.5 px-1 text-[10px] uppercase tracking-wider text-faint">
+              <span className="w-4">Série</span>
+              <span className="flex-1 text-center">KG</span>
               <span className="flex-1 text-center">Reps</span>
               <span className="w-9 text-center">RPE</span>
-              <span className="w-8" />
+              <span className="w-7" />
             </div>
             <div className="mt-2 flex flex-col gap-2">
               {log?.sets.map((s, i) => {
@@ -332,19 +332,18 @@ export default function TreinoPage() {
                 return (
                   <div
                     key={i}
-                    className={`flex items-center gap-2 rounded-xl px-1 py-1.5 ${
+                    className={`flex items-center gap-1.5 rounded-xl px-1 py-1.5 ${
                       isActive ? "bg-accent/5" : ""
                     }`}
                   >
                     <span
-                      className={`w-5 text-center text-xs ${isActive ? "font-medium text-accent" : "text-faint"}`}
+                      className={`w-4 text-center text-xs ${isActive ? "font-medium text-accent" : "text-faint"}`}
                     >
                       {i + 1}
                     </span>
                     <div className="flex flex-1 justify-center">
                       <Stepper
                         value={s.load_kg ?? 0}
-                        suffix="kg"
                         label={`carga da série ${i + 1}`}
                         onChange={(n) => patchSet(ex.id, i, { load_kg: round1(n) })}
                         step={LOAD_STEP}
@@ -370,11 +369,11 @@ export default function TreinoPage() {
                       onClick={() => toggleSetDone(i, s.done)}
                       aria-pressed={s.done}
                       aria-label={`Série ${i + 1} feita`}
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-colors ${
                         s.done ? "border-accent bg-accent text-on-accent" : "border-line text-faint"
                       }`}
                     >
-                      <Check size={16} aria-hidden />
+                      <Check size={14} aria-hidden />
                     </button>
                   </div>
                 );
@@ -611,20 +610,20 @@ function Stepper({
   const lg = size === "lg";
 
   return (
-    <div className={`flex items-center ${lg ? "gap-2" : "gap-1"}`}>
+    <div className={`flex items-center ${lg ? "gap-1.5" : "gap-1"}`}>
       <button
         type="button"
         onClick={() => commit(round1(value - step))}
         aria-label={`Diminuir ${label}`}
         className={`flex shrink-0 items-center justify-center rounded-full border border-line text-muted active:bg-surface2 ${
-          lg ? "h-9 w-9" : "h-7 w-7"
+          lg ? "h-9 w-9" : "h-6 w-6"
         }`}
       >
-        <Minus size={lg ? 16 : 14} aria-hidden />
+        <Minus size={lg ? 16 : 12} aria-hidden />
       </button>
       <span className="inline-flex items-center gap-1">
         {/* Campo digitável de verdade (o usuário pode preferir o teclado aos botões ±) —
-            visual de input para o affordance ficar óbvio. */}
+            visual de input para o affordance ficar óbvio, sem estourar a largura do card. */}
         <input
           value={text}
           inputMode={inputMode}
@@ -645,8 +644,8 @@ function Stepper({
             commit(v);
             setText(String(v));
           }}
-          className={`rounded-lg border border-line bg-surface2/40 text-center tabular-nums outline-none transition-colors focus:border-accent/60 focus:text-accent ${
-            lg ? "h-11 w-20 text-2xl font-medium" : "h-8 w-12 text-sm"
+          className={`rounded-lg border bg-surface2/40 text-center tabular-nums outline-none transition-colors focus:border-accent/60 focus:text-accent ${
+            lg ? "h-11 w-14 border-line text-xl font-medium" : "h-7 w-10 border-transparent text-sm"
           }`}
         />
         {suffix ? <span className="text-xs text-faint">{suffix}</span> : null}
@@ -656,10 +655,10 @@ function Stepper({
         onClick={() => commit(round1(value + step))}
         aria-label={`Aumentar ${label}`}
         className={`flex shrink-0 items-center justify-center rounded-full border border-line text-muted active:bg-surface2 ${
-          lg ? "h-9 w-9" : "h-7 w-7"
+          lg ? "h-9 w-9" : "h-6 w-6"
         }`}
       >
-        <Plus size={lg ? 16 : 14} aria-hidden />
+        <Plus size={lg ? 16 : 12} aria-hidden />
       </button>
     </div>
   );
