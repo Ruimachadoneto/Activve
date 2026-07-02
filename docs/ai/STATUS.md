@@ -52,10 +52,15 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
   - **MERGEADA em `main` (`abacf6c`, 2026-06-30)** via `--no-ff`; gates revalidados na main (85 testes, build ok); branch apagada (local+remota). Visual aprovado pelo usuário; 3 ciclos de review Codex (último limpo).
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-TASK-009 concluída. Backlog (escolher com o usuário):
-1. **Fase 2 — corpo realista (se o usuário quiser fechar 100% o mockup):** trocar o vetor `react-muscle-highlighter` por **corpo 3D realista** com assets do usuário (máscaras por músculo tingíveis sobre base estilo `public/muscles/corpo.png`). Reaproveita `recovery.ts`/`muscleSlug.ts`/interação (tap, gradação, prontidão). Eu defino o spec dos PNGs; usuário gera no GPT.
-2. **Imagem real do exercício** no Modo Treino: `free-exercise-db` (Unlicense) — casar por nome/`primaryMuscles`; manter o link de vídeo.
-3. **Dívida conhecida:** sem testes de **interação de UI** (RTL/jsdom) para `/treino` e `/corpo`; infra é node-only. `sex: "other"` usa corpo male (limitação da lib; resolvível na Fase 2).
+**Mockup v2 recebido (2026-06-30)** — mais rico que o `UI_REFERENCE.md`. Auditoria completa app vs.
+mockup em **`docs/ai/VISUAL_GAP_AUDIT_2026-06-30.md`** (gaps por tela + plano priorizado):
+1. **TASK-010 (P1)** — Mídia real de exercício + foco na série atual no Modo Treino (maior gap visual).
+2. **TASK-011 (P1)** — Hoje v2 (saudação teal, hero c/ nome do treino, FOCO DO DIA, lista de exercícios, CTA rodapé).
+3. **TASK-012 (P2)** — Como fazer v2 (chips de músculos, dicas técnicas — schema minor bump, alternativas c/ thumb).
+4. **TASK-013 (P3)** — estado de erro amigável p/ plano corrompido (hoje: crash; descoberto na auditoria).
+Aguardando o usuário aprovar o plano/ordem. Depois: atualizar `UI_REFERENCE.md` p/ mockup v2, abrir contrato da task escolhida.
+
+Backlog anterior que segue válido: **Fase 2 corpo realista** no /corpo (assets do usuário); testes de interação de UI (RTL/jsdom); `sex:"other"` usa corpo male (lib).
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).
