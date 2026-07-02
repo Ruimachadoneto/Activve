@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Pause, Play, SkipForward, X } from "lucide-react";
 
-const PRESETS = [30, 60, 90];
+const BASE_PRESETS = [30, 60, 90, 120];
 
 function mmss(s: number): string {
   const m = Math.floor(s / 60);
@@ -140,18 +140,23 @@ export function RestTimer({
           </div>
 
           <div className="mt-5 flex items-center gap-2">
-            {PRESETS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPreset(p)}
-                className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                  duration === p ? "border-accent bg-accent/10 text-accent" : "border-line text-muted"
-                }`}
-              >
-                {p}s
-              </button>
-            ))}
+            <span className="text-[10px] uppercase tracking-wider text-faint">Sugestão</span>
+            {[...new Set([...BASE_PRESETS, seconds])]
+              .sort((a, b) => a - b)
+              .map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setPreset(preset)}
+                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                    duration === preset
+                      ? "border-accent bg-accent/10 text-accent"
+                      : "border-line text-muted"
+                  }`}
+                >
+                  {preset}s
+                </button>
+              ))}
           </div>
 
           <div className="mt-5 flex w-full items-center gap-2">

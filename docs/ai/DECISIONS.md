@@ -54,6 +54,29 @@ Registre somente decisões duráveis. Use uma entrada por decisão.
 
 ---
 
+## ADR-004 — `free-exercise-db` como fonte de fotos de exercício (TASK-010)
+
+- Data: 2026-07-02
+- Status: aceito
+- Contexto: o mockup exige foto real do exercício no Modo Treino. Precisamos de mídia **gratuita,
+  licença limpa e sem backend** (local-first). Pesquisa registrada em `TASK-010-treino-media.md`.
+- Decisão: usar **`free-exercise-db`** (Unlicense/domínio público, 873 exercícios, 2 fotos JPG cada)
+  via **hotlink** ao raw do GitHub, com **dicionário curado PT-BR→id** num módulo puro
+  (`src/lib/plan/exerciseMedia.ts`). Sem match confiável → placeholder (nunca foto errada).
+  Imagem é melhoria progressiva (offline/erro → placeholder). Tratamento dark por CSS.
+- Consequências positivas: zero custo/licença limpa; sem dependência npm; testável; camada
+  substituível (fotos premium do usuário podem sobrepor o mesmo módulo depois).
+- Consequências negativas: dependência de CDN externo em runtime (mitigada por fallback; cache PWA
+  fica p/ fase PWA); fotos são estúdio fundo claro (não o dark premium do mockup — tratamento CSS
+  aproxima; fotos custom depois); dicionário exige manutenção ao surgirem nomes novos.
+- Alternativas descartadas: ExerciseDB API (11k GIFs, mas licença da mídia duvidosa — histórico de
+  scraping — e API com chave/limites); exercises-dataset (mídia removida por disputa de posse);
+  everkinetic/opentraining (CC-BY-SA, ilustrações vetoriais — não bate o mockup); embutir 873
+  exercícios no bundle (peso proibitivo).
+- Substitui/é substituído por: —
+
+---
+
 ## ADR-[ID] — [Título]
 
 - Data:

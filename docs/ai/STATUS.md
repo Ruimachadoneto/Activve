@@ -51,16 +51,31 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
   - **Re-review Codex (2026-06-30) — APROVADO, LIMPO:** "no discrete, actionable bugs… recovery-domain logic, page integration e muscle-map aggregation internamente consistentes e cobertos por testes".
   - **MERGEADA em `main` (`abacf6c`, 2026-06-30)** via `--no-ff`; gates revalidados na main (85 testes, build ok); branch apagada (local+remota). Visual aprovado pelo usuário; 3 ciclos de review Codex (último limpo).
 
-### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**Mockup v2 recebido (2026-06-30)** — mais rico que o `UI_REFERENCE.md`. Auditoria completa app vs.
-mockup em **`docs/ai/VISUAL_GAP_AUDIT_2026-06-30.md`** (gaps por tela + plano priorizado):
-1. **TASK-010 (P1)** — Mídia real de exercício + foco na série atual no Modo Treino (maior gap visual).
-2. **TASK-011 (P1)** — Hoje v2 (saudação teal, hero c/ nome do treino, FOCO DO DIA, lista de exercícios, CTA rodapé).
-3. **TASK-012 (P2)** — Como fazer v2 (chips de músculos, dicas técnicas — schema minor bump, alternativas c/ thumb).
-4. **TASK-013 (P3)** — estado de erro amigável p/ plano corrompido (hoje: crash; descoberto na auditoria).
-Aguardando o usuário aprovar o plano/ordem. Depois: atualizar `UI_REFERENCE.md` p/ mockup v2, abrir contrato da task escolhida.
+## TASK-010 — Modo Treino: mídia real + foco na série (EM ANDAMENTO, branch `ai/TASK-010-treino-media-claude`)
+Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`.
+- **Pesquisa de mídia (feita 2026-07-02):** fonte escolhida = **`free-exercise-db`** (Unlicense/domínio
+  público, 873 exercícios, 2 fotos JPG cada, hotlink no raw do GitHub) — **ADR-004**. Rejeitados:
+  ExerciseDB (licença da mídia duvidosa), exercises-dataset (mídia removida), everkinetic (ilustração CC-BY-SA).
+- **Implementado (2026-07-02):**
+  - `src/lib/plan/exerciseMedia.ts` — dicionário curado PT-BR→id (~90 nomes/apelidos), nome normalizado
+    (sem acento/caixa); **sem match → null** (placeholder; nunca foto errada). +5 testes (90 no total).
+  - `src/components/ExerciseMediaCard.tsx` — foto com **alternância das 2 posições** (1.6s, respeita
+    reduced-motion), tratamento dark (vinheta/gradiente), dots, botão "Vídeo" overlay; `onError`/sem
+    match → placeholder antigo. + `ExerciseThumb` (thumb 48px c/ fallback de ícone).
+  - `/treino` reestruturado: header c/ **nome do treino + barra de progresso i/N**; botão livro (Como
+    fazer); **card série-foco** (badge SÉRIE X DE N + chip RPE alvo + steppers GRANDES carga/reps +
+    CTA "Concluir série ✓"); **Todas as séries** colapsável (tabela antiga completa, RPE + ✓ por linha);
+    card **PRÓXIMO EXERCÍCIO** (thumb+nome+séries; último → Concluir treino); **VARIAÇÕES inline**
+    (original+alternativas c/ thumb e seleção; swap reusa `patchExercise`); rodapé mantido.
+  - `RestTimer`: rótulo **Sugestão** + presets incluem o `rest_s` do exercício (30/60/90/120+plano).
+  - Gates: typecheck ✓ · lint ✓ · **90/90** ✓ · build ✓ · console limpo. Verificado em 375px: fotos
+    reais carregando (Puxada→Wide-Grip_Lat_Pulldown; Remada→Bent_Over_Barbell_Row), sem overflow.
 
-Backlog anterior que segue válido: **Fase 2 corpo realista** no /corpo (assets do usuário); testes de interação de UI (RTL/jsdom); `sex:"other"` usa corpo male (lib).
+### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
+1. **Gate visual do usuário** no `/treino` novo + **review Codex** (`codex review --base main`, Git Bash).
+   Loop de correção; merge sob gate humano.
+2. Depois: **TASK-011** Hoje v2 → **TASK-012** Como fazer v2 → **TASK-014** Corpo v2 → **TASK-013** erro amigável.
+3. Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"other"` (lib).
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).
