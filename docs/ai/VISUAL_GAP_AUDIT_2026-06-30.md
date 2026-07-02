@@ -1,8 +1,19 @@
-# Auditoria visual — app atual vs. mockup v2 (2026-06-30)
+# Auditoria visual — app atual vs. mockups (2026-06-30)
 
-> Mockup v2 (3 telas: Hoje "Bom dia, Rui." / Treino "Puxada frontal" / Como fazer) fornecido pelo
-> usuário em 2026-06-30. É **mais rico** que o `UI_REFERENCE.md` (2026-06-25) e passa a ser a
-> referência canônica quando aprovado. Comparação feita com o app real em 375×812 (plano semeado).
+> **Duas peças de referência**, reconciliadas nesta auditoria:
+> - **Mockup BASE ("Soft Tech Minimal", "Bom dia, Matheus.")** — é o mockup canônico do
+>   `UI_REFERENCE.md` (aprovado 2026-06-25): Hoje (chip "Plano importado", hero c/ 12 exercícios ·
+>   60–75 min · intensidade, visão da semana c/ checks, Dieta anel 3/4 + Corpo), Modo treino
+>   (foto real, SÉRIE 3 DE 4 + badge RIR, steppers grandes, descanso anel inline c/ Pausar/Pular,
+>   Próximo exercício, **Variações com thumbnails inline**), Corpo (tabs Visão geral · Medidas ·
+>   Fotos · Histórico, **mapa 3D realista** c/ legenda Pronto/Recuperando/Trabalhado + "toque para
+>   detalhes", Tendência de peso c/ delta "↓1,8 kg últ. 30 dias", **Medidas principais** c/ Editar,
+>   Progresso de fotos). Bottom nav: Hoje · Treino · Corpo · **Progresso**.
+> - **Mockup v2 ("Bom dia, Rui.")** — evolução do base: adiciona a tela **Como fazer** (execução,
+>   dicas técnicas, alternativas c/ badge, dica rápida), card **FOCO DO DIA** e **lista numerada de
+>   EXERCÍCIOS** na home.
+>
+> O alvo é a **união dos dois**. Comparação feita com o app real em 375×812 (plano semeado).
 
 ## Veredito geral
 Estrutura e identidade (dark navy + teal, cards, anti-culpa) estão certas. O que separa o app do
@@ -41,6 +52,17 @@ SEU RITMO NESTA SEMANA, cards Corpo/Alimentação, bottom nav.
 | 3 | **DICAS TÉCNICAS** (checks teal) + **DICA RÁPIDA** (lâmpada) | Não existe | Requer campo novo no schema (`howTo.tips[]`, `howTo.quickTip` — opcionais, minor bump) |
 | 4 | **ALTERNATIVAS com thumbnail + badge** (Semelhante/Alternativa) + séries | Lista textual com "Usar" | Médio (depende de mídia) |
 
+## Tela 4 — Corpo (do mockup BASE)
+| # | Mockup | App atual | Gap |
+|---|---|---|---|
+| 1 | **Mapa 3D realista** (base anatômica cinza/escura + músculos coloridos) | Vetor `react-muscle-highlighter` polido | Confirma a **Fase 2 realista** como alvo final; o estilo do mockup = exatamente o dos assets `public/muscles/*` |
+| 2 | Legenda **3 estados** (Pronto/Recuperando/Trabalhado); descansado = corpo neutro | 4 estados (descansado pintado azul-aço) | No realista, "descansado" volta a ser a base neutra (revisita a decisão do review quando a Fase 2 chegar) |
+| 3 | "Toque em um grupo muscular para detalhes" | **JÁ IMPLEMENTADO** (tap + "pronto em ~X") | ✔ alinhado |
+| 4 | Tabs **Visão geral · Medidas · Fotos · Histórico** | Visão geral · Medições | Renomear/estender |
+| 5 | Tendência de peso: gráfico + **87,6 kg** grande + chip "**↓ 1,8 kg** últ. 30 dias" | WeightChart + delta em texto | Refino de layout (chip, número grande) |
+| 6 | **Medidas principais** (Peso/Cintura/Peito/Coxa/Braço + Editar) | Só peso | Dado parcial já existe no schema (`targets[].value_cm`); medir/editar exige store novo (`bodylog` estendido) |
+| 7 | Progresso de fotos (antes/depois) | Fora do escopo v1 (decisão registrada) | Mantém fora por ora |
+
 ## Transversal
 - **Mídia de exercício** é a alavanca nº1: opções (a) tratamento dark (filter + overlay gradiente)
   sobre imagens do `free-exercise-db` (Unlicense) — rápido, cobre 800+ exercícios; (b) fotos
@@ -55,15 +77,20 @@ SEU RITMO NESTA SEMANA, cards Corpo/Alimentação, bottom nav.
   valida, então só ocorre com dado corrompido — mas viola VISUAL_QUALITY §8 (estados): deveria
   cair em estado de erro amigável ("plano inválido — reimporte"). Registrar como dívida.
 
-## Plano proposto (prioridade = impacto visual × esforço)
+## Plano proposto (prioridade = impacto visual × esforço; alvo = união dos 2 mockups)
 - **TASK-010 (P1) — Mídia + foco do Modo Treino:** imagem real do exercício (free-exercise-db com
-  tratamento dark) no slot de mídia e nas alternativas; série atual em destaque (badge SÉRIE X DE N
-  + steppers grandes; tabela completa colapsável mantendo RPE); barra de progresso no header;
-  card PRÓXIMO EXERCÍCIO; ✓ no CTA; SUGESTÃO/tempos do plano no descanso.
-- **TASK-011 (P1) — Hoje v2:** saudação (nome teal + tagline), hero com nome do treino + ícones +
-  ~duração + Ver objetivo, card FOCO DO DIA, lista EXERCÍCIOS numerada, CTA rodapé + equipamentos.
+  tratamento dark) no slot de mídia; série atual em destaque (badge SÉRIE X DE N + badge RIR/RPE +
+  steppers grandes; tabela completa colapsável mantendo RPE); barra de progresso no header
+  (ex.: "3/12"); card PRÓXIMO EXERCÍCIO; **Variações com thumbnails inline** no fim da tela
+  (mockup base) — a sheet vira só "Como fazer"; ✓ no CTA; SUGESTÃO/tempos do plano no descanso.
+- **TASK-011 (P1) — Hoje v2:** saudação (nome teal + tagline), chip **"Plano importado" + Ver
+  plano**, hero com nome do treino + ícones (N exercícios · ~min · intensidade), card FOCO DO DIA,
+  lista EXERCÍCIOS numerada, CTA rodapé + equipamentos; anel de progresso na Dieta (3/4).
 - **TASK-012 (P2) — Como fazer v2:** chips de músculos (dado pronto), DICAS TÉCNICAS + DICA RÁPIDA
   (schema minor bump + ADR), alternativas com thumbnail + badge.
 - **TASK-013 (P3) — Robustez:** estado de erro amigável p/ plano corrompido (em vez de crash).
+- **TASK-014 (P2) — Corpo v2:** número grande + chip de delta na tendência; tabs Medidas/Histórico;
+  **Medidas principais** (cintura/peito/coxa/braço — estende `bodylog`); prepara a **Fase 2
+  realista** do mapa (assets do usuário; no realista, "descansado" volta a ser base neutra).
 
 Cada task: contrato próprio, review Codex, gate visual do usuário (VISUAL_QUALITY §10–13).
