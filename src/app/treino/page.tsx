@@ -622,7 +622,9 @@ function Stepper({
       >
         <Minus size={lg ? 16 : 14} aria-hidden />
       </button>
-      <span className="inline-flex items-baseline">
+      <span className="inline-flex items-center gap-1">
+        {/* Campo digitável de verdade (o usuário pode preferir o teclado aos botões ±) —
+            visual de input para o affordance ficar óbvio. */}
         <input
           value={text}
           inputMode={inputMode}
@@ -643,8 +645,8 @@ function Stepper({
             commit(v);
             setText(String(v));
           }}
-          className={`bg-transparent text-center tabular-nums outline-none focus:text-accent ${
-            lg ? "w-16 text-2xl font-medium" : "w-8 text-sm"
+          className={`rounded-lg border border-line bg-surface2/40 text-center tabular-nums outline-none transition-colors focus:border-accent/60 focus:text-accent ${
+            lg ? "h-11 w-20 text-2xl font-medium" : "h-8 w-12 text-sm"
           }`}
         />
         {suffix ? <span className="text-xs text-faint">{suffix}</span> : null}
