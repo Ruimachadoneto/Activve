@@ -51,16 +51,74 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
   - **Re-review Codex (2026-06-30) — APROVADO, LIMPO:** "no discrete, actionable bugs… recovery-domain logic, page integration e muscle-map aggregation internamente consistentes e cobertos por testes".
   - **MERGEADA em `main` (`abacf6c`, 2026-06-30)** via `--no-ff`; gates revalidados na main (85 testes, build ok); branch apagada (local+remota). Visual aprovado pelo usuário; 3 ciclos de review Codex (último limpo).
 
-### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**Mockup v2 recebido (2026-06-30)** — mais rico que o `UI_REFERENCE.md`. Auditoria completa app vs.
-mockup em **`docs/ai/VISUAL_GAP_AUDIT_2026-06-30.md`** (gaps por tela + plano priorizado):
-1. **TASK-010 (P1)** — Mídia real de exercício + foco na série atual no Modo Treino (maior gap visual).
-2. **TASK-011 (P1)** — Hoje v2 (saudação teal, hero c/ nome do treino, FOCO DO DIA, lista de exercícios, CTA rodapé).
-3. **TASK-012 (P2)** — Como fazer v2 (chips de músculos, dicas técnicas — schema minor bump, alternativas c/ thumb).
-4. **TASK-013 (P3)** — estado de erro amigável p/ plano corrompido (hoje: crash; descoberto na auditoria).
-Aguardando o usuário aprovar o plano/ordem. Depois: atualizar `UI_REFERENCE.md` p/ mockup v2, abrir contrato da task escolhida.
+## TASK-010 — Modo Treino: mídia real + foco na série (EM ANDAMENTO, branch `ai/TASK-010-treino-media-claude`)
+Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`.
+- **Pesquisa de mídia (feita 2026-07-02):** fonte escolhida = **`free-exercise-db`** (Unlicense/domínio
+  público, 873 exercícios, 2 fotos JPG cada, hotlink no raw do GitHub) — **ADR-004**. Rejeitados:
+  ExerciseDB (licença da mídia duvidosa), exercises-dataset (mídia removida), everkinetic (ilustração CC-BY-SA).
+- **Implementado (2026-07-02):**
+  - `src/lib/plan/exerciseMedia.ts` — dicionário curado PT-BR→id (~90 nomes/apelidos), nome normalizado
+    (sem acento/caixa); **sem match → null** (placeholder; nunca foto errada). +5 testes (90 no total).
+  - `src/components/ExerciseMediaCard.tsx` — foto com **alternância das 2 posições** (1.6s, respeita
+    reduced-motion), tratamento dark (vinheta/gradiente), dots, botão "Vídeo" overlay; `onError`/sem
+    match → placeholder antigo. + `ExerciseThumb` (thumb 48px c/ fallback de ícone).
+  - `/treino` reestruturado: header c/ **nome do treino + barra de progresso i/N**; botão livro (Como
+    fazer); **card série-foco** (badge SÉRIE X DE N + chip RPE alvo + steppers GRANDES carga/reps +
+    CTA "Concluir série ✓"); **Todas as séries** colapsável (tabela antiga completa, RPE + ✓ por linha);
+    card **PRÓXIMO EXERCÍCIO** (thumb+nome+séries; último → Concluir treino); **VARIAÇÕES inline**
+    (original+alternativas c/ thumb e seleção; swap reusa `patchExercise`); rodapé mantido.
+  - `RestTimer`: rótulo **Sugestão** + presets incluem o `rest_s` do exercício (30/60/90/120+plano).
+  - **Ajuste de UX (pedido do usuário):** carga/reps 100% digitáveis pelo teclado com cara de input
+    (caixa com borda, 44px, seleciona ao focar, aceita vírgula) — e correção do overflow que isso
+    causou em 375px (medido por DOM: checks dentro do card, 17px entre colunas).
+  - **Camada "surpreendente" (2026-07-02):**
+    - **"Última vez: X kg × N"** no card da série — memória de progressão da sessão anterior
+      (`previousPerformance` puro em session.ts, prefere mesmo índice de série; +4 testes).
+    - **+15s** no descanso (estende sem reiniciar) e **vibração** ao fim (navigator.vibrate, guarded).
+    - **Drift Ken Burns** sutil na foto (`.media-drift`, respeita reduced-motion) e
+      **pré-carregamento** das fotos do próximo exercício (`PreloadImages`).
+    - Micro-feedback no CTA (scale no toque).
+  - Gates: typecheck ✓ · lint ✓ · **94/94** ✓ · build ✓ · console limpo. Verificado em 375px: fotos
+    reais carregando, "Última vez: 62.5 kg × 8" com histórico semeado, +15s (1:00→1:14), sem overflow.
+  - **Review Codex (ciclo 1 da TASK-010, 2026-07-02) — 2 achados, ambos corrigidos:**
+    - **[P2] histórico morria na troca de plano** — o "Última vez" lia `getSessionsForPlan(planId)`;
+      importar plano novo (planId novo) zerava a memória, violando a continuidade por `exercise.id`
+      do ADR-002. → novo `getAllSessions()` no storage; o histórico do treino agora é global.
+    - **[P3] falha do frame oculto derrubava a foto visível** — `onError` de qualquer frame matava o
+      card. → falha rastreada **por frame**: 1 frame ok → estático nele (sem dots); só cai no
+      placeholder quando nenhum renderiza.
+  - **Review Codex (ciclo 2, 2026-07-02) — 2 achados, ambos corrigidos:**
+    - **[P2] dicionário não cobria o plano de exemplo embarcado** ("Desenvolvimento de ombro",
+      "Desenvolvimento na máquina", "Agachamento goblet" → placeholder). → aliases adicionados +
+      **teste de regressão que lê o `examples/plano-exemplo.json` real** e exige foto p/ todos os
+      nomes (95 testes).
+    - **[P3] `ExerciseThumb` grudava no fallback** — uma falha de thumb persistia ao navegar de
+      exercício (componente reusado). → reset do `failed` quando `sourceId` muda (mesmo padrão do
+      card principal).
+  - **Review Codex (ciclo 3, 2026-07-02) — 2 achados [P2], ambos corrigidos:**
+    - **"Última vez" ignorava a variação** — casava só por `exerciseId`; carga de outra variação
+      aparecia como referência. → `previousPerformance` agora compara o **movimento efetivo**
+      (`swappedToId ?? exerciseId`; param `movementId`); +1 teste (3 cenários). Verificado no
+      browser: original mostra, variação nunca feita some, volta ao original volta.
+    - **Timer morto após zerar** — `running` ficava true no fim; preset/+15s só mudavam o número.
+      → countdown reestruturado p/ **timeout re-agendado com `remaining` nas deps** (padrão
+      canônico): qualquer mudança de tempo religa o tique, inclusive pós-zero (a 1ª tentativa com
+      efeito de sync de estado foi barrada pelo lint `react-hooks/set-state-in-effect` — a
+      reestruturação é a solução correta, sem estado contraditório). Verificado no browser:
+      tica, pausa, preset religa.
+    - Gates: typecheck ✓ · lint ✓ · **96/96** ✓ · build ✓.
+    - ⚠️ **Limite de ciclos (AGENTS §13):** 3 ciclos completos de correção nesta task.
+  - **Re-review de confirmação (2026-07-02) — APROVADO, LIMPO:** "no discrete, actionable bugs…
+    media, focused-set UI, timer changes e previous-performance logic internamente consistentes".
+    **TASK-010 chancelada — pendente apenas o gate humano de merge.**
+  - Nota do review: existe um campo `mediaId` órfão em `schema.ts:24`/`movement.test.ts` (aceito no
+    schema mas não usado pela UI) — candidato a integrar na TASK-012 (mídia explícita do gerador).
 
-Backlog anterior que segue válido: **Fase 2 corpo realista** no /corpo (assets do usuário); testes de interação de UI (RTL/jsdom); `sex:"other"` usa corpo male (lib).
+### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
+1. **Gate visual do usuário** no `/treino` novo + **review Codex** (`codex review --base main`, Git Bash).
+   Loop de correção; merge sob gate humano.
+2. Depois: **TASK-011** Hoje v2 → **TASK-012** Como fazer v2 → **TASK-014** Corpo v2 → **TASK-013** erro amigável.
+3. Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"other"` (lib).
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).

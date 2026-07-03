@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Pause, Play, SkipForward, X } from "lucide-react";
 
-const PRESETS = [30, 60, 90];
+const BASE_PRESETS = [30, 60, 90, 120];
 
 function mmss(s: number): string {
   const m = Math.floor(s / 60);
@@ -38,19 +38,25 @@ export function RestTimer({
     setRunning(true);
   }
 
+  // Countdown por timeout re-agendado (`remaining` nas deps): qualquer mudança de
+  // tempo — preset, +15s, reinício — religa o tique sozinha, inclusive depois de
+  // zerar. Um setInterval keyed só em `running` congelava após o fim (running
+  // true→true não re-dispara o efeito).
   useEffect(() => {
-    if (!open || !running) return;
-    const id = setInterval(() => {
-      setRemaining((r) => {
-        if (r <= 1) {
-          clearInterval(id);
-          return 0;
+    if (!open || !running || remaining === 0) return;
+    const id = setTimeout(() => {
+      if (remaining === 1) {
+        // Aviso tátil no fim do descanso (mobile; ignorado onde não há suporte).
+        try {
+          navigator.vibrate?.([180, 90, 180]);
+        } catch {
+          /* sem vibração disponível */
         }
-        return r - 1;
-      });
+      }
+      setRemaining(remaining - 1);
     }, 1000);
-    return () => clearInterval(id);
-  }, [open, running]);
+    return () => clearTimeout(id);
+  }, [open, running, remaining]);
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +77,13 @@ export function RestTimer({
   function setPreset(p: number) {
     setDuration(p);
     setRemaining(p);
+    setRunning(true);
+  }
+
+  /** +15s sem reiniciar: estende o descanso atual (comum quando a série pesou). */
+  function addTime(extra: number) {
+    setDuration((d) => d + extra);
+    setRemaining((r) => r + extra);
     setRunning(true);
   }
 
@@ -140,30 +153,43 @@ export function RestTimer({
           </div>
 
           <div className="mt-5 flex items-center gap-2">
-            {PRESETS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPreset(p)}
-                className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                  duration === p ? "border-accent bg-accent/10 text-accent" : "border-line text-muted"
-                }`}
-              >
-                {p}s
-              </button>
-            ))}
+            <span className="text-[10px] uppercase tracking-wider text-faint">Sugestão</span>
+            {[...new Set([...BASE_PRESETS, seconds])]
+              .sort((a, b) => a - b)
+              .map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setPreset(preset)}
+                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                    duration === preset
+                      ? "border-accent bg-accent/10 text-accent"
+                      : "border-line text-muted"
+                  }`}
+                >
+                  {preset}s
+                </button>
+              ))}
+            <button
+              type="button"
+              onClick={() => addTime(15)}
+              aria-label="Adicionar 15 segundos ao descanso"
+              className="rounded-full border border-dashed border-line px-3 py-1.5 text-xs text-muted active:bg-surface2"
+            >
+              +15s
+            </button>
           </div>
 
           <div className="mt-5 flex w-full items-center gap-2">
             <button
               type="button"
               onClick={() => setRunning((v) => !v)}
-              aria-label={running ? "Pausar" : "Continuar"}
+              aria-label={running && !done ? "Pausar" : "Continuar"}
               disabled={done}
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-line text-sm text-muted active:bg-surface2 disabled:opacity-40"
             >
-              {running ? <Pause size={16} aria-hidden /> : <Play size={16} aria-hidden />}
-              {running ? "Pausar" : "Continuar"}
+              {running && !done ? <Pause size={16} aria-hidden /> : <Play size={16} aria-hidden />}
+              {running && !done ? "Pausar" : "Continuar"}
             </button>
             <button
               type="button"

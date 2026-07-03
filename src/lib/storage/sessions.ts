@@ -38,3 +38,13 @@ export async function getSessionsForPlan(planId: string): Promise<WorkoutSession
   const db = await getDB();
   return (await db.getAllFromIndex(STORE_SESSIONS, "by-plan", planId)) as WorkoutSession[];
 }
+
+/**
+ * TODAS as sessões, de todos os planos — a continuidade do produto é por `exercise.id`
+ * entre planos/períodos (ADR-002), então o histórico de progressão ("última vez")
+ * precisa atravessar a troca de plano, não morrer nela.
+ */
+export async function getAllSessions(): Promise<WorkoutSession[]> {
+  const db = await getDB();
+  return (await db.getAll(STORE_SESSIONS)) as WorkoutSession[];
+}

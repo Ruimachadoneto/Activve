@@ -35,6 +35,24 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+/* Drift sutil (Ken Burns) na foto do exercício — dá vida sem virar animação chamativa. */
+@keyframes media-drift {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+.media-drift {
+  animation: media-drift 9s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .media-drift {
+    animation: none;
+  }
+}
+
 /* Entrada sutil do mapa de recuperação (Corpo). */
 @keyframes recovery-rise {
   from {
