@@ -34,6 +34,20 @@ export function getTodayWorkout(plan: PlanFile, now: Date = new Date()): TodayRe
   };
 }
 
+/**
+ * Duração estimada do treino em minutos: por série, ~45s de execução + o descanso
+ * do exercício (default 60s). Arredonda para múltiplo de 5 (é estimativa, não promessa).
+ */
+export function estimateWorkoutMinutes(workout: {
+  exercises: { sets: number; rest_s?: number }[];
+}): number {
+  const seconds = workout.exercises.reduce(
+    (sum, ex) => sum + ex.sets * (45 + (ex.rest_s ?? 60)),
+    0,
+  );
+  return Math.max(5, Math.round(seconds / 60 / 5) * 5);
+}
+
 export function greeting(now: Date = new Date()): string {
   const h = now.getHours();
   if (h < 12) return "Bom dia";

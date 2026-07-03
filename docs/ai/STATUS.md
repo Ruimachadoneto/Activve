@@ -137,6 +137,7 @@ Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"o
 - `npm run dev` (porta 3000). Gates: `npm run typecheck && npm run lint && npm run test && npm run build` (85 testes).
 - ⚠️ **IndexedDB do preview é efêmero entre sessões** — pra ver `/corpo` aceso, semear plano de exemplo (`examples/plano-exemplo.json`) + sessões concluídas direto no IndexedDB (stores `plans`/`kv`/`sessions`).
 - **Preview screenshot está intermitente** (trava, ainda mais com o timer rodando). Verificar por: **abrir `localhost:3000`** (olhos do usuário) + DOM via eval. Seed de teste: gravar plano + sessões direto no IndexedDB (store `plans`/`kv`/`sessions`/`bodylog`).
+- ⚠️ **Aba do preview às vezes fica `document.hidden`** → Chromium NÃO carrega `loading="lazy"` em aba oculta (thumbs parecem quebrados e screenshot trava). **Não é bug do app** — validar forçando `img.loading='eager'` via eval ou pelos olhos do usuário. Não trocar lazy→eager no código por causa disso.
 - Fluxo de revisão cruzada: Codex revisa (`codex review --base main` no **Git Bash**, não PowerShell — modo restrito trava). Loop em `docs/ai/CODE_REVIEW.md` (P0–P3).
 
 ## Notas de ambiente / git
