@@ -107,8 +107,12 @@ Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISU
       reestruturação é a solução correta, sem estado contraditório). Verificado no browser:
       tica, pausa, preset religa.
     - Gates: typecheck ✓ · lint ✓ · **96/96** ✓ · build ✓.
-    - ⚠️ **Limite de ciclos (AGENTS §13):** 3 ciclos completos de correção nesta task. O próximo
-      re-review é de CONFIRMAÇÃO; se trouxer achados novos, parar e pedir decisão humana.
+    - ⚠️ **Limite de ciclos (AGENTS §13):** 3 ciclos completos de correção nesta task.
+  - **Re-review de confirmação (2026-07-02) — APROVADO, LIMPO:** "no discrete, actionable bugs…
+    media, focused-set UI, timer changes e previous-performance logic internamente consistentes".
+    **TASK-010 chancelada — pendente apenas o gate humano de merge.**
+  - Nota do review: existe um campo `mediaId` órfão em `schema.ts:24`/`movement.test.ts` (aceito no
+    schema mas não usado pela UI) — candidato a integrar na TASK-012 (mídia explícita do gerador).
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Gate visual do usuário** no `/treino` novo + **review Codex** (`codex review --base main`, Git Bash).
