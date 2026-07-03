@@ -114,20 +114,39 @@ Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISU
   - Nota do review: existe um campo `mediaId` órfão em `schema.ts:24`/`movement.test.ts` (aceito no
     schema mas não usado pela UI) — candidato a integrar na TASK-012 (mídia explícita do gerador).
 
-### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**TASK-011 — Hoje v2** (mockups reconciliados na auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`):
-criar branch `ai/TASK-011-hoje-v2-claude` + contrato. Escopo: saudação c/ nome em teal + tagline
-("Foco agora, resultados sempre."); chip **"Plano importado" + Ver plano**; hero com **nome do
-treino** como título + ícones (N exercícios · ~min estimado · intensidade) + "Ver objetivo"; card
-**FOCO DO DIA**; **lista EXERCÍCIOS numerada** (nome + séries + thumb de foto real via
-`resolveExerciseMedia` + chevron); CTA rodapé **▶ Iniciar treino** + "✓ Equipamentos disponíveis";
-anel de progresso na Dieta. Manter: hero c/ asset 3D, ritmo da semana, cards Corpo/Alimentação.
-Duração estimada: `Σ séries × (45s + rest_s)`. Mesmo processo: gates + browser + review Codex +
-gate visual/merge do usuário.
+## TASK-011 — Hoje v2 (IMPLEMENTADA, branch `ai/TASK-011-hoje-v2-claude`, review pendente)
+Contrato: `docs/ai/tasks/TASK-011-hoje-v2.md`. Implementado (2026-07-03): saudação c/ **nome em
+teal** + tagline; chip **"Plano importado · split · Nx por semana"** (informativo, sem botão morto);
+hero c/ badge do treino + **nome do treino** + ícones (exercícios · ~min · nível via
+`experienceLabel`); card **FOCO DO DIA**; **lista EXERCÍCIOS numerada c/ thumbs de foto real** +
+"Equipamentos: …"; `estimateWorkoutMinutes` puro (+3 testes, **99** no total). Decisão: anel de
+dieta FORA (não rastreamos refeições — progresso fake violaria a política). Mantidos: asset 3D,
+ritmo da semana, Corpo/Alimentação, descanso anti-culpa.
+Gates ✓ (typecheck/lint/99 testes/build) · DOM 375px ✓ sem overflow · console limpo.
+- **Review Codex (ciclo 1, 2026-07-03) — 2 achados [P2], ambos corrigidos:**
+  - **Badge expunha id interno do treino** — `workoutId` pode ser slug/UUID; renderizar id de
+    armazenamento na UI confunde/estoura. → `workoutBadge(id)` puro: só exibe ids curtos legíveis
+    (`^[A-Za-z0-9]{1,3}$`, maiúsculo); senão o badge some. +2 testes.
+  - **"Equipamentos: Livre" convertia desconhecido em afirmação** — `equipment` omitido é
+    DESCONHECIDO, não "sem equipamento". → a linha filtra só equipamentos conhecidos; sem nenhum,
+    é omitida. Verificado: "Equipamentos: Cabo, Barra" (sem Livre).
+  - Gates: typecheck ✓ · lint ✓ · **101/101** ✓ · build ✓.
+- **Review Codex (ciclo 2, 2026-07-03) — 1 achado [P2] corrigido:** o chip "Plano importado" não
+  encolhia — `training.split` longo ("Upper/Lower com foco em glúteos") estourava o chip em 375px.
+  → metadado com `min-w-0 truncate` (+ label `shrink-0`); linha de equipamentos ganhou o mesmo
+  tratamento (quebra com ícone alinhado). Verificado no browser com o split longo do achado:
+  chip contido, ellipsis, sem overflow.
+- **Re-review de confirmação (2026-07-03) — APROVADO, LIMPO:** "no discrete, actionable bug that
+  would warrant a fix before merge". **TASK-011 chancelada (2 ciclos + confirmação) — pendente
+  gate visual do usuário + gate humano de merge.**
 
-Depois: **TASK-012** Como fazer v2 (inclui integrar o campo `mediaId` órfão do schema) →
-**TASK-014** Corpo v2 → **TASK-013** erro amigável.
-Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"other"` (lib).
+### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
+1. **Review Codex** da TASK-011 (`codex review --base main`, Git Bash) + **gate visual do usuário**
+   na home. Loop de correção; **merge sob gate humano**.
+2. Depois: **TASK-012** Como fazer v2 (inclui integrar o campo `mediaId` órfão do schema) →
+   **TASK-014** Corpo v2 → **TASK-013** erro amigável.
+3. Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"other"` (lib);
+   meal tracking (pré-requisito do anel de dieta do mockup).
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).
@@ -137,6 +156,7 @@ Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"o
 - `npm run dev` (porta 3000). Gates: `npm run typecheck && npm run lint && npm run test && npm run build` (85 testes).
 - ⚠️ **IndexedDB do preview é efêmero entre sessões** — pra ver `/corpo` aceso, semear plano de exemplo (`examples/plano-exemplo.json`) + sessões concluídas direto no IndexedDB (stores `plans`/`kv`/`sessions`).
 - **Preview screenshot está intermitente** (trava, ainda mais com o timer rodando). Verificar por: **abrir `localhost:3000`** (olhos do usuário) + DOM via eval. Seed de teste: gravar plano + sessões direto no IndexedDB (store `plans`/`kv`/`sessions`/`bodylog`).
+- ⚠️ **Aba do preview às vezes fica `document.hidden`** → Chromium NÃO carrega `loading="lazy"` em aba oculta (thumbs parecem quebrados e screenshot trava). **Não é bug do app** — validar forçando `img.loading='eager'` via eval ou pelos olhos do usuário. Não trocar lazy→eager no código por causa disso.
 - Fluxo de revisão cruzada: Codex revisa (`codex review --base main` no **Git Bash**, não PowerShell — modo restrito trava). Loop em `docs/ai/CODE_REVIEW.md` (P0–P3).
 
 ## Notas de ambiente / git
@@ -154,4 +174,4 @@ Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"o
 | TASK-008 | Overhaul visual (Modo Treino, branding) | MERGEADA | main (`9a0d464`) |
 | TASK-009 | Mapa muscular de recuperação no Corpo (+ polish visual) | MERGEADA | main (`abacf6c`) |
 | TASK-010 | Modo Treino: foto real + série em foco + premium | MERGEADA | main (`80f4f4d`) |
-| TASK-011 | Hoje v2 (saudação, hero, foco do dia, lista de exercícios) | PRÓXIMA | a criar: ai/TASK-011-hoje-v2-claude |
+| TASK-011 | Hoje v2 (saudação, hero, foco do dia, lista de exercícios) | EM ANDAMENTO (implementada; review pendente) | ai/TASK-011-hoje-v2-claude |

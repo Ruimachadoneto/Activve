@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getTodayWorkout, greeting, todayIndex, weekDates } from "./today";
+import { estimateWorkoutMinutes, getTodayWorkout, greeting, todayIndex, weekDates, workoutBadge } from "./today";
 import type { PlanFile } from "./schema";
 
 const plan = {
@@ -65,5 +65,38 @@ describe("weekDates", () => {
     const w = weekDates(new Date(2026, 6, 1)); // quarta 2026-07-01
     expect(w[0]).toBe("2026-06-29");
     expect(w[6]).toBe("2026-07-05");
+  });
+});
+
+describe("estimateWorkoutMinutes", () => {
+  it("estima por série: 45s de execução + descanso do exercício", () => {
+    // 4×(45+60) + 3×(45+90) = 420 + 405 = 825s ≈ 13.75min → arredonda p/ 15
+    const w = { exercises: [{ sets: 4, rest_s: 60 }, { sets: 3, rest_s: 90 }] };
+    expect(estimateWorkoutMinutes(w)).toBe(15);
+  });
+
+  it("usa 60s de descanso quando o exercício não define rest_s", () => {
+    // 4×(45+60) = 420s = 7min → arredonda p/ 5
+    expect(estimateWorkoutMinutes({ exercises: [{ sets: 4 }] })).toBe(5);
+  });
+
+  it("nunca estima abaixo de 5 minutos", () => {
+    expect(estimateWorkoutMinutes({ exercises: [{ sets: 1, rest_s: 0 }] })).toBe(5);
+    expect(estimateWorkoutMinutes({ exercises: [] })).toBe(5);
+  });
+});
+
+describe("workoutBadge", () => {
+  it("exibe ids curtos e legíveis (maiúsculos)", () => {
+    expect(workoutBadge("A")).toBe("A");
+    expect(workoutBadge("b2")).toBe("B2");
+    expect(workoutBadge("ABC")).toBe("ABC");
+  });
+
+  it("id técnico (slug/uuid) → null (não vazar identificador na UI)", () => {
+    expect(workoutBadge("push_day")).toBeNull();
+    expect(workoutBadge("wk_42_a")).toBeNull();
+    expect(workoutBadge("3f2c9d1e-aaaa")).toBeNull();
+    expect(workoutBadge("")).toBeNull();
   });
 });
