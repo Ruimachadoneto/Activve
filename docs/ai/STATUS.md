@@ -114,20 +114,23 @@ Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISU
   - Nota do review: existe um campo `mediaId` órfão em `schema.ts:24`/`movement.test.ts` (aceito no
     schema mas não usado pela UI) — candidato a integrar na TASK-012 (mídia explícita do gerador).
 
-### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**TASK-011 — Hoje v2** (mockups reconciliados na auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`):
-criar branch `ai/TASK-011-hoje-v2-claude` + contrato. Escopo: saudação c/ nome em teal + tagline
-("Foco agora, resultados sempre."); chip **"Plano importado" + Ver plano**; hero com **nome do
-treino** como título + ícones (N exercícios · ~min estimado · intensidade) + "Ver objetivo"; card
-**FOCO DO DIA**; **lista EXERCÍCIOS numerada** (nome + séries + thumb de foto real via
-`resolveExerciseMedia` + chevron); CTA rodapé **▶ Iniciar treino** + "✓ Equipamentos disponíveis";
-anel de progresso na Dieta. Manter: hero c/ asset 3D, ritmo da semana, cards Corpo/Alimentação.
-Duração estimada: `Σ séries × (45s + rest_s)`. Mesmo processo: gates + browser + review Codex +
-gate visual/merge do usuário.
+## TASK-011 — Hoje v2 (IMPLEMENTADA, branch `ai/TASK-011-hoje-v2-claude`, review pendente)
+Contrato: `docs/ai/tasks/TASK-011-hoje-v2.md`. Implementado (2026-07-03): saudação c/ **nome em
+teal** + tagline; chip **"Plano importado · split · Nx por semana"** (informativo, sem botão morto);
+hero c/ badge do treino + **nome do treino** + ícones (exercícios · ~min · nível via
+`experienceLabel`); card **FOCO DO DIA**; **lista EXERCÍCIOS numerada c/ thumbs de foto real** +
+"Equipamentos: …"; `estimateWorkoutMinutes` puro (+3 testes, **99** no total). Decisão: anel de
+dieta FORA (não rastreamos refeições — progresso fake violaria a política). Mantidos: asset 3D,
+ritmo da semana, Corpo/Alimentação, descanso anti-culpa.
+Gates ✓ (typecheck/lint/99 testes/build) · DOM 375px ✓ sem overflow · console limpo.
 
-Depois: **TASK-012** Como fazer v2 (inclui integrar o campo `mediaId` órfão do schema) →
-**TASK-014** Corpo v2 → **TASK-013** erro amigável.
-Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"other"` (lib).
+### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
+1. **Review Codex** da TASK-011 (`codex review --base main`, Git Bash) + **gate visual do usuário**
+   na home. Loop de correção; **merge sob gate humano**.
+2. Depois: **TASK-012** Como fazer v2 (inclui integrar o campo `mediaId` órfão do schema) →
+   **TASK-014** Corpo v2 → **TASK-013** erro amigável.
+3. Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"other"` (lib);
+   meal tracking (pré-requisito do anel de dieta do mockup).
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).
@@ -155,4 +158,4 @@ Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"o
 | TASK-008 | Overhaul visual (Modo Treino, branding) | MERGEADA | main (`9a0d464`) |
 | TASK-009 | Mapa muscular de recuperação no Corpo (+ polish visual) | MERGEADA | main (`abacf6c`) |
 | TASK-010 | Modo Treino: foto real + série em foco + premium | MERGEADA | main (`80f4f4d`) |
-| TASK-011 | Hoje v2 (saudação, hero, foco do dia, lista de exercícios) | PRÓXIMA | a criar: ai/TASK-011-hoje-v2-claude |
+| TASK-011 | Hoje v2 (saudação, hero, foco do dia, lista de exercícios) | EM ANDAMENTO (implementada; review pendente) | ai/TASK-011-hoje-v2-claude |
