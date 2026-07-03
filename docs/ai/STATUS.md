@@ -95,7 +95,20 @@ Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISU
     - **[P3] `ExerciseThumb` grudava no fallback** — uma falha de thumb persistia ao navegar de
       exercício (componente reusado). → reset do `failed` quando `sourceId` muda (mesmo padrão do
       card principal).
-    - Re-review pendente.
+  - **Review Codex (ciclo 3, 2026-07-02) — 2 achados [P2], ambos corrigidos:**
+    - **"Última vez" ignorava a variação** — casava só por `exerciseId`; carga de outra variação
+      aparecia como referência. → `previousPerformance` agora compara o **movimento efetivo**
+      (`swappedToId ?? exerciseId`; param `movementId`); +1 teste (3 cenários). Verificado no
+      browser: original mostra, variação nunca feita some, volta ao original volta.
+    - **Timer morto após zerar** — `running` ficava true no fim; preset/+15s só mudavam o número.
+      → countdown reestruturado p/ **timeout re-agendado com `remaining` nas deps** (padrão
+      canônico): qualquer mudança de tempo religa o tique, inclusive pós-zero (a 1ª tentativa com
+      efeito de sync de estado foi barrada pelo lint `react-hooks/set-state-in-effect` — a
+      reestruturação é a solução correta, sem estado contraditório). Verificado no browser:
+      tica, pausa, preset religa.
+    - Gates: typecheck ✓ · lint ✓ · **96/96** ✓ · build ✓.
+    - ⚠️ **Limite de ciclos (AGENTS §13):** 3 ciclos completos de correção nesta task. O próximo
+      re-review é de CONFIRMAÇÃO; se trouxer achados novos, parar e pedir decisão humana.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Gate visual do usuário** no `/treino` novo + **review Codex** (`codex review --base main`, Git Bash).

@@ -136,12 +136,14 @@ export default function TreinoPage() {
   const nextMov = nextEx ? resolveMovement(nextEx, nextLog?.swappedToId ?? undefined) : null;
   const nextMedia = nextMov ? resolveExerciseMedia(nextMov.name) : null;
 
-  // "Última vez": o que foi feito nesta série no treino anterior (progressão consciente).
+  // "Última vez": o que foi feito nesta série no treino anterior (progressão consciente),
+  // comparando o MESMO movimento (variação escolhida conta — carga de outra variação não serve).
   const prevPerf = previousPerformance(
     history,
     ex.id,
     activeSet >= 0 ? activeSet : 0,
     session.sessionId,
+    log?.swappedToId ?? ex.id,
   );
 
   function patchSet(

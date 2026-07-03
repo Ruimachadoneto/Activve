@@ -159,6 +159,27 @@ describe("previousPerformance", () => {
     expect(previousPerformance(sessions, "ex1", 0, "p:A:2026-06-30")).toBeNull();
     expect(previousPerformance([], "ex1", 0, "x")).toBeNull();
   });
+
+  it("compara pelo movimento executado: variação de lá não vale pro original de hoje", () => {
+    const swapped = mk("2026-06-27", "done", [{ done: true, load_kg: 12, reps: 15 }]);
+    swapped.exercises[0].swappedToId = "alt_lateral"; // naquele dia fez a variação
+    const original = mk("2026-06-20", "done", [{ done: true, load_kg: 40, reps: 8 }]);
+
+    // Hoje fazendo o exercício ORIGINAL: ignora a sessão da variação, acha a antiga do original.
+    expect(previousPerformance([swapped, original], "ex1", 0, "p:A:2026-06-30", "ex1")).toEqual({
+      load_kg: 40,
+      reps: 8,
+      date: "2026-06-20",
+    });
+    // Hoje fazendo a MESMA variação: acha a sessão da variação.
+    expect(
+      previousPerformance([swapped, original], "ex1", 0, "p:A:2026-06-30", "alt_lateral"),
+    ).toEqual({ load_kg: 12, reps: 15, date: "2026-06-27" });
+    // Variação nunca feita → null (não chuta carga de outro movimento).
+    expect(
+      previousPerformance([swapped, original], "ex1", 0, "p:A:2026-06-30", "alt_nunca_feita"),
+    ).toBeNull();
+  });
 });
 
 // guard de tipo: garante que WorkoutSession está exportado e bem formado

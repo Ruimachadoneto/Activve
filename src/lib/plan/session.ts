@@ -117,21 +117,25 @@ export type PreviousSetPerf = { load_kg?: number; reps?: number; date: string };
 
 /**
  * "Última vez": desempenho da série no treino ANTERIOR (memória de progressão).
- * Olha só sessões concluídas, ignorando a sessão atual; pega a mais recente que
- * tenha o exercício com alguma série feita. Prefere a série de mesmo índice
- * (série 3 de hoje vs série 3 de lá); se ela não foi feita, cai na última feita.
+ * Compara pelo MOVIMENTO efetivamente executado (`swappedToId ?? exerciseId`) —
+ * carga de desenvolvimento com barra não serve de referência pra elevação lateral
+ * só porque são variações do mesmo slot. Olha só sessões concluídas, ignorando a
+ * atual; pega a mais recente com alguma série feita desse movimento. Prefere a
+ * série de mesmo índice; se ela não foi feita, cai na última feita.
  */
 export function previousPerformance(
   sessions: WorkoutSession[],
   exerciseId: string,
   setIndex: number,
   excludeSessionId: string,
+  /** Movimento executado hoje (variação escolhida ou o próprio exercício). */
+  movementId: string = exerciseId,
 ): PreviousSetPerf | null {
+  const matches = (e: ExerciseLog) =>
+    e.exerciseId === exerciseId && (e.swappedToId ?? e.exerciseId) === movementId;
   const candidates = sessions
     .filter((s) => s.status === "done" && s.sessionId !== excludeSessionId)
-    .filter((s) =>
-      s.exercises.some((e) => e.exerciseId === exerciseId && e.sets.some((x) => x.done)),
-    )
+    .filter((s) => s.exercises.some((e) => matches(e) && e.sets.some((x) => x.done)))
     .sort((a, b) =>
       a.date === b.date
         ? (a.completedAt ?? "").localeCompare(b.completedAt ?? "")
@@ -139,7 +143,7 @@ export function previousPerformance(
     );
   const last = candidates[candidates.length - 1];
   if (!last) return null;
-  const log = last.exercises.find((e) => e.exerciseId === exerciseId);
+  const log = last.exercises.find(matches);
   if (!log) return null;
   const same = log.sets[setIndex];
   const set = same?.done ? same : [...log.sets].reverse().find((x) => x.done);

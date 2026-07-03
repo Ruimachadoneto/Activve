@@ -38,25 +38,25 @@ export function RestTimer({
     setRunning(true);
   }
 
+  // Countdown por timeout re-agendado (`remaining` nas deps): qualquer mudança de
+  // tempo — preset, +15s, reinício — religa o tique sozinha, inclusive depois de
+  // zerar. Um setInterval keyed só em `running` congelava após o fim (running
+  // true→true não re-dispara o efeito).
   useEffect(() => {
-    if (!open || !running) return;
-    const id = setInterval(() => {
-      setRemaining((r) => {
-        if (r <= 1) {
-          clearInterval(id);
-          // Aviso tátil no fim do descanso (mobile; silenciosamente ignorado onde não há suporte).
-          try {
-            navigator.vibrate?.([180, 90, 180]);
-          } catch {
-            /* sem vibração disponível */
-          }
-          return 0;
+    if (!open || !running || remaining === 0) return;
+    const id = setTimeout(() => {
+      if (remaining === 1) {
+        // Aviso tátil no fim do descanso (mobile; ignorado onde não há suporte).
+        try {
+          navigator.vibrate?.([180, 90, 180]);
+        } catch {
+          /* sem vibração disponível */
         }
-        return r - 1;
-      });
+      }
+      setRemaining(remaining - 1);
     }, 1000);
-    return () => clearInterval(id);
-  }, [open, running]);
+    return () => clearTimeout(id);
+  }, [open, running, remaining]);
 
   useEffect(() => {
     if (!open) return;
@@ -184,12 +184,12 @@ export function RestTimer({
             <button
               type="button"
               onClick={() => setRunning((v) => !v)}
-              aria-label={running ? "Pausar" : "Continuar"}
+              aria-label={running && !done ? "Pausar" : "Continuar"}
               disabled={done}
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-line text-sm text-muted active:bg-surface2 disabled:opacity-40"
             >
-              {running ? <Pause size={16} aria-hidden /> : <Play size={16} aria-hidden />}
-              {running ? "Pausar" : "Continuar"}
+              {running && !done ? <Pause size={16} aria-hidden /> : <Play size={16} aria-hidden />}
+              {running && !done ? "Pausar" : "Continuar"}
             </button>
             <button
               type="button"
