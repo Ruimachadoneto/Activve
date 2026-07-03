@@ -135,7 +135,10 @@ Gates ✓ (typecheck/lint/99 testes/build) · DOM 375px ✓ sem overflow · cons
   encolhia — `training.split` longo ("Upper/Lower com foco em glúteos") estourava o chip em 375px.
   → metadado com `min-w-0 truncate` (+ label `shrink-0`); linha de equipamentos ganhou o mesmo
   tratamento (quebra com ícone alinhado). Verificado no browser com o split longo do achado:
-  chip contido, ellipsis, sem overflow. Re-review de confirmação pendente.
+  chip contido, ellipsis, sem overflow.
+- **Re-review de confirmação (2026-07-03) — APROVADO, LIMPO:** "no discrete, actionable bug that
+  would warrant a fix before merge". **TASK-011 chancelada (2 ciclos + confirmação) — pendente
+  gate visual do usuário + gate humano de merge.**
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Review Codex** da TASK-011 (`codex review --base main`, Git Bash) + **gate visual do usuário**
