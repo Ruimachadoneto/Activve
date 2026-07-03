@@ -29,6 +29,7 @@ import {
   greeting,
   todayIndex,
   weekDates,
+  workoutBadge,
   WEEK_DAYS,
 } from "@/lib/plan/today";
 import { getSessionsForPlan } from "@/lib/storage/sessions";
@@ -91,9 +92,19 @@ export default function HojePage() {
   const minutes = todayWorkout
     ? (p.profile.sessionMinutes ?? estimateWorkoutMinutes(todayWorkout))
     : null;
+  // Só equipamentos CONHECIDOS: `equipment` omitido é desconhecido, não "livre" —
+  // afirmar "Livre" pro usuário seria converter incerteza em promessa.
   const equipmentList = todayWorkout
-    ? [...new Set(todayWorkout.exercises.map((e) => equipmentLabel(e.equipment)))]
+    ? [
+        ...new Set(
+          todayWorkout.exercises
+            .map((e) => e.equipment)
+            .filter((eq): eq is NonNullable<typeof eq> => Boolean(eq))
+            .map((eq) => equipmentLabel(eq)),
+        ),
+      ]
     : [];
+  const badge = today.kind === "workout" ? workoutBadge(today.workoutId) : null;
 
   return (
     <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-6">
@@ -134,9 +145,11 @@ export default function HojePage() {
           <section className="relative mt-5 overflow-hidden rounded-card border border-line bg-surface p-5">
             <div className="relative z-10 max-w-[62%]">
               <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/15 text-[11px] font-medium text-accent">
-                  {today.workoutId}
-                </span>
+                {badge ? (
+                  <span className="flex h-6 min-w-6 items-center justify-center rounded-md bg-accent/15 px-1 text-[11px] font-medium text-accent">
+                    {badge}
+                  </span>
+                ) : null}
                 <p className="text-[11px] uppercase tracking-wider text-faint">Seu treino de hoje</p>
               </div>
               <h2 className="mt-2 text-[22px] font-medium leading-tight tracking-tight">

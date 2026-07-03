@@ -123,6 +123,14 @@ hero c/ badge do treino + **nome do treino** + ícones (exercícios · ~min · n
 dieta FORA (não rastreamos refeições — progresso fake violaria a política). Mantidos: asset 3D,
 ritmo da semana, Corpo/Alimentação, descanso anti-culpa.
 Gates ✓ (typecheck/lint/99 testes/build) · DOM 375px ✓ sem overflow · console limpo.
+- **Review Codex (ciclo 1, 2026-07-03) — 2 achados [P2], ambos corrigidos:**
+  - **Badge expunha id interno do treino** — `workoutId` pode ser slug/UUID; renderizar id de
+    armazenamento na UI confunde/estoura. → `workoutBadge(id)` puro: só exibe ids curtos legíveis
+    (`^[A-Za-z0-9]{1,3}$`, maiúsculo); senão o badge some. +2 testes.
+  - **"Equipamentos: Livre" convertia desconhecido em afirmação** — `equipment` omitido é
+    DESCONHECIDO, não "sem equipamento". → a linha filtra só equipamentos conhecidos; sem nenhum,
+    é omitida. Verificado: "Equipamentos: Cabo, Barra" (sem Livre).
+  - Gates: typecheck ✓ · lint ✓ · **101/101** ✓ · build ✓. Re-review pendente.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Review Codex** da TASK-011 (`codex review --base main`, Git Bash) + **gate visual do usuário**

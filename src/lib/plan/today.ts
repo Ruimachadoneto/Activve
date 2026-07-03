@@ -35,6 +35,15 @@ export function getTodayWorkout(plan: PlanFile, now: Date = new Date()): TodayRe
 }
 
 /**
+ * Rótulo de badge para um treino: o id só é exibível quando é curto e legível
+ * ("A", "B2", "abc") — ids técnicos (slug/UUID, ex. "wk_42_a") viram null e a UI
+ * não mostra badge, em vez de vazar identificador de armazenamento pro usuário.
+ */
+export function workoutBadge(id: string): string | null {
+  return /^[A-Za-z0-9]{1,3}$/.test(id) ? id.toUpperCase() : null;
+}
+
+/**
  * Duração estimada do treino em minutos: por série, ~45s de execução + o descanso
  * do exercício (default 60s). Arredonda para múltiplo de 5 (é estimativa, não promessa).
  */

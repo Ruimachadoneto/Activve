@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { estimateWorkoutMinutes, getTodayWorkout, greeting, todayIndex, weekDates } from "./today";
+import { estimateWorkoutMinutes, getTodayWorkout, greeting, todayIndex, weekDates, workoutBadge } from "./today";
 import type { PlanFile } from "./schema";
 
 const plan = {
@@ -83,5 +83,20 @@ describe("estimateWorkoutMinutes", () => {
   it("nunca estima abaixo de 5 minutos", () => {
     expect(estimateWorkoutMinutes({ exercises: [{ sets: 1, rest_s: 0 }] })).toBe(5);
     expect(estimateWorkoutMinutes({ exercises: [] })).toBe(5);
+  });
+});
+
+describe("workoutBadge", () => {
+  it("exibe ids curtos e legíveis (maiúsculos)", () => {
+    expect(workoutBadge("A")).toBe("A");
+    expect(workoutBadge("b2")).toBe("B2");
+    expect(workoutBadge("ABC")).toBe("ABC");
+  });
+
+  it("id técnico (slug/uuid) → null (não vazar identificador na UI)", () => {
+    expect(workoutBadge("push_day")).toBeNull();
+    expect(workoutBadge("wk_42_a")).toBeNull();
+    expect(workoutBadge("3f2c9d1e-aaaa")).toBeNull();
+    expect(workoutBadge("")).toBeNull();
   });
 });
