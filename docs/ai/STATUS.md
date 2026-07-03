@@ -4,8 +4,8 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `main` (limpa; TASK-009 mergeada e pushed). Sem branches de feature abertas.
-- **`main`** está em `abacf6c` com **TASK-001→009 mergeadas** (TASK-009 push em `4467540..abacf6c`).
+- **Branch atual:** `main` (limpa; TASK-010 mergeada em `80f4f4d`). Sem branches de feature abertas.
+- **`main`** tem **TASK-001→010 mergeadas**.
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
 ## O alvo (não-negociável)
@@ -51,7 +51,7 @@ Bater o **mockup aprovado** (3 telas: Hoje, Modo Treino, Corpo) — direção **
   - **Re-review Codex (2026-06-30) — APROVADO, LIMPO:** "no discrete, actionable bugs… recovery-domain logic, page integration e muscle-map aggregation internamente consistentes e cobertos por testes".
   - **MERGEADA em `main` (`abacf6c`, 2026-06-30)** via `--no-ff`; gates revalidados na main (85 testes, build ok); branch apagada (local+remota). Visual aprovado pelo usuário; 3 ciclos de review Codex (último limpo).
 
-## TASK-010 — Modo Treino: mídia real + foco na série (EM ANDAMENTO, branch `ai/TASK-010-treino-media-claude`)
+## TASK-010 — Modo Treino: mídia real + foco na série (MERGEADA em `main` `80f4f4d`, 2026-07-02)
 Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`.
 - **Pesquisa de mídia (feita 2026-07-02):** fonte escolhida = **`free-exercise-db`** (Unlicense/domínio
   público, 873 exercícios, 2 fotos JPG cada, hotlink no raw do GitHub) — **ADR-004**. Rejeitados:
@@ -115,10 +115,19 @@ Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISU
     schema mas não usado pela UI) — candidato a integrar na TASK-012 (mídia explícita do gerador).
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-1. **Gate visual do usuário** no `/treino` novo + **review Codex** (`codex review --base main`, Git Bash).
-   Loop de correção; merge sob gate humano.
-2. Depois: **TASK-011** Hoje v2 → **TASK-012** Como fazer v2 → **TASK-014** Corpo v2 → **TASK-013** erro amigável.
-3. Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"other"` (lib).
+**TASK-011 — Hoje v2** (mockups reconciliados na auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`):
+criar branch `ai/TASK-011-hoje-v2-claude` + contrato. Escopo: saudação c/ nome em teal + tagline
+("Foco agora, resultados sempre."); chip **"Plano importado" + Ver plano**; hero com **nome do
+treino** como título + ícones (N exercícios · ~min estimado · intensidade) + "Ver objetivo"; card
+**FOCO DO DIA**; **lista EXERCÍCIOS numerada** (nome + séries + thumb de foto real via
+`resolveExerciseMedia` + chevron); CTA rodapé **▶ Iniciar treino** + "✓ Equipamentos disponíveis";
+anel de progresso na Dieta. Manter: hero c/ asset 3D, ritmo da semana, cards Corpo/Alimentação.
+Duração estimada: `Σ séries × (45s + rest_s)`. Mesmo processo: gates + browser + review Codex +
+gate visual/merge do usuário.
+
+Depois: **TASK-012** Como fazer v2 (inclui integrar o campo `mediaId` órfão do schema) →
+**TASK-014** Corpo v2 → **TASK-013** erro amigável.
+Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"other"` (lib).
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).
@@ -144,3 +153,5 @@ Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISU
 | TASK-007 | Corpo / evolução (peso+tendência) | MERGEADA | main |
 | TASK-008 | Overhaul visual (Modo Treino, branding) | MERGEADA | main (`9a0d464`) |
 | TASK-009 | Mapa muscular de recuperação no Corpo (+ polish visual) | MERGEADA | main (`abacf6c`) |
+| TASK-010 | Modo Treino: foto real + série em foco + premium | MERGEADA | main (`80f4f4d`) |
+| TASK-011 | Hoje v2 (saudação, hero, foco do dia, lista de exercícios) | PRÓXIMA | a criar: ai/TASK-011-hoje-v2-claude |
