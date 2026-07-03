@@ -37,6 +37,16 @@ describe("resolveExerciseMedia", () => {
     expect(resolveExerciseMedia("")).toBeNull();
   });
 
+  it("mediaId explícito do plano tem prioridade sobre o dicionário (schema 1.1)", () => {
+    const m = resolveExerciseMedia("Puxada frontal", "Full_Range-Of-Motion_Lat_Pulldown");
+    expect(m?.sourceId).toBe("Full_Range-Of-Motion_Lat_Pulldown");
+    expect(m?.imageUrls[0]).toMatch(/Full_Range-Of-Motion_Lat_Pulldown\/0\.jpg$/);
+    // nome desconhecido + mediaId → resolve mesmo assim (gerador é a autoridade)
+    expect(resolveExerciseMedia("Nome Exótico", "Goblet_Squat")?.sourceId).toBe("Goblet_Squat");
+    // mediaId vazio/whitespace não conta como override
+    expect(resolveExerciseMedia("Puxada frontal", "  ")?.sourceId).toBe("Wide-Grip_Lat_Pulldown");
+  });
+
   it("TODOS os nomes do plano de exemplo embarcado resolvem (regressão de conteúdo nosso)", () => {
     // Lê o JSON real: se alguém adicionar exercício novo ao exemplo sem alias no
     // dicionário, este teste quebra — em vez de a foto sumir silenciosamente no app.

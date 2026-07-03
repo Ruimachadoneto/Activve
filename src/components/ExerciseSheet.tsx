@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { X, Play, Check } from "lucide-react";
+import { X, Play, Check, CheckCircle2, Lightbulb } from "lucide-react";
 import type { Exercise } from "@/lib/plan/schema";
 import { resolveMovement, videoHref } from "@/lib/plan/movement";
-import { equipmentLabel } from "@/lib/plan/labels";
+import { resolveExerciseMedia } from "@/lib/plan/exerciseMedia";
+import { equipmentLabel, muscleLabel } from "@/lib/plan/labels";
+import { ExerciseThumb } from "@/components/ExerciseMediaCard";
 
-/** Detalhe do exercício (bottom-sheet): como fazer + mídia + troca de variação. */
+/**
+ * Detalhe do exercício (bottom-sheet): músculos trabalhados, como fazer, dicas
+ * técnicas/dica rápida (schema 1.1, quando o plano traz) e troca de variação.
+ */
 export function ExerciseSheet({
   exercise,
   swappedToId,
@@ -19,6 +24,12 @@ export function ExerciseSheet({
   onClose: () => void;
 }) {
   const mov = resolveMovement(exercise, swappedToId);
+  // Músculos do MOVIMENTO executado: variação com primários próprios sobrescreve;
+  // sinergistas vêm do exercício base (o schema das alternativas não os expressa).
+  const primaries = mov.primaryMuscles?.length ? mov.primaryMuscles : exercise.primaryMuscles;
+  const secondaries = exercise.secondaryMuscles ?? [];
+  const tips = mov.howTo.tips ?? [];
+  const quickTip = mov.howTo.quickTip;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -51,8 +62,29 @@ export function ExerciseSheet({
           </button>
         </div>
 
+        {primaries.length > 0 || secondaries.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-1.5" aria-label="Músculos trabalhados">
+            {primaries.map((m) => (
+              <span
+                key={m}
+                className="rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-[11px] text-accent"
+              >
+                {muscleLabel(m)}
+              </span>
+            ))}
+            {secondaries.map((m) => (
+              <span
+                key={m}
+                className="rounded-full border border-line px-2.5 py-1 text-[11px] text-muted"
+              >
+                {muscleLabel(m)} · sinergista
+              </span>
+            ))}
+          </div>
+        ) : null}
+
         <section className="mt-4">
-          <h3 className="text-[11px] uppercase tracking-wider text-faint">Como fazer</h3>
+          <h3 className="text-[11px] uppercase tracking-wider text-faint">Execução</h3>
           <ol className="mt-2 flex flex-col gap-2">
             {mov.howTo.steps.map((step, i) => (
               <li key={i} className="flex gap-2 text-sm">
@@ -71,12 +103,27 @@ export function ExerciseSheet({
           </a>
         </section>
 
+        {tips.length > 0 ? (
+          <section className="mt-5 rounded-xl border border-line bg-surface2/30 p-3.5">
+            <h3 className="text-[11px] uppercase tracking-wider text-faint">Dicas técnicas</h3>
+            <ul className="mt-2 flex flex-col gap-2">
+              {tips.map((tip, i) => (
+                <li key={i} className="flex gap-2 text-sm">
+                  <CheckCircle2 size={15} aria-hidden className="mt-0.5 shrink-0 text-accent" />
+                  <span className="text-muted">{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         <section className="mt-5">
           <h3 className="text-[11px] uppercase tracking-wider text-faint">Variações</h3>
           <div className="mt-2 flex flex-col gap-2">
             <VariationRow
               name={`${exercise.name} (original)`}
               equipment={exercise.equipment}
+              mediaId={exercise.howTo.mediaId}
               active={!mov.isSwapped}
               onUse={() => onSwap(undefined)}
             />
@@ -85,12 +132,25 @@ export function ExerciseSheet({
                 key={alt.id}
                 name={alt.name}
                 equipment={alt.equipment}
+                mediaId={alt.howTo.mediaId}
                 active={swappedToId === alt.id}
                 onUse={() => onSwap(alt.id)}
               />
             ))}
           </div>
         </section>
+
+        {quickTip ? (
+          <section className="mt-5 flex items-start gap-3 rounded-xl border border-warn/30 bg-warn/5 p-3.5">
+            <Lightbulb size={16} aria-hidden className="mt-0.5 shrink-0 text-warn" />
+            <p className="min-w-0 text-sm text-muted">
+              <span className="mr-1 text-[11px] font-medium uppercase tracking-wider text-warn">
+                Dica rápida
+              </span>
+              <span className="block">{quickTip}</span>
+            </p>
+          </section>
+        ) : null}
       </div>
     </div>
   );
@@ -99,11 +159,13 @@ export function ExerciseSheet({
 function VariationRow({
   name,
   equipment,
+  mediaId,
   active,
   onUse,
 }: {
   name: string;
   equipment?: string;
+  mediaId?: string;
   active: boolean;
   onUse: () => void;
 }) {
@@ -112,12 +174,13 @@ function VariationRow({
       type="button"
       onClick={onUse}
       aria-pressed={active}
-      className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+      className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
         active ? "border-accent bg-accent/10" : "border-line hover:border-faint"
       }`}
     >
-      <span>
-        <span className="block text-sm">{name}</span>
+      <ExerciseThumb media={resolveExerciseMedia(name, mediaId)} className="h-10 w-10 shrink-0" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm">{name}</span>
         <span className="block text-xs text-faint">{equipmentLabel(equipment)}</span>
       </span>
       {active ? (

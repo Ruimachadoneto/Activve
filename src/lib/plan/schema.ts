@@ -18,9 +18,14 @@ export const equipmentSchema = z.enum(EQUIPMENT);
 
 export const howToSchema = z.object({
   steps: z.array(z.string().min(1)).min(1, "O 'como fazer' precisa de ao menos 1 passo."),
+  /** Dicas técnicas de execução fina (schema 1.1; opcional — planos 1.0 seguem válidos). */
+  tips: z.array(z.string().min(1)).optional(),
+  /** Dica rápida em 1 frase (schema 1.1; opcional). */
+  quickTip: z.string().min(1).optional(),
   images: z.array(z.string()).optional(),
   gifUrl: z.string().optional(),
   videoUrl: z.string().optional(),
+  /** Id EXATO do exercício no free-exercise-db — override explícito da foto (ADR-005). */
   mediaId: z.string().optional(),
 });
 

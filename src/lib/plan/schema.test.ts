@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import planoExemplo from "../../../examples/plano-exemplo.json";
 import { parsePlan } from "./parse";
 
 function validPlan() {
@@ -57,6 +58,20 @@ describe("parsePlan", () => {
     const result = parsePlan("isto não é json");
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.errors[0].field).toBe("arquivo");
+  });
+
+  it("aceita howTo.tips e howTo.quickTip (schema 1.1, opcionais)", () => {
+    const plan = validPlan();
+    const howTo = plan.training.workouts[0].exercises[0].howTo as Record<string, unknown>;
+    howTo.tips = ["Ative as escápulas.", "Cotovelos perto do corpo."];
+    howTo.quickTip = "Pense em puxar os cotovelos para os bolsos.";
+    const result = parsePlan(JSON.stringify(plan));
+    expect(result.ok).toBe(true);
+  });
+
+  it("o plano de exemplo embarcado sempre valida (regressão de conteúdo nosso)", () => {
+    const result = parsePlan(JSON.stringify(planoExemplo));
+    expect(result.ok, JSON.stringify(!result.ok ? result.errors : null)).toBe(true);
   });
 
   it("rejeita versão de schema incompatível", () => {

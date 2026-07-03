@@ -77,6 +77,29 @@ Registre somente decisões duráveis. Use uma entrada por decisão.
 
 ---
 
+## ADR-005 — PLAN_SCHEMA 1.1: dicas técnicas + semântica do mediaId (TASK-012)
+
+- Data: 2026-07-03
+- Status: aceito
+- Contexto: o mockup "Como fazer" exige dicas técnicas e dica rápida, que o contrato 1.0 não
+  expressa; e `howTo.mediaId` existia no schema sem semântica (órfão, apontado em review).
+- Decisão: **minor bump 1.0 → 1.1**, retrocompatível: `howTo.tips?: string[]`,
+  `howTo.quickTip?: string` (novos, opcionais) e `howTo.mediaId?` definido como **id exato do
+  free-exercise-db**, com **prioridade sobre o dicionário PT→EN** (o gerador é a autoridade da
+  mídia quando afirma; id inválido cai no fallback). Compat: o check de versão é por major (1.x),
+  então apps/planos 1.0 seguem válidos. Exemplo embarcado atualizado para 1.1.
+- Consequências positivas: "Como fazer" no nível do mockup; gerador pode cravar a foto certa sem
+  depender do dicionário do app; zero quebra.
+- Consequências negativas: contrato bidirecional — o **gerador (artifact) precisa ser atualizado**
+  para emitir os campos novos (senão as seções simplesmente não aparecem); mais um vocabulário
+  externo (ids do free-exercise-db) na fronteira do contrato.
+- Alternativas descartadas: campos obrigatórios (quebraria 1.0); classificar alternativas
+  (Semelhante/Alternativa como no mockup — exigiria taxonomia nova; badges ficam p/ depois);
+  remover mediaId (perderia o override explícito).
+- Substitui/é substituído por: —
+
+---
+
 ## ADR-[ID] — [Título]
 
 - Data:

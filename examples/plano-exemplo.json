@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "meta": {
     "planId": "pl_exemplo_2026_06",
     "generatedAt": "2026-06-22T18:00:00Z",
@@ -16,7 +16,9 @@
     "daysPerWeek": 4,
     "sessionMinutes": 60,
     "experience": "intermediate",
-    "restrictions": ["ombro direito sensível"],
+    "restrictions": [
+      "ombro direito sensível"
+    ],
     "notes": "Treina à noite."
   },
   "goal": {
@@ -26,10 +28,23 @@
     "weeklyRate_kg": -0.4,
     "summary": "Recomposição: perder gordura mantendo massa."
   },
-  "targets": [{ "key": "waist", "value_cm": 84 }],
+  "targets": [
+    {
+      "key": "waist",
+      "value_cm": 84
+    }
+  ],
   "training": {
     "split": "AB",
-    "weekSchedule": ["A", "rest", "B", "rest", "A", "B", "rest"],
+    "weekSchedule": [
+      "A",
+      "rest",
+      "B",
+      "rest",
+      "A",
+      "B",
+      "rest"
+    ],
     "workouts": [
       {
         "id": "A",
@@ -45,30 +60,56 @@
             "load_kg": 60,
             "rest_s": 120,
             "effortTarget": 8,
-            "primaryMuscles": ["chest"],
-            "secondaryMuscles": ["triceps", "front_delts"],
+            "primaryMuscles": [
+              "chest"
+            ],
+            "secondaryMuscles": [
+              "triceps",
+              "front_delts"
+            ],
             "howTo": {
               "steps": [
                 "Deite no banco com os pés firmes no chão.",
                 "Pegada um pouco mais larga que os ombros.",
                 "Desça a barra até o peito e empurre sem travar o cotovelo."
               ],
-              "mediaId": "barbell_bench_press"
+              "mediaId": "Barbell_Bench_Press_-_Medium_Grip",
+              "tips": [
+                "Ative as escápulas antes de tirar a barra.",
+                "Pés firmes no chão o tempo todo.",
+                "Desça a barra até a linha do peito, com controle."
+              ],
+              "quickTip": "Imagine empurrar o chão com os pés enquanto sobe a barra."
             },
             "alternatives": [
               {
                 "id": "supino_halteres",
                 "name": "Supino com halteres",
                 "equipment": "dumbbell",
-                "primaryMuscles": ["chest"],
-                "howTo": { "steps": ["Mesma execução do supino, com halteres.", "Permite mais amplitude."] }
+                "primaryMuscles": [
+                  "chest"
+                ],
+                "howTo": {
+                  "steps": [
+                    "Mesma execução do supino, com halteres.",
+                    "Permite mais amplitude."
+                  ]
+                }
               },
               {
                 "id": "flexao",
                 "name": "Flexão de braço",
                 "equipment": "bodyweight",
-                "primaryMuscles": ["chest"],
-                "howTo": { "steps": ["Corpo reto, desça controlando.", "Para casa / sem equipamento."], "videoUrl": "https://www.youtube.com/results?search_query=flexao+como+fazer" }
+                "primaryMuscles": [
+                  "chest"
+                ],
+                "howTo": {
+                  "steps": [
+                    "Corpo reto, desça controlando.",
+                    "Para casa / sem equipamento."
+                  ],
+                  "videoUrl": "https://www.youtube.com/results?search_query=flexao+como+fazer"
+                }
               }
             ]
           },
@@ -81,25 +122,45 @@
             "load_kg": 18,
             "rest_s": 90,
             "effortTarget": 8,
-            "primaryMuscles": ["side_delts", "front_delts"],
+            "primaryMuscles": [
+              "side_delts",
+              "front_delts"
+            ],
             "howTo": {
-              "steps": ["Sentado, halteres na altura dos ombros.", "Empurre para cima sem estufar a lombar."],
-              "mediaId": "dumbbell_shoulder_press"
+              "steps": [
+                "Sentado, halteres na altura dos ombros.",
+                "Empurre para cima sem estufar a lombar."
+              ],
+              "mediaId": "Dumbbell_Shoulder_Press"
             },
             "alternatives": [
               {
                 "id": "desenvolvimento_maquina",
                 "name": "Desenvolvimento na máquina",
                 "equipment": "machine",
-                "primaryMuscles": ["side_delts", "front_delts"],
-                "howTo": { "steps": ["Ajuste o banco e empurre seguindo a trajetória da máquina."] }
+                "primaryMuscles": [
+                  "side_delts",
+                  "front_delts"
+                ],
+                "howTo": {
+                  "steps": [
+                    "Ajuste o banco e empurre seguindo a trajetória da máquina."
+                  ]
+                }
               },
               {
                 "id": "elevacao_lateral",
                 "name": "Elevação lateral",
                 "equipment": "dumbbell",
-                "primaryMuscles": ["side_delts"],
-                "howTo": { "steps": ["Eleve os halteres até a linha dos ombros.", "Movimento controlado, sem balançar."] }
+                "primaryMuscles": [
+                  "side_delts"
+                ],
+                "howTo": {
+                  "steps": [
+                    "Eleve os halteres até a linha dos ombros.",
+                    "Movimento controlado, sem balançar."
+                  ]
+                }
               }
             ]
           }
@@ -119,26 +180,54 @@
             "load_kg": 55,
             "rest_s": 90,
             "effortTarget": 8,
-            "primaryMuscles": ["lats"],
-            "secondaryMuscles": ["biceps", "upper_back"],
+            "primaryMuscles": [
+              "lats"
+            ],
+            "secondaryMuscles": [
+              "biceps",
+              "upper_back"
+            ],
             "howTo": {
-              "steps": ["Pegada um pouco mais larga que os ombros.", "Puxe a barra até a parte superior do peito.", "Controle a subida."],
-              "mediaId": "lat_pulldown"
+              "steps": [
+                "Pegada um pouco mais larga que os ombros.",
+                "Puxe a barra até a parte superior do peito.",
+                "Controle a subida."
+              ],
+              "mediaId": "Wide-Grip_Lat_Pulldown",
+              "tips": [
+                "Ative as escápulas antes de iniciar.",
+                "Cotovelos para baixo, próximos ao corpo.",
+                "Amplitude total com controle."
+              ],
+              "quickTip": "Pense em puxar os cotovelos para os bolsos traseiros. Menos braço, mais costas."
             },
             "alternatives": [
               {
                 "id": "barra_fixa",
                 "name": "Barra fixa",
                 "equipment": "bodyweight",
-                "primaryMuscles": ["lats"],
-                "howTo": { "steps": ["Puxe o corpo até o queixo passar a barra."] }
+                "primaryMuscles": [
+                  "lats"
+                ],
+                "howTo": {
+                  "steps": [
+                    "Puxe o corpo até o queixo passar a barra."
+                  ]
+                }
               },
               {
                 "id": "remada_curvada",
                 "name": "Remada curvada",
                 "equipment": "barbell",
-                "primaryMuscles": ["lats", "upper_back"],
-                "howTo": { "steps": ["Tronco inclinado, puxe a barra até o abdômen."] }
+                "primaryMuscles": [
+                  "lats",
+                  "upper_back"
+                ],
+                "howTo": {
+                  "steps": [
+                    "Tronco inclinado, puxe a barra até o abdômen."
+                  ]
+                }
               }
             ]
           },
@@ -151,26 +240,56 @@
             "load_kg": 80,
             "rest_s": 150,
             "effortTarget": 9,
-            "primaryMuscles": ["quads", "glutes"],
-            "secondaryMuscles": ["hamstrings", "abs"],
+            "primaryMuscles": [
+              "quads",
+              "glutes"
+            ],
+            "secondaryMuscles": [
+              "hamstrings",
+              "abs"
+            ],
             "howTo": {
-              "steps": ["Barra apoiada no trapézio.", "Desça até a coxa ficar paralela ao chão.", "Suba empurrando o chão."],
-              "mediaId": "barbell_squat"
+              "steps": [
+                "Barra apoiada no trapézio.",
+                "Desça até a coxa ficar paralela ao chão.",
+                "Suba empurrando o chão."
+              ],
+              "mediaId": "Barbell_Squat",
+              "tips": [
+                "Core firme antes de descer.",
+                "Joelhos acompanham a ponta dos pés."
+              ],
+              "quickTip": "Desça como se fosse sentar num banco atrás de você."
             },
             "alternatives": [
               {
                 "id": "leg_press",
                 "name": "Leg press",
                 "equipment": "machine",
-                "primaryMuscles": ["quads", "glutes"],
-                "howTo": { "steps": ["Pés na largura dos ombros.", "Desça até ~90° e empurre."] }
+                "primaryMuscles": [
+                  "quads",
+                  "glutes"
+                ],
+                "howTo": {
+                  "steps": [
+                    "Pés na largura dos ombros.",
+                    "Desça até ~90° e empurre."
+                  ]
+                }
               },
               {
                 "id": "agachamento_goblet",
                 "name": "Agachamento goblet",
                 "equipment": "dumbbell",
-                "primaryMuscles": ["quads", "glutes"],
-                "howTo": { "steps": ["Segure um halter junto ao peito e agache."] }
+                "primaryMuscles": [
+                  "quads",
+                  "glutes"
+                ],
+                "howTo": {
+                  "steps": [
+                    "Segure um halter junto ao peito e agache."
+                  ]
+                }
               }
             ]
           }
@@ -180,16 +299,35 @@
   },
   "diet": {
     "dailyKcal": 2100,
-    "macros": { "protein_g": 165, "carbs_g": 210, "fat_g": 60 },
+    "macros": {
+      "protein_g": 165,
+      "carbs_g": 210,
+      "fat_g": 60
+    },
     "meals": [
       {
         "id": "cafe",
         "name": "Café da manhã",
         "time": "07:30",
         "items": [
-          { "food": "Ovos mexidos", "qty": 3, "unit": "un", "kcal": 240 },
-          { "food": "Pão integral", "qty": 2, "unit": "un", "kcal": 160 },
-          { "food": "Mamão", "qty": 1, "unit": "un", "kcal": 120 }
+          {
+            "food": "Ovos mexidos",
+            "qty": 3,
+            "unit": "un",
+            "kcal": 240
+          },
+          {
+            "food": "Pão integral",
+            "qty": 2,
+            "unit": "un",
+            "kcal": 160
+          },
+          {
+            "food": "Mamão",
+            "qty": 1,
+            "unit": "un",
+            "kcal": 120
+          }
         ],
         "notes": "Café sem açúcar."
       },
@@ -198,10 +336,30 @@
         "name": "Almoço",
         "time": "12:30",
         "items": [
-          { "food": "Frango grelhado", "qty": 180, "unit": "g", "kcal": 300 },
-          { "food": "Arroz", "qty": 150, "unit": "g", "kcal": 195 },
-          { "food": "Feijão", "qty": 100, "unit": "g", "kcal": 95 },
-          { "food": "Salada", "qty": 1, "unit": "un", "kcal": 60 }
+          {
+            "food": "Frango grelhado",
+            "qty": 180,
+            "unit": "g",
+            "kcal": 300
+          },
+          {
+            "food": "Arroz",
+            "qty": 150,
+            "unit": "g",
+            "kcal": 195
+          },
+          {
+            "food": "Feijão",
+            "qty": 100,
+            "unit": "g",
+            "kcal": 95
+          },
+          {
+            "food": "Salada",
+            "qty": 1,
+            "unit": "un",
+            "kcal": 60
+          }
         ]
       },
       {
@@ -209,12 +367,34 @@
         "name": "Pós-treino",
         "time": "21:00",
         "items": [
-          { "food": "Whey", "qty": 1, "unit": "scoop", "kcal": 120 },
-          { "food": "Banana", "qty": 1, "unit": "un", "kcal": 90 }
+          {
+            "food": "Whey",
+            "qty": 1,
+            "unit": "scoop",
+            "kcal": 120
+          },
+          {
+            "food": "Banana",
+            "qty": 1,
+            "unit": "un",
+            "kcal": 90
+          }
         ]
       }
     ],
-    "shoppingList": ["Ovos", "Pão integral", "Frango", "Arroz", "Feijão", "Whey", "Banana", "Mamão"],
-    "prep": ["Deixar o frango temperado no domingo.", "Cozinhar arroz e feijão para 3 dias."]
+    "shoppingList": [
+      "Ovos",
+      "Pão integral",
+      "Frango",
+      "Arroz",
+      "Feijão",
+      "Whey",
+      "Banana",
+      "Mamão"
+    ],
+    "prep": [
+      "Deixar o frango temperado no domingo.",
+      "Cozinhar arroz e feijão para 3 dias."
+    ]
   }
 }

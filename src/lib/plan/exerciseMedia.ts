@@ -187,11 +187,16 @@ const PT_TO_ID: Record<string, string> = {
 };
 
 /**
- * Resolve as fotos de um exercício pelo nome (PT-BR). Match exato sobre o nome
- * normalizado; sem match → null (a UI mantém o placeholder com o link de vídeo).
+ * Resolve as fotos de um exercício. Ordem de precedência:
+ * 1. `mediaId` explícito do plano (`howTo.mediaId`, schema 1.1 — id EXATO do
+ *    free-exercise-db; o gerador é a autoridade quando ele afirma a mídia);
+ * 2. dicionário curado pelo nome PT-BR normalizado;
+ * 3. null → a UI mantém o placeholder com o link de vídeo.
+ * Se as imagens de um mediaId inválido não carregarem, o onError da UI já cai no
+ * placeholder — nunca mostramos foto de outro movimento por chute.
  */
-export function resolveExerciseMedia(name: string): ExerciseMedia | null {
-  const id = PT_TO_ID[normalizeExerciseName(name)];
+export function resolveExerciseMedia(name: string, mediaId?: string): ExerciseMedia | null {
+  const id = mediaId?.trim() || PT_TO_ID[normalizeExerciseName(name)];
   if (!id) return null;
   return { sourceId: id, imageUrls: [`${BASE}${id}/0.jpg`, `${BASE}${id}/1.jpg`] };
 }

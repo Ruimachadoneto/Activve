@@ -140,8 +140,27 @@ Gates ✓ (typecheck/lint/99 testes/build) · DOM 375px ✓ sem overflow · cons
   would warrant a fix before merge". **TASK-011 chancelada (2 ciclos + confirmação) — pendente
   gate visual do usuário + gate humano de merge.**
 
+## TASK-012 — Como fazer v2 (IMPLEMENTADA, branch `ai/TASK-012-como-fazer-v2-claude`, review pendente)
+Contrato: `docs/ai/tasks/TASK-012-como-fazer-v2.md`. Implementado (2026-07-03):
+- **PLAN_SCHEMA 1.1 (ADR-005, retrocompatível):** `howTo.tips?[]` + `howTo.quickTip?` novos;
+  `howTo.mediaId` ganhou semântica = id exato do free-exercise-db, **prioridade sobre o dicionário**
+  (`resolveExerciseMedia(name, mediaId?)`); compat por major (1.x) já aceitava. PLAN_SCHEMA.md +
+  changelog atualizados. ⚠️ **Gerador (artifact) precisa ser atualizado** p/ emitir os campos.
+- **Sheet v2 (`ExerciseSheet`):** chips de músculos (primários em teal + "· sinergista"),
+  EXECUÇÃO, DICAS TÉCNICAS (checks, card), DICA RÁPIDA (lâmpada, âmbar), variações com
+  **thumbnail de foto real** (mediaId ou dicionário).
+- `MUSCLE_LABEL` PT-BR dos 20 músculos (`labels.ts` + teste de completude).
+- **Exemplo embarcado → 1.1**: tips/quickTip em 3 exercícios + **4 mediaIds órfãos corrigidos**
+  p/ ids reais (os antigos, minúsculos, virariam 404 com a nova precedência — pego antes do review).
+- Testes: schema 1.1, "exemplo sempre valida", override de mediaId, labels — **107 no total**.
+- Gates ✓ · sheet verificada no browser (chips/dicas/thumbs, mediaId override end-to-end) · console limpo.
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**TASK-012 — Como fazer v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela 3): criar branch
+1. **Review Codex** da TASK-012 + loop; **gate visual + merge do usuário**.
+2. Depois: **TASK-014** Corpo v2 → **TASK-013** erro amigável.
+3. **Gerador (artifact do GPT):** atualizar para emitir `tips`/`quickTip`/`mediaId` (contrato 1.1).
+
+**(escopo TASK-012 original, para referência)** — **TASK-012 — Como fazer v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela 3): criar branch
 `ai/TASK-012-como-fazer-v2-claude` + contrato. Escopo: **chips de músculos** no topo da sheet
 (primary/secondaryMuscles — dado pronto); **DICAS TÉCNICAS** (checks teal) + **DICA RÁPIDA**
 (lâmpada) — exige campos opcionais novos no schema (`howTo.tips[]`, `howTo.quickTip`) = minor bump
