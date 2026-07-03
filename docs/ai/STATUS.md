@@ -4,8 +4,8 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `main` (limpa; TASK-010 mergeada em `80f4f4d`). Sem branches de feature abertas.
-- **`main`** tem **TASK-001→010 mergeadas**.
+- **Branch atual:** `main` (limpa; TASK-011 mergeada em `ef33d74`). Sem branches de feature abertas.
+- **`main`** tem **TASK-001→011 mergeadas**.
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
 ## O alvo (não-negociável)
@@ -141,12 +141,16 @@ Gates ✓ (typecheck/lint/99 testes/build) · DOM 375px ✓ sem overflow · cons
   gate visual do usuário + gate humano de merge.**
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-1. **Review Codex** da TASK-011 (`codex review --base main`, Git Bash) + **gate visual do usuário**
-   na home. Loop de correção; **merge sob gate humano**.
-2. Depois: **TASK-012** Como fazer v2 (inclui integrar o campo `mediaId` órfão do schema) →
-   **TASK-014** Corpo v2 → **TASK-013** erro amigável.
-3. Backlog: Fase 2 corpo realista; testes de interação de UI (RTL/jsdom); `sex:"other"` (lib);
-   meal tracking (pré-requisito do anel de dieta do mockup).
+**TASK-012 — Como fazer v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela 3): criar branch
+`ai/TASK-012-como-fazer-v2-claude` + contrato. Escopo: **chips de músculos** no topo da sheet
+(primary/secondaryMuscles — dado pronto); **DICAS TÉCNICAS** (checks teal) + **DICA RÁPIDA**
+(lâmpada) — exige campos opcionais novos no schema (`howTo.tips[]`, `howTo.quickTip`) = minor bump
+do PLAN_SCHEMA + ADR (contrato bidirecional: gerador acompanha); **alternativas com thumbnail +
+badge**; integrar o campo `mediaId` órfão (schema.ts:24) como override explícito de mídia do
+gerador (prioridade sobre o dicionário). Mesmo processo: contrato → gates → browser → review Codex
+→ gate visual/merge do usuário.
+Depois: **TASK-014** Corpo v2 → **TASK-013** erro amigável.
+Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de dieta).
 
 ## Assets (resolvidos, open-source — sem custo)
 - Mapa anatômico: **`react-muscle-highlighter`** (MIT) — frente+costas, cor/intensidade por músculo, clique. Estilo vetorial (não o 3D fotorrealista do mockup — aceitável p/ começar; decidir depois).
@@ -174,4 +178,4 @@ Gates ✓ (typecheck/lint/99 testes/build) · DOM 375px ✓ sem overflow · cons
 | TASK-008 | Overhaul visual (Modo Treino, branding) | MERGEADA | main (`9a0d464`) |
 | TASK-009 | Mapa muscular de recuperação no Corpo (+ polish visual) | MERGEADA | main (`abacf6c`) |
 | TASK-010 | Modo Treino: foto real + série em foco + premium | MERGEADA | main (`80f4f4d`) |
-| TASK-011 | Hoje v2 (saudação, hero, foco do dia, lista de exercícios) | EM ANDAMENTO (implementada; review pendente) | ai/TASK-011-hoje-v2-claude |
+| TASK-011 | Hoje v2 (saudação, hero, foco do dia, lista de exercícios) | MERGEADA | main (`ef33d74`) |
