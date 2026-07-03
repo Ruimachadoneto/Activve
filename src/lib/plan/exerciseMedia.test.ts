@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { normalizeExerciseName, resolveExerciseMedia } from "./exerciseMedia";
+import planoExemplo from "../../../examples/plano-exemplo.json";
 
 describe("normalizeExerciseName", () => {
   it("remove acentos, caixa e pontuação", () => {
@@ -34,5 +35,18 @@ describe("resolveExerciseMedia", () => {
   it("desconhecido → null (nunca chutar foto de outro movimento)", () => {
     expect(resolveExerciseMedia("Exercício Maluco do Coach")).toBeNull();
     expect(resolveExerciseMedia("")).toBeNull();
+  });
+
+  it("TODOS os nomes do plano de exemplo embarcado resolvem (regressão de conteúdo nosso)", () => {
+    // Lê o JSON real: se alguém adicionar exercício novo ao exemplo sem alias no
+    // dicionário, este teste quebra — em vez de a foto sumir silenciosamente no app.
+    const names = planoExemplo.training.workouts.flatMap((w) => [
+      ...w.exercises.map((e) => e.name),
+      ...w.exercises.flatMap((e) => (e.alternatives ?? []).map((a) => a.name)),
+    ]);
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names) {
+      expect(resolveExerciseMedia(name), `sem foto para "${name}"`).not.toBeNull();
+    }
   });
 });

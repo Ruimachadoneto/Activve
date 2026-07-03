@@ -134,6 +134,13 @@ export function PreloadImages({ urls }: { urls: string[] }) {
 /** Thumbnail quadrada pequena (próximo exercício / variações). Sem foto → ícone. */
 export function ExerciseThumb({ media, className = "" }: { media: ExerciseMedia | null; className?: string }) {
   const [failed, setFailed] = useState(false);
+  // O componente é reusado com mídias diferentes (ex.: card "próximo exercício" ao
+  // navegar) — uma falha antiga não pode grudar no thumb do exercício seguinte.
+  const [prevId, setPrevId] = useState(media?.sourceId);
+  if (media?.sourceId !== prevId) {
+    setPrevId(media?.sourceId);
+    setFailed(false);
+  }
   if (!media || failed) {
     return (
       <span

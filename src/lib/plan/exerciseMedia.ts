@@ -94,6 +94,8 @@ const PT_TO_ID: Record<string, string> = {
 
   // ---- Ombros ----
   "desenvolvimento ombro": "Barbell_Shoulder_Press",
+  "desenvolvimento de ombro": "Dumbbell_Shoulder_Press",
+  "desenvolvimento de ombros": "Dumbbell_Shoulder_Press",
   "desenvolvimento": "Barbell_Shoulder_Press",
   "desenvolvimento com barra": "Barbell_Shoulder_Press",
   "desenvolvimento militar": "Standing_Military_Press",
@@ -102,6 +104,7 @@ const PT_TO_ID: Record<string, string> = {
   "desenvolvimento arnold": "Arnold_Dumbbell_Press",
   "arnold press": "Arnold_Dumbbell_Press",
   "desenvolvimento maquina": "Machine_Shoulder_Military_Press",
+  "desenvolvimento na maquina": "Machine_Shoulder_Military_Press",
   "elevacao lateral": "Side_Lateral_Raise",
   "elevacao lateral com halteres": "Side_Lateral_Raise",
   "elevacao frontal": "Front_Dumbbell_Raise",
@@ -143,6 +146,9 @@ const PT_TO_ID: Record<string, string> = {
   "agachamento livre": "Barbell_Squat",
   "agachamento com barra": "Barbell_Squat",
   "agachamento frontal": "Front_Barbell_Squat",
+  "agachamento goblet": "Goblet_Squat",
+  "goblet squat": "Goblet_Squat",
+  "agachamento com halteres": "Dumbbell_Squat",
   "leg press": "Leg_Press",
   "leg press 45": "Leg_Press",
   "cadeira extensora": "Leg_Extensions",

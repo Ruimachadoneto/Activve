@@ -87,6 +87,14 @@ Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISU
     - **[P3] falha do frame oculto derrubava a foto visível** — `onError` de qualquer frame matava o
       card. → falha rastreada **por frame**: 1 frame ok → estático nele (sem dots); só cai no
       placeholder quando nenhum renderiza.
+  - **Review Codex (ciclo 2, 2026-07-02) — 2 achados, ambos corrigidos:**
+    - **[P2] dicionário não cobria o plano de exemplo embarcado** ("Desenvolvimento de ombro",
+      "Desenvolvimento na máquina", "Agachamento goblet" → placeholder). → aliases adicionados +
+      **teste de regressão que lê o `examples/plano-exemplo.json` real** e exige foto p/ todos os
+      nomes (95 testes).
+    - **[P3] `ExerciseThumb` grudava no fallback** — uma falha de thumb persistia ao navegar de
+      exercício (componente reusado). → reset do `failed` quando `sourceId` muda (mesmo padrão do
+      card principal).
     - Re-review pendente.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
