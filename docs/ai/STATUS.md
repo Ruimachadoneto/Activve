@@ -130,7 +130,12 @@ Gates ✓ (typecheck/lint/99 testes/build) · DOM 375px ✓ sem overflow · cons
   - **"Equipamentos: Livre" convertia desconhecido em afirmação** — `equipment` omitido é
     DESCONHECIDO, não "sem equipamento". → a linha filtra só equipamentos conhecidos; sem nenhum,
     é omitida. Verificado: "Equipamentos: Cabo, Barra" (sem Livre).
-  - Gates: typecheck ✓ · lint ✓ · **101/101** ✓ · build ✓. Re-review pendente.
+  - Gates: typecheck ✓ · lint ✓ · **101/101** ✓ · build ✓.
+- **Review Codex (ciclo 2, 2026-07-03) — 1 achado [P2] corrigido:** o chip "Plano importado" não
+  encolhia — `training.split` longo ("Upper/Lower com foco em glúteos") estourava o chip em 375px.
+  → metadado com `min-w-0 truncate` (+ label `shrink-0`); linha de equipamentos ganhou o mesmo
+  tratamento (quebra com ícone alinhado). Verificado no browser com o split longo do achado:
+  chip contido, ellipsis, sem overflow. Re-review de confirmação pendente.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Review Codex** da TASK-011 (`codex review --base main`, Git Bash) + **gate visual do usuário**

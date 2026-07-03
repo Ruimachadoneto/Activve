@@ -134,8 +134,9 @@ export default function HojePage() {
 
       <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3.5 py-2.5">
         <CheckCircle2 size={16} aria-hidden className="shrink-0 text-accent" />
-        <span className="text-sm">Plano importado</span>
-        <span className="ml-auto text-xs text-muted">
+        <span className="shrink-0 text-sm">Plano importado</span>
+        {/* split é texto livre do plano — precisa poder encolher/truncar em 375px */}
+        <span className="ml-auto min-w-0 truncate text-right text-xs text-muted">
           {p.training.split} · {trainingDays}x por semana
         </span>
       </div>
@@ -217,9 +218,9 @@ export default function HojePage() {
                 ))}
               </div>
               {equipmentList.length > 0 ? (
-                <p className="mt-2 flex items-center gap-1.5 px-1 text-xs text-faint">
-                  <Check size={13} aria-hidden className="text-accent" />
-                  Equipamentos: {equipmentList.join(", ")}
+                <p className="mt-2 flex items-start gap-1.5 px-1 text-xs leading-relaxed text-faint">
+                  <Check size={13} aria-hidden className="mt-0.5 shrink-0 text-accent" />
+                  <span className="min-w-0">Equipamentos: {equipmentList.join(", ")}</span>
                 </p>
               ) : null}
             </section>
