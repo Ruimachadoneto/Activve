@@ -31,7 +31,7 @@ import {
   isoDate,
   type WorkoutSession,
 } from "@/lib/plan/session";
-import { getSession, saveSession, getSessionsForPlan } from "@/lib/storage/sessions";
+import { getSession, saveSession, getAllSessions } from "@/lib/storage/sessions";
 
 const LOAD_STEP = 2.5;
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -76,17 +76,18 @@ export default function TreinoPage() {
     };
   }, [draft]);
 
-  // Histórico do plano — alimenta o "Última vez" (memória de progressão) no card da série.
+  // Histórico para o "Última vez" (memória de progressão). É GLOBAL, não por plano:
+  // a continuidade do produto é por exercise.id entre planos/períodos (ADR-002), então
+  // importar um plano novo não pode zerar a memória de carga.
   useEffect(() => {
-    if (!planId) return;
     let cancelled = false;
-    getSessionsForPlan(planId).then((list) => {
+    getAllSessions().then((list) => {
       if (!cancelled) setHistory(list);
     });
     return () => {
       cancelled = true;
     };
-  }, [planId]);
+  }, []);
 
   const session = stored && draft && stored.sessionId === draft.sessionId ? stored : draft;
 

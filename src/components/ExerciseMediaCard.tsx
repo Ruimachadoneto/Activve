@@ -20,24 +20,32 @@ export function ExerciseMediaCard({
   alt: string;
 }) {
   const [frame, setFrame] = useState(0);
-  const [failed, setFailed] = useState(false);
+  // Falha rastreada POR frame: o frame 1 (lazy) falhar não pode derrubar a foto já
+  // visível — só caímos no placeholder quando nenhum frame renderiza.
+  const [frameFailed, setFrameFailed] = useState<[boolean, boolean]>([false, false]);
 
   const [prevId, setPrevId] = useState(media?.sourceId);
   if (media?.sourceId !== prevId) {
     setPrevId(media?.sourceId);
     setFrame(0);
-    setFailed(false);
+    setFrameFailed([false, false]);
   }
+
+  const allFailed = frameFailed[0] && frameFailed[1];
+  const bothOk = !frameFailed[0] && !frameFailed[1];
+  // Um único frame utilizável → fica estático nele.
+  const staticFrame = frameFailed[0] && !frameFailed[1] ? 1 : !frameFailed[0] && frameFailed[1] ? 0 : null;
+  const shownFrame = staticFrame ?? frame;
 
   const sourceId = media?.sourceId;
   useEffect(() => {
-    if (!sourceId || failed) return;
+    if (!sourceId || !bothOk) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const id = setInterval(() => setFrame((f) => (f === 0 ? 1 : 0)), 1600);
     return () => clearInterval(id);
-  }, [sourceId, failed]);
+  }, [sourceId, bothOk]);
 
-  if (!media || failed) {
+  if (!media || allFailed) {
     return (
       <a
         href={videoUrl}
@@ -64,9 +72,11 @@ export function ExerciseMediaCard({
           src={url}
           alt={i === 0 ? alt : ""}
           loading={i === 0 ? "eager" : "lazy"}
-          onError={() => setFailed(true)}
+          onError={() =>
+            setFrameFailed((prev) => (i === 0 ? [true, prev[1]] : [prev[0], true]))
+          }
           className={`media-drift absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
-            frame === i ? "opacity-100" : "opacity-0"
+            shownFrame === i ? "opacity-100" : "opacity-0"
           }`}
           style={{ filter: "saturate(0.85) brightness(0.92) contrast(1.02)" }}
         />
@@ -80,16 +90,18 @@ export function ExerciseMediaCard({
             "linear-gradient(180deg, rgba(10,20,34,0.28) 0%, transparent 32%, transparent 62%, rgba(10,20,34,0.5) 100%), radial-gradient(130% 110% at 50% 50%, transparent 62%, rgba(10,20,34,0.4) 100%)",
         }}
       />
-      <div className="absolute bottom-2.5 left-1/2 flex -translate-x-1/2 gap-1.5" aria-hidden>
-        {[0, 1].map((i) => (
-          <span
-            key={i}
-            className={`h-1.5 w-1.5 rounded-full transition-colors ${
-              frame === i ? "bg-accent" : "bg-ink/25"
-            }`}
-          />
-        ))}
-      </div>
+      {bothOk ? (
+        <div className="absolute bottom-2.5 left-1/2 flex -translate-x-1/2 gap-1.5" aria-hidden>
+          {[0, 1].map((i) => (
+            <span
+              key={i}
+              className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                shownFrame === i ? "bg-accent" : "bg-ink/25"
+              }`}
+            />
+          ))}
+        </div>
+      ) : null}
       <a
         href={videoUrl}
         target="_blank"

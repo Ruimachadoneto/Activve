@@ -80,6 +80,14 @@ Contrato: `docs/ai/tasks/TASK-010-treino-media.md`. Plano geral: auditoria `VISU
     - Micro-feedback no CTA (scale no toque).
   - Gates: typecheck ✓ · lint ✓ · **94/94** ✓ · build ✓ · console limpo. Verificado em 375px: fotos
     reais carregando, "Última vez: 62.5 kg × 8" com histórico semeado, +15s (1:00→1:14), sem overflow.
+  - **Review Codex (ciclo 1 da TASK-010, 2026-07-02) — 2 achados, ambos corrigidos:**
+    - **[P2] histórico morria na troca de plano** — o "Última vez" lia `getSessionsForPlan(planId)`;
+      importar plano novo (planId novo) zerava a memória, violando a continuidade por `exercise.id`
+      do ADR-002. → novo `getAllSessions()` no storage; o histórico do treino agora é global.
+    - **[P3] falha do frame oculto derrubava a foto visível** — `onError` de qualquer frame matava o
+      card. → falha rastreada **por frame**: 1 frame ok → estático nele (sem dots); só cai no
+      placeholder quando nenhum renderiza.
+    - Re-review pendente.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Gate visual do usuário** no `/treino` novo + **review Codex** (`codex review --base main`, Git Bash).
