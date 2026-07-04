@@ -198,7 +198,10 @@ Contrato: `docs/ai/tasks/TASK-014-corpo-v2.md`. Implementado (2026-07-04):
   registros, o número grande da tendência caía p/ `profile.weight_kg` mas o resumo "Medidas
   principais" mostrava `—` → dois pesos conflitantes na mesma tela. → resumo usa o mesmo fallback
   `latest`. Verificado: ambos mostram 84 kg. Gates: **116/116** ✓ · build ✓.
-  ⚠️ **Limite de ciclos (AGENTS §13): 3 ciclos.** Próximo re-review é de confirmação; achado novo → parar e escalar.
+  ⚠️ **Limite de ciclos (AGENTS §13): 3 ciclos.**
+- **Re-review de confirmação (2026-07-04) — APROVADO, LIMPO:** "changes internally consistent…
+  helpers covered by tests, same-day weight/measure merges preserved; no actionable regression".
+  **TASK-014 chancelada — pendente gate visual + merge do usuário.**
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Review Codex** da TASK-014 + loop; **gate visual + merge do usuário**.
