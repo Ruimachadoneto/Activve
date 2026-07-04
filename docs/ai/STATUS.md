@@ -161,7 +161,10 @@ Contrato: `docs/ai/tasks/TASK-012-como-fazer-v2.md`. Implementado (2026-07-03):
   - **Sinergistas errados na variação** — a sheet mostrava `exercise.secondaryMuscles` mesmo após
     trocar para uma alternativa (que pode ser outro movimento). → secundários só quando NÃO é swap
     (`mov.isSwapped ? [] : …`). Verificado: trocar p/ halteres deixa só "Peito" (some tríceps/ombro).
-  - Gates: typecheck ✓ · lint ✓ · **107/107** ✓ · build ✓. Re-review pendente.
+  - Gates: typecheck ✓ · lint ✓ · **107/107** ✓ · build ✓.
+- **Re-review de confirmação (2026-07-03) — APROVADO, LIMPO:** "no discrete, actionable bugs…
+  schema fields, media override plumbing e UI updates internamente consistentes com o modelo 1.x".
+  **TASK-012 chancelada — pendente gate visual + merge do usuário.**
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Review Codex** da TASK-012 + loop; **gate visual + merge do usuário**.
