@@ -7,7 +7,10 @@ import { isoDate } from "./session";
 export type BodyEntry = {
   date: string; // yyyy-mm-dd
   weight_kg?: number;
-  measures?: Record<string, number>; // cm
+  // cm. `null` é uma LÁPIDE (tombstone): a medida foi apagada nesta data — necessário
+  // porque o registro é append-only por dia, então "limpar" precisa vencer valores de
+  // dias anteriores em `latestMeasures`, não só sumir do registro de hoje.
+  measures?: Record<string, number | null>;
   note?: string;
   recordedAt: string; // ISO
 };
@@ -79,31 +82,33 @@ export const MEASURES = [
 export type MeasureKey = (typeof MEASURES)[number]["key"];
 
 /**
- * Aplica um patch de medidas sobre as existentes: um número **define/atualiza**;
- * `null` **apaga** aquela medida (permite corrigir um lançamento errado). Chaves
- * ausentes no patch permanecem. Retorna `undefined` quando não sobra nenhuma medida
- * (para não gravar `measures: {}` vazio no registro).
+ * Aplica um patch de medidas sobre as do registro do dia: número **define/atualiza**;
+ * `null` grava uma **lápide** (a medida foi apagada) — preservada de propósito para que
+ * `latestMeasures` saiba esquecer o valor de um dia anterior. Retorna `undefined` só
+ * quando não sobra nenhuma chave (para não gravar `measures: {}` vazio).
  */
 export function mergeMeasures(
-  existing: Record<string, number> | undefined,
+  existing: Record<string, number | null> | undefined,
   patch: Record<string, number | null>,
-): Record<string, number> | undefined {
-  const out: Record<string, number> = { ...(existing ?? {}) };
-  for (const [k, v] of Object.entries(patch)) {
-    if (v == null) delete out[k];
-    else out[k] = v;
-  }
+): Record<string, number | null> | undefined {
+  const out: Record<string, number | null> = { ...(existing ?? {}) };
+  for (const [k, v] of Object.entries(patch)) out[k] = v; // v pode ser null (lápide)
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-/** Valor mais recente de cada medida ao longo do tempo (registros diferentes podem trazer medidas diferentes). */
+/**
+ * Valor mais recente de cada medida ao longo do tempo (dias diferentes podem trazer
+ * medidas diferentes). Uma **lápide** (`null`) num dia apaga a medida a partir dali —
+ * então limpar um valor antigo realmente some do resumo. Só devolve números limpos.
+ */
 export function latestMeasures(entries: BodyEntry[]): Record<string, number> {
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
   const out: Record<string, number> = {};
   for (const e of sorted) {
     if (!e.measures) continue;
     for (const [k, v] of Object.entries(e.measures)) {
-      if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
+      if (v == null) delete out[k]; // lápide: medida apagada nesta data
+      else if (Number.isFinite(v)) out[k] = v;
     }
   }
   return out;

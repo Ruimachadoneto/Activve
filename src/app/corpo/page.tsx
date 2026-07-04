@@ -391,7 +391,9 @@ export default function CorpoPage() {
           ) : (
             <ul className="mt-3 flex flex-col">
               {historyDesc.map((e, i) => {
-                const measureCount = e.measures ? Object.keys(e.measures).length : 0;
+                const measureCount = e.measures
+                  ? Object.values(e.measures).filter((v) => v != null).length
+                  : 0;
                 return (
                   <li
                     key={e.date}

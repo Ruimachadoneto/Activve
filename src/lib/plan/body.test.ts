@@ -9,7 +9,11 @@ import {
   type BodyEntry,
 } from "./body";
 
-const e = (date: string, weight_kg?: number, measures?: Record<string, number>): BodyEntry => ({
+const e = (
+  date: string,
+  weight_kg?: number,
+  measures?: Record<string, number | null>,
+): BodyEntry => ({
   date,
   weight_kg,
   measures,
@@ -83,6 +87,14 @@ describe("latestMeasures", () => {
   it("sem medidas → objeto vazio", () => {
     expect(latestMeasures([e("2026-06-01", 85)])).toEqual({});
   });
+
+  it("lápide (null) num dia apaga a medida a partir dali, mesmo vinda de dia anterior", () => {
+    const entries = [
+      e("2026-06-01", 85, { waist: 88, chest: 104 }),
+      e("2026-06-20", 84, { waist: null }), // hoje o usuário apagou a cintura
+    ];
+    expect(latestMeasures(entries)).toEqual({ chest: 104 });
+  });
 });
 
 describe("mergeMeasures", () => {
@@ -93,12 +105,13 @@ describe("mergeMeasures", () => {
     });
   });
 
-  it("null apaga a medida (corrige lançamento errado)", () => {
-    expect(mergeMeasures({ waist: 88, chest: 104 }, { chest: null })).toEqual({ waist: 88 });
+  it("null grava lápide (preserva a exclusão para vencer dias anteriores)", () => {
+    expect(mergeMeasures({ arm: 38 }, { waist: null })).toEqual({ arm: 38, waist: null });
+    expect(mergeMeasures(undefined, { waist: null })).toEqual({ waist: null });
   });
 
-  it("apagar a última medida → undefined (não grava measures vazio)", () => {
-    expect(mergeMeasures({ waist: 88 }, { waist: null })).toBeUndefined();
+  it("objeto totalmente vazio → undefined (não grava measures vazio)", () => {
     expect(mergeMeasures(undefined, {})).toBeUndefined();
+    expect(mergeMeasures({}, {})).toBeUndefined();
   });
 });

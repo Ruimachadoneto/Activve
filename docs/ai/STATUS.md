@@ -186,7 +186,14 @@ Contrato: `docs/ai/tasks/TASK-014-corpo-v2.md`. Implementado (2026-07-04):
   - **[P3] lost-update em saves consecutivos** — peso e medidas (botões separados) liam a mesma
     linha e o 2º sobrescrevia o 1º. → escritas **serializadas** por `writeChain` (useRef). Verificado:
     disparar peso+medidas juntos preserva os dois (weight 82.5 + arm 38).
-  - Gates: typecheck ✓ · lint ✓ · **115/115** ✓ · build ✓. Re-review pendente.
+  - Gates: typecheck ✓ · lint ✓ · **115/115** ✓ · build ✓.
+- **Review Codex (ciclo 2, 2026-07-04) — 1 achado [P2], corrigido:** o fix do ciclo 1 só apagava
+  medida criada HOJE; se o valor visível veio de um dia anterior, limpar não vencia o histórico
+  (`latestMeasures` ressurgia o valor antigo). → **lápides (tombstones):** `BodyEntry.measures`
+  aceita `null` = "apagada nesta data"; `mergeMeasures` preserva o null; `latestMeasures` esquece a
+  medida ao ver a lápide; Histórico não conta lápide. +2 testes ajustados/novos. Verificado no
+  browser: cintura vinda de 5 dias atrás, limpa hoje, some do resumo (registro de hoje `{waist:null}`).
+  Gates: typecheck ✓ · lint ✓ · **116/116** ✓ · build ✓. Re-review pendente.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Review Codex** da TASK-014 + loop; **gate visual + merge do usuário**.
