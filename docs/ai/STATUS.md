@@ -4,8 +4,8 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `main` (limpa; TASK-012 mergeada em `c1b40ea`). Sem branches de feature abertas.
-- **`main`** tem **TASK-001→012 mergeadas** (PLAN_SCHEMA agora em 1.1).
+- **Branch atual:** `main` (limpa; TASK-014 mergeada em `1b2ae92`). Sem branches de feature abertas.
+- **`main`** tem **TASK-001→014 mergeadas** (PLAN_SCHEMA 1.1). Falta só a TASK-013 do ciclo do mockup.
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
 ## O alvo (não-negociável)
@@ -204,8 +204,13 @@ Contrato: `docs/ai/tasks/TASK-014-corpo-v2.md`. Implementado (2026-07-04):
   **TASK-014 chancelada — pendente gate visual + merge do usuário.**
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-1. **Review Codex** da TASK-014 + loop; **gate visual + merge do usuário**.
-2. Depois: **TASK-013** erro amigável p/ plano corrompido (crash → estado de erro).
+**TASK-013 — Robustez: estado de erro amigável p/ plano corrompido** (última do ciclo do mockup).
+Bug descoberto na auditoria: plano parcial/corrompido no IndexedDB (sem weekSchedule/howTo/diet.meals)
+derruba Hoje/Treino com runtime error (tela vermelha) — viola VISUAL_QUALITY §8 (estados). Criar
+branch `ai/TASK-013-erro-plano-claude` + contrato. Escopo: as páginas que leem o plano (`page.tsx`,
+`treino`, `corpo`) devem **validar/cair num estado de erro amigável** ("plano inválido — reimporte")
+em vez de crashar. Considerar validar com `parsePlan`/schema no `useActivePlan` e um ErrorBoundary.
+Mesmo processo (contrato → gates → browser → review → gate visual/merge).
 
 **(escopo TASK-014 original, para referência)** — **TASK-014 — Corpo v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela Corpo do mockup base):
 criar branch `ai/TASK-014-corpo-v2-claude` + contrato. Escopo: **número grande + chip de delta**
@@ -258,3 +263,4 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-010 | Modo Treino: foto real + série em foco + premium | MERGEADA | main (`80f4f4d`) |
 | TASK-011 | Hoje v2 (saudação, hero, foco do dia, lista de exercícios) | MERGEADA | main (`ef33d74`) |
 | TASK-012 | Como fazer v2 + PLAN_SCHEMA 1.1 (tips/quickTip/mediaId) | MERGEADA | main (`c1b40ea`) |
+| TASK-014 | Corpo v2 (tendência+delta, medidas, histórico) | MERGEADA | main (`1b2ae92`) |
