@@ -166,8 +166,48 @@ Contrato: `docs/ai/tasks/TASK-012-como-fazer-v2.md`. Implementado (2026-07-03):
   schema fields, media override plumbing e UI updates internamente consistentes com o modelo 1.x".
   **TASK-012 chancelada — pendente gate visual + merge do usuário.**
 
+## TASK-014 — Corpo v2 (IMPLEMENTADA, branch `ai/TASK-014-corpo-v2-claude`, review pendente)
+Contrato: `docs/ai/tasks/TASK-014-corpo-v2.md`. Implementado (2026-07-04):
+- `body.ts`: `weightDelta(entries, days, now)` (último − mais antigo na janela; null se <2) e
+  `latestMeasures(entries)` (valor mais recente por medida) + `MEASURES` (cintura/peito/coxa/braço).
+  +6 testes (**112** no total). **Sem migration** — `BodyEntry.measures` já existia.
+- `corpo/page.tsx` reescrita com **3 abas** (Visão geral / Medidas / Histórico):
+  - **Visão geral:** mapa + **Tendência de peso** (número grande + **chip de delta 30d** "-1.8 kg ·
+    últ. 30 dias") + gráfico + **Medidas principais** (grid leitura + Editar) + meta.
+  - **Medidas:** registrar peso + inputs de cintura/peito/coxa/braço (pré-preenchidos com o último
+    valor); `upsertToday` **mescla** — salvar peso não apaga medidas e vice-versa.
+  - **Histórico:** registros por data (mais recente no topo, peso + nº de medidas).
+- Gates ✓ (112 testes) · verificado no browser em 375px: delta -1.8, merge peso↔medidas preservado,
+  histórico ok, sem overflow, console limpo.
+- **Review Codex (ciclo 1, 2026-07-04) — 2 achados, corrigidos:**
+  - **[P2] não dava pra apagar medida** — campo limpo era pulado e o valor antigo voltava no merge.
+    → `mergeMeasures(existing, patch)` puro (número define, **null apaga**; vazio→undefined) +3 testes;
+    branco explícito no input vira delete. Verificado: apagar Coxa persiste.
+  - **[P3] lost-update em saves consecutivos** — peso e medidas (botões separados) liam a mesma
+    linha e o 2º sobrescrevia o 1º. → escritas **serializadas** por `writeChain` (useRef). Verificado:
+    disparar peso+medidas juntos preserva os dois (weight 82.5 + arm 38).
+  - Gates: typecheck ✓ · lint ✓ · **115/115** ✓ · build ✓.
+- **Review Codex (ciclo 2, 2026-07-04) — 1 achado [P2], corrigido:** o fix do ciclo 1 só apagava
+  medida criada HOJE; se o valor visível veio de um dia anterior, limpar não vencia o histórico
+  (`latestMeasures` ressurgia o valor antigo). → **lápides (tombstones):** `BodyEntry.measures`
+  aceita `null` = "apagada nesta data"; `mergeMeasures` preserva o null; `latestMeasures` esquece a
+  medida ao ver a lápide; Histórico não conta lápide. +2 testes ajustados/novos. Verificado no
+  browser: cintura vinda de 5 dias atrás, limpa hoje, some do resumo (registro de hoje `{waist:null}`).
+  Gates: typecheck ✓ · lint ✓ · **116/116** ✓ · build ✓.
+- **Review Codex (ciclo 3, 2026-07-04) — 1 achado [P2], corrigido:** num plano recém-importado sem
+  registros, o número grande da tendência caía p/ `profile.weight_kg` mas o resumo "Medidas
+  principais" mostrava `—` → dois pesos conflitantes na mesma tela. → resumo usa o mesmo fallback
+  `latest`. Verificado: ambos mostram 84 kg. Gates: **116/116** ✓ · build ✓.
+  ⚠️ **Limite de ciclos (AGENTS §13): 3 ciclos.**
+- **Re-review de confirmação (2026-07-04) — APROVADO, LIMPO:** "changes internally consistent…
+  helpers covered by tests, same-day weight/measure merges preserved; no actionable regression".
+  **TASK-014 chancelada — pendente gate visual + merge do usuário.**
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**TASK-014 — Corpo v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela Corpo do mockup base):
+1. **Review Codex** da TASK-014 + loop; **gate visual + merge do usuário**.
+2. Depois: **TASK-013** erro amigável p/ plano corrompido (crash → estado de erro).
+
+**(escopo TASK-014 original, para referência)** — **TASK-014 — Corpo v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela Corpo do mockup base):
 criar branch `ai/TASK-014-corpo-v2-claude` + contrato. Escopo: **número grande + chip de delta**
 ("↓ 1,8 kg últ. 30 dias") na tendência de peso; tabs **Medidas / Histórico**; **Medidas
 principais** (cintura/peito/coxa/braço — estende `bodylog` ou store novo, + Editar); refino do

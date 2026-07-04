@@ -7,7 +7,10 @@ import { isoDate } from "./session";
 export type BodyEntry = {
   date: string; // yyyy-mm-dd
   weight_kg?: number;
-  measures?: Record<string, number>; // cm
+  // cm. `null` é uma LÁPIDE (tombstone): a medida foi apagada nesta data — necessário
+  // porque o registro é append-only por dia, então "limpar" precisa vencer valores de
+  // dias anteriores em `latestMeasures`, não só sumir do registro de hoje.
+  measures?: Record<string, number | null>;
   note?: string;
   recordedAt: string; // ISO
 };
@@ -45,4 +48,68 @@ export function computeTrend(entries: BodyEntry[], targetWeight?: number): Trend
     deltaKg: round1(latest - start),
     toTargetKg: targetWeight !== undefined ? round1(targetWeight - latest) : undefined,
   };
+}
+
+/**
+ * Variação de peso nos últimos `days` dias: último peso menos o registro mais antigo
+ * dentro da janela. `null` se houver menos de 2 registros na janela (nada a comparar).
+ * Anti-culpa: retorna só o número (a UI mostra a seta/direção, sem juízo).
+ */
+export function weightDelta(
+  entries: BodyEntry[],
+  days: number,
+  now: Date = new Date(),
+): number | null {
+  const series = weightSeries(entries);
+  const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - days);
+  const y = cutoff.getFullYear();
+  const m = String(cutoff.getMonth() + 1).padStart(2, "0");
+  const d = String(cutoff.getDate()).padStart(2, "0");
+  const cutoffStr = `${y}-${m}-${d}`;
+  const window = series.filter((s) => s.date >= cutoffStr);
+  if (window.length < 2) return null;
+  return round1(window[window.length - 1].weight - window[0].weight);
+}
+
+/** Medidas conhecidas (cm) exibidas na tela Corpo, na ordem, com rótulo PT-BR. */
+export const MEASURES = [
+  { key: "waist", label: "Cintura" },
+  { key: "chest", label: "Peito" },
+  { key: "thigh", label: "Coxa" },
+  { key: "arm", label: "Braço" },
+] as const;
+
+export type MeasureKey = (typeof MEASURES)[number]["key"];
+
+/**
+ * Aplica um patch de medidas sobre as do registro do dia: número **define/atualiza**;
+ * `null` grava uma **lápide** (a medida foi apagada) — preservada de propósito para que
+ * `latestMeasures` saiba esquecer o valor de um dia anterior. Retorna `undefined` só
+ * quando não sobra nenhuma chave (para não gravar `measures: {}` vazio).
+ */
+export function mergeMeasures(
+  existing: Record<string, number | null> | undefined,
+  patch: Record<string, number | null>,
+): Record<string, number | null> | undefined {
+  const out: Record<string, number | null> = { ...(existing ?? {}) };
+  for (const [k, v] of Object.entries(patch)) out[k] = v; // v pode ser null (lápide)
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * Valor mais recente de cada medida ao longo do tempo (dias diferentes podem trazer
+ * medidas diferentes). Uma **lápide** (`null`) num dia apaga a medida a partir dali —
+ * então limpar um valor antigo realmente some do resumo. Só devolve números limpos.
+ */
+export function latestMeasures(entries: BodyEntry[]): Record<string, number> {
+  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+  const out: Record<string, number> = {};
+  for (const e of sorted) {
+    if (!e.measures) continue;
+    for (const [k, v] of Object.entries(e.measures)) {
+      if (v == null) delete out[k]; // lápide: medida apagada nesta data
+      else if (Number.isFinite(v)) out[k] = v;
+    }
+  }
+  return out;
 }
