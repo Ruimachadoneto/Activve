@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Pencil, TrendingDown, TrendingUp } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
@@ -14,6 +14,7 @@ import {
   computeTrend,
   weightDelta,
   latestMeasures,
+  mergeMeasures,
   MEASURES,
   type BodyEntry,
 } from "@/lib/plan/body";
@@ -51,6 +52,9 @@ export default function CorpoPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [input, setInput] = useState("");
   const [measureDraft, setMeasureDraft] = useState<Record<string, string>>({});
+  // Serializa as escritas do dia: peso e medidas têm botões separados; sem uma fila,
+  // dois saves rápidos leem a mesma linha (read-modify-write) e o 2º sobrescreve o 1º.
+  const writeChain = useRef<Promise<void>>(Promise.resolve());
   // Relógio do mapa: a recuperação é função do tempo, então o `now` precisa avançar
   // mesmo com a tela aberta (senão um músculo fica preso em "trabalhado" a noite toda).
   const [now, setNow] = useState(() => Date.now());
@@ -134,20 +138,32 @@ export default function CorpoPage() {
   const historyDesc = [...entries].sort((a, b) => b.date.localeCompare(a.date));
   const gender: "male" | "female" = p.profile.sex === "female" ? "female" : "male";
 
-  /** Cria/atualiza o registro de HOJE mesclando (não sobrescreve medidas ao salvar peso, e vice-versa). */
-  async function upsertToday(patch: Partial<BodyEntry>) {
-    const today = isoDate();
-    const existing = await getBodyEntry(today);
-    const entry: BodyEntry = {
-      ...existing,
-      ...patch,
-      date: today,
-      recordedAt: new Date().toISOString(),
-      measures: { ...(existing?.measures ?? {}), ...(patch.measures ?? {}) },
-    };
-    if (entry.measures && Object.keys(entry.measures).length === 0) delete entry.measures;
-    await saveBodyEntry(entry);
-    setEntries((prev) => [...prev.filter((e) => e.date !== today), entry]);
+  /**
+   * Cria/atualiza o registro de HOJE mesclando (peso e medidas não se apagam entre si).
+   * `measuresPatch` aceita `null` num campo para APAGAR a medida. Serializado por
+   * `writeChain` para o read-modify-write de saves consecutivos não perder um deles.
+   */
+  function upsertToday(patch: {
+    weight_kg?: number;
+    measuresPatch?: Record<string, number | null>;
+  }): Promise<void> {
+    const run = writeChain.current.then(async () => {
+      const today = isoDate();
+      const existing = await getBodyEntry(today);
+      const entry: BodyEntry = {
+        ...existing,
+        ...(patch.weight_kg !== undefined ? { weight_kg: patch.weight_kg } : {}),
+        date: today,
+        recordedAt: new Date().toISOString(),
+      };
+      const measures = mergeMeasures(existing?.measures, patch.measuresPatch ?? {});
+      if (measures) entry.measures = measures;
+      else delete entry.measures;
+      await saveBodyEntry(entry);
+      setEntries((prev) => [...prev.filter((e) => e.date !== today), entry]);
+    });
+    writeChain.current = run.catch(() => {}); // um erro não trava a fila
+    return run;
   }
 
   async function saveWeight() {
@@ -158,17 +174,21 @@ export default function CorpoPage() {
   }
 
   async function saveMeasures() {
-    const patch: Record<string, number> = {};
+    // Só os campos TOCADOS entram no patch: valor válido define; branco explícito apaga.
+    const patch: Record<string, number | null> = {};
     for (const { key } of MEASURES) {
       const raw = measureDraft[key];
       if (raw == null) continue; // não tocado → mantém o que já havia
       const trimmed = raw.trim();
-      if (trimmed === "") continue;
+      if (trimmed === "") {
+        patch[key] = null; // limpou o campo → apagar a medida
+        continue;
+      }
       const n = parseFloat(trimmed.replace(",", "."));
       if (!Number.isNaN(n) && n > 0) patch[key] = round1(n);
     }
     if (Object.keys(patch).length === 0) return;
-    await upsertToday({ measures: patch });
+    await upsertToday({ measuresPatch: patch });
     setMeasureDraft({});
   }
 

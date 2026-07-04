@@ -78,6 +78,24 @@ export const MEASURES = [
 
 export type MeasureKey = (typeof MEASURES)[number]["key"];
 
+/**
+ * Aplica um patch de medidas sobre as existentes: um número **define/atualiza**;
+ * `null` **apaga** aquela medida (permite corrigir um lançamento errado). Chaves
+ * ausentes no patch permanecem. Retorna `undefined` quando não sobra nenhuma medida
+ * (para não gravar `measures: {}` vazio no registro).
+ */
+export function mergeMeasures(
+  existing: Record<string, number> | undefined,
+  patch: Record<string, number | null>,
+): Record<string, number> | undefined {
+  const out: Record<string, number> = { ...(existing ?? {}) };
+  for (const [k, v] of Object.entries(patch)) {
+    if (v == null) delete out[k];
+    else out[k] = v;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 /** Valor mais recente de cada medida ao longo do tempo (registros diferentes podem trazer medidas diferentes). */
 export function latestMeasures(entries: BodyEntry[]): Record<string, number> {
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));

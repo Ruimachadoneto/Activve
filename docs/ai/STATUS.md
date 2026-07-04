@@ -179,6 +179,14 @@ Contrato: `docs/ai/tasks/TASK-014-corpo-v2.md`. Implementado (2026-07-04):
   - **Histórico:** registros por data (mais recente no topo, peso + nº de medidas).
 - Gates ✓ (112 testes) · verificado no browser em 375px: delta -1.8, merge peso↔medidas preservado,
   histórico ok, sem overflow, console limpo.
+- **Review Codex (ciclo 1, 2026-07-04) — 2 achados, corrigidos:**
+  - **[P2] não dava pra apagar medida** — campo limpo era pulado e o valor antigo voltava no merge.
+    → `mergeMeasures(existing, patch)` puro (número define, **null apaga**; vazio→undefined) +3 testes;
+    branco explícito no input vira delete. Verificado: apagar Coxa persiste.
+  - **[P3] lost-update em saves consecutivos** — peso e medidas (botões separados) liam a mesma
+    linha e o 2º sobrescrevia o 1º. → escritas **serializadas** por `writeChain` (useRef). Verificado:
+    disparar peso+medidas juntos preserva os dois (weight 82.5 + arm 38).
+  - Gates: typecheck ✓ · lint ✓ · **115/115** ✓ · build ✓. Re-review pendente.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Review Codex** da TASK-014 + loop; **gate visual + merge do usuário**.

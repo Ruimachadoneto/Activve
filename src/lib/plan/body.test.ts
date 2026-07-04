@@ -5,6 +5,7 @@ import {
   computeTrend,
   weightDelta,
   latestMeasures,
+  mergeMeasures,
   type BodyEntry,
 } from "./body";
 
@@ -81,5 +82,23 @@ describe("latestMeasures", () => {
 
   it("sem medidas → objeto vazio", () => {
     expect(latestMeasures([e("2026-06-01", 85)])).toEqual({});
+  });
+});
+
+describe("mergeMeasures", () => {
+  it("número define/atualiza; chaves ausentes permanecem", () => {
+    expect(mergeMeasures({ waist: 88, chest: 104 }, { waist: 86 })).toEqual({
+      waist: 86,
+      chest: 104,
+    });
+  });
+
+  it("null apaga a medida (corrige lançamento errado)", () => {
+    expect(mergeMeasures({ waist: 88, chest: 104 }, { chest: null })).toEqual({ waist: 88 });
+  });
+
+  it("apagar a última medida → undefined (não grava measures vazio)", () => {
+    expect(mergeMeasures({ waist: 88 }, { waist: null })).toBeUndefined();
+    expect(mergeMeasures(undefined, {})).toBeUndefined();
   });
 });
