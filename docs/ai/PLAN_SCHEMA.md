@@ -82,7 +82,7 @@ training
       ├─ effortTarget?   int 6–10 (RPE)
       ├─ primaryMuscles    muscle[]  (≥1 — alimenta MAPA DO CORPO e volume por grupo)
       ├─ secondaryMuscles? muscle[]  (auxiliares)
-      ├─ howTo           OBRIGATÓRIO  { steps:string[]≥1, images?:url[], gifUrl?:url, videoUrl?:url, mediaId? }
+      ├─ howTo           OBRIGATÓRIO  { steps:string[]≥1, tips?:string[], quickTip?:string, images?:url[], gifUrl?:url, videoUrl?:url, mediaId?:string }
       └─ alternatives    OBRIGATÓRIO ≥2  [{ id, name, equipment?, primaryMuscles?, howTo }]
 ```
 
@@ -126,9 +126,15 @@ diet
 - `meta.planId` identifica a versão vigente; progresso é gravado referenciando `planId` + `exercise.id`.
 - Subir plano novo **não apaga** logs antigos; cria novo "período" e mantém histórico consultável.
 
+### 3.6.2 Campos 1.1 do `howTo` (opcionais, retrocompatíveis)
+- `tips?: string[]` — **dicas técnicas** de execução fina (ex.: "Ative as escápulas antes de iniciar."). Exibidas com checks na tela "Como fazer".
+- `quickTip?: string` — **dica rápida** em 1 frase, memorável (ex.: "Pense em puxar os cotovelos para os bolsos."). Exibida em destaque (lâmpada).
+- `mediaId?: string` — **id EXATO do exercício no `free-exercise-db`** (ex.: `"Dumbbell_Shoulder_Press"`, ver github.com/yuhonas/free-exercise-db). Quando presente, o app usa as fotos desse id **com prioridade sobre o casamento por nome**; id inválido cai no fallback normal (placeholder + ver vídeo). Recomendação ao gerador: sempre emitir `mediaId` para exercícios comuns — elimina a dependência do dicionário PT→EN do app.
+
 ## 6. Política de versão
 - **1.x:** adições retrocompatíveis (campos opcionais novos). App 1.x ignora campos que não conhece.
 - **2.0+:** mudança que quebra. App exige gerador/atualização compatível e oferece migração quando possível.
+- **Changelog:** `1.1` (2026-07-03) — adiciona `howTo.tips`, `howTo.quickTip` e define a semântica de `howTo.mediaId` (ADR-005).
 
 ## 7. Exemplo mínimo válido (`schemaVersion 1.0`)
 ```json

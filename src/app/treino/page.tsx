@@ -126,7 +126,7 @@ export default function TreinoPage() {
   const ex = workout.exercises[idx];
   const log = session.exercises.find((e) => e.exerciseId === ex.id);
   const mov = resolveMovement(ex, log?.swappedToId);
-  const media = resolveExerciseMedia(mov.name);
+  const media = resolveExerciseMedia(mov.name, mov.howTo.mediaId);
   const progress = sessionProgress(session);
   const activeSet = log ? log.sets.findIndex((s) => !s.done) : -1;
   const activeLog = activeSet >= 0 ? log?.sets[activeSet] : undefined;
@@ -134,7 +134,7 @@ export default function TreinoPage() {
   const nextEx = idx < total - 1 ? workout.exercises[idx + 1] : null;
   const nextLog = nextEx ? session.exercises.find((e) => e.exerciseId === nextEx.id) : null;
   const nextMov = nextEx ? resolveMovement(nextEx, nextLog?.swappedToId ?? undefined) : null;
-  const nextMedia = nextMov ? resolveExerciseMedia(nextMov.name) : null;
+  const nextMedia = nextMov ? resolveExerciseMedia(nextMov.name, nextMov.howTo.mediaId) : null;
 
   // "Última vez": o que foi feito nesta série no treino anterior (progressão consciente),
   // comparando o MESMO movimento (variação escolhida conta — carga de outra variação não serve).
@@ -474,8 +474,8 @@ export default function TreinoPage() {
             </button>
           </div>
           <div className="mt-2 flex flex-col gap-2">
-            {[{ id: undefined as string | undefined, name: ex.name, equipment: ex.equipment },
-              ...ex.alternatives.map((a) => ({ id: a.id as string | undefined, name: a.name, equipment: a.equipment }))].map(
+            {[{ id: undefined as string | undefined, name: ex.name, equipment: ex.equipment, mediaId: ex.howTo.mediaId },
+              ...ex.alternatives.map((a) => ({ id: a.id as string | undefined, name: a.name, equipment: a.equipment, mediaId: a.howTo.mediaId }))].map(
               (opt) => {
                 const selectedOpt = (log?.swappedToId ?? undefined) === opt.id;
                 return (
@@ -489,7 +489,7 @@ export default function TreinoPage() {
                     }`}
                   >
                     <ExerciseThumb
-                      media={resolveExerciseMedia(opt.name)}
+                      media={resolveExerciseMedia(opt.name, opt.mediaId)}
                       className="h-11 w-11 shrink-0"
                     />
                     <span className="min-w-0 flex-1">

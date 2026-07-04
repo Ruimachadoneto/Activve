@@ -206,7 +206,7 @@ export default function HojePage() {
                     }`}
                   >
                     <span className="w-4 text-center text-xs tabular-nums text-faint">{i + 1}</span>
-                    <ExerciseThumb media={resolveExerciseMedia(ex.name)} className="h-10 w-10 shrink-0" />
+                    <ExerciseThumb media={resolveExerciseMedia(ex.name, ex.howTo.mediaId)} className="h-10 w-10 shrink-0" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm">{ex.name}</span>
                       <span className="block text-xs text-muted">
