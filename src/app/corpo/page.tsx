@@ -288,7 +288,9 @@ export default function CorpoPage() {
               <div className="flex items-baseline justify-between border-b border-line/60 pb-1.5">
                 <dt className="text-sm text-muted">Peso</dt>
                 <dd className="text-sm tabular-nums">
-                  {trend.latest != null ? `${trend.latest} kg` : <span className="text-faint">—</span>}
+                  {/* Mesmo fallback do card de tendência (`latest`) — senão a mesma tela mostra
+                      dois pesos diferentes num plano recém-importado sem registros. */}
+                  {latest != null ? `${latest} kg` : <span className="text-faint">—</span>}
                 </dd>
               </div>
               {MEASURES.map(({ key, label }) => (
