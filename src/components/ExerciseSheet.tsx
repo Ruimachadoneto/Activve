@@ -24,10 +24,12 @@ export function ExerciseSheet({
   onClose: () => void;
 }) {
   const mov = resolveMovement(exercise, swappedToId);
-  // Músculos do MOVIMENTO executado: variação com primários próprios sobrescreve;
-  // sinergistas vêm do exercício base (o schema das alternativas não os expressa).
+  // Músculos do MOVIMENTO executado. Os primários vêm da variação quando ela os
+  // define; os SECUNDÁRIOS só são confiáveis para o exercício base — o schema das
+  // alternativas não os expressa, então numa troca preferimos não afirmar sinergistas
+  // (que podem ser de outro movimento) a mostrar informação errada.
   const primaries = mov.primaryMuscles?.length ? mov.primaryMuscles : exercise.primaryMuscles;
-  const secondaries = exercise.secondaryMuscles ?? [];
+  const secondaries = mov.isSwapped ? [] : (exercise.secondaryMuscles ?? []);
   const tips = mov.howTo.tips ?? [];
   const quickTip = mov.howTo.quickTip;
 
@@ -121,7 +123,8 @@ export function ExerciseSheet({
           <h3 className="text-[11px] uppercase tracking-wider text-faint">Variações</h3>
           <div className="mt-2 flex flex-col gap-2">
             <VariationRow
-              name={`${exercise.name} (original)`}
+              name={exercise.name}
+              isOriginal
               equipment={exercise.equipment}
               mediaId={exercise.howTo.mediaId}
               active={!mov.isSwapped}
@@ -158,12 +161,14 @@ export function ExerciseSheet({
 
 function VariationRow({
   name,
+  isOriginal = false,
   equipment,
   mediaId,
   active,
   onUse,
 }: {
   name: string;
+  isOriginal?: boolean;
   equipment?: string;
   mediaId?: string;
   active: boolean;
@@ -178,9 +183,13 @@ function VariationRow({
         active ? "border-accent bg-accent/10" : "border-line hover:border-faint"
       }`}
     >
+      {/* Resolve a mídia pelo nome CRU do exercício — o "(original)" é só rótulo. */}
       <ExerciseThumb media={resolveExerciseMedia(name, mediaId)} className="h-10 w-10 shrink-0" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm">{name}</span>
+        <span className="block truncate text-sm">
+          {name}
+          {isOriginal ? <span className="text-faint"> (original)</span> : null}
+        </span>
         <span className="block text-xs text-faint">{equipmentLabel(equipment)}</span>
       </span>
       {active ? (

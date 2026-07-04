@@ -154,6 +154,14 @@ Contrato: `docs/ai/tasks/TASK-012-como-fazer-v2.md`. Implementado (2026-07-03):
   p/ ids reais (os antigos, minúsculos, virariam 404 com a nova precedência — pego antes do review).
 - Testes: schema 1.1, "exemplo sempre valida", override de mediaId, labels — **107 no total**.
 - Gates ✓ · sheet verificada no browser (chips/dicas/thumbs, mediaId override end-to-end) · console limpo.
+- **Review Codex (ciclo 1, 2026-07-03) — 2 achados [P2], ambos corrigidos:**
+  - **Thumb do "(original)" quebrava** — passei `"nome (original)"` ao resolver; o sufixo impedia o
+    match no dicionário (planos sem mediaId perdiam a foto). → `VariationRow` resolve pelo nome CRU;
+    "(original)" vira só rótulo. Verificado: removido o mediaId do supino, o thumb volta pelo dicionário.
+  - **Sinergistas errados na variação** — a sheet mostrava `exercise.secondaryMuscles` mesmo após
+    trocar para uma alternativa (que pode ser outro movimento). → secundários só quando NÃO é swap
+    (`mov.isSwapped ? [] : …`). Verificado: trocar p/ halteres deixa só "Peito" (some tríceps/ombro).
+  - Gates: typecheck ✓ · lint ✓ · **107/107** ✓ · build ✓. Re-review pendente.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 1. **Review Codex** da TASK-012 + loop; **gate visual + merge do usuário**.
