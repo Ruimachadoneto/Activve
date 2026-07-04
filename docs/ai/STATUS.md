@@ -4,8 +4,8 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `main` (limpa; TASK-011 mergeada em `ef33d74`). Sem branches de feature abertas.
-- **`main`** tem **TASK-001→011 mergeadas**.
+- **Branch atual:** `main` (limpa; TASK-012 mergeada em `c1b40ea`). Sem branches de feature abertas.
+- **`main`** tem **TASK-001→012 mergeadas** (PLAN_SCHEMA agora em 1.1).
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
 ## O alvo (não-negociável)
@@ -167,9 +167,17 @@ Contrato: `docs/ai/tasks/TASK-012-como-fazer-v2.md`. Implementado (2026-07-03):
   **TASK-012 chancelada — pendente gate visual + merge do usuário.**
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-1. **Review Codex** da TASK-012 + loop; **gate visual + merge do usuário**.
-2. Depois: **TASK-014** Corpo v2 → **TASK-013** erro amigável.
-3. **Gerador (artifact do GPT):** atualizar para emitir `tips`/`quickTip`/`mediaId` (contrato 1.1).
+**TASK-014 — Corpo v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela Corpo do mockup base):
+criar branch `ai/TASK-014-corpo-v2-claude` + contrato. Escopo: **número grande + chip de delta**
+("↓ 1,8 kg últ. 30 dias") na tendência de peso; tabs **Medidas / Histórico**; **Medidas
+principais** (cintura/peito/coxa/braço — estende `bodylog` ou store novo, + Editar); refino do
+card. Preparar caminho da **Fase 2 realista** do mapa (assets do usuário). Reusa a lógica de
+recovery já pronta. Mesmo processo (contrato → gates → browser → review → gate visual/merge).
+Depois: **TASK-013** erro amigável p/ plano corrompido (crash → estado de erro).
+
+**Pendências fora do repo:** o **gerador (artifact do GPT) precisa aprender o schema 1.1**
+(`tips`/`quickTip`/`mediaId`) — ver PLAN_SCHEMA.md §3.6.2 + ADR-005.
+Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de dieta).
 
 **(escopo TASK-012 original, para referência)** — **TASK-012 — Como fazer v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela 3): criar branch
 `ai/TASK-012-como-fazer-v2-claude` + contrato. Escopo: **chips de músculos** no topo da sheet
@@ -209,3 +217,4 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-009 | Mapa muscular de recuperação no Corpo (+ polish visual) | MERGEADA | main (`abacf6c`) |
 | TASK-010 | Modo Treino: foto real + série em foco + premium | MERGEADA | main (`80f4f4d`) |
 | TASK-011 | Hoje v2 (saudação, hero, foco do dia, lista de exercícios) | MERGEADA | main (`ef33d74`) |
+| TASK-012 | Como fazer v2 + PLAN_SCHEMA 1.1 (tips/quickTip/mediaId) | MERGEADA | main (`c1b40ea`) |
