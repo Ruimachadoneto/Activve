@@ -46,3 +46,47 @@ export function computeTrend(entries: BodyEntry[], targetWeight?: number): Trend
     toTargetKg: targetWeight !== undefined ? round1(targetWeight - latest) : undefined,
   };
 }
+
+/**
+ * Variação de peso nos últimos `days` dias: último peso menos o registro mais antigo
+ * dentro da janela. `null` se houver menos de 2 registros na janela (nada a comparar).
+ * Anti-culpa: retorna só o número (a UI mostra a seta/direção, sem juízo).
+ */
+export function weightDelta(
+  entries: BodyEntry[],
+  days: number,
+  now: Date = new Date(),
+): number | null {
+  const series = weightSeries(entries);
+  const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - days);
+  const y = cutoff.getFullYear();
+  const m = String(cutoff.getMonth() + 1).padStart(2, "0");
+  const d = String(cutoff.getDate()).padStart(2, "0");
+  const cutoffStr = `${y}-${m}-${d}`;
+  const window = series.filter((s) => s.date >= cutoffStr);
+  if (window.length < 2) return null;
+  return round1(window[window.length - 1].weight - window[0].weight);
+}
+
+/** Medidas conhecidas (cm) exibidas na tela Corpo, na ordem, com rótulo PT-BR. */
+export const MEASURES = [
+  { key: "waist", label: "Cintura" },
+  { key: "chest", label: "Peito" },
+  { key: "thigh", label: "Coxa" },
+  { key: "arm", label: "Braço" },
+] as const;
+
+export type MeasureKey = (typeof MEASURES)[number]["key"];
+
+/** Valor mais recente de cada medida ao longo do tempo (registros diferentes podem trazer medidas diferentes). */
+export function latestMeasures(entries: BodyEntry[]): Record<string, number> {
+  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+  const out: Record<string, number> = {};
+  for (const e of sorted) {
+    if (!e.measures) continue;
+    for (const [k, v] of Object.entries(e.measures)) {
+      if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
+    }
+  }
+  return out;
+}

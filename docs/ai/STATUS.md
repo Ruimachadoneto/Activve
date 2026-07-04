@@ -166,8 +166,25 @@ Contrato: `docs/ai/tasks/TASK-012-como-fazer-v2.md`. Implementado (2026-07-03):
   schema fields, media override plumbing e UI updates internamente consistentes com o modelo 1.x".
   **TASK-012 chancelada — pendente gate visual + merge do usuário.**
 
+## TASK-014 — Corpo v2 (IMPLEMENTADA, branch `ai/TASK-014-corpo-v2-claude`, review pendente)
+Contrato: `docs/ai/tasks/TASK-014-corpo-v2.md`. Implementado (2026-07-04):
+- `body.ts`: `weightDelta(entries, days, now)` (último − mais antigo na janela; null se <2) e
+  `latestMeasures(entries)` (valor mais recente por medida) + `MEASURES` (cintura/peito/coxa/braço).
+  +6 testes (**112** no total). **Sem migration** — `BodyEntry.measures` já existia.
+- `corpo/page.tsx` reescrita com **3 abas** (Visão geral / Medidas / Histórico):
+  - **Visão geral:** mapa + **Tendência de peso** (número grande + **chip de delta 30d** "-1.8 kg ·
+    últ. 30 dias") + gráfico + **Medidas principais** (grid leitura + Editar) + meta.
+  - **Medidas:** registrar peso + inputs de cintura/peito/coxa/braço (pré-preenchidos com o último
+    valor); `upsertToday` **mescla** — salvar peso não apaga medidas e vice-versa.
+  - **Histórico:** registros por data (mais recente no topo, peso + nº de medidas).
+- Gates ✓ (112 testes) · verificado no browser em 375px: delta -1.8, merge peso↔medidas preservado,
+  histórico ok, sem overflow, console limpo.
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**TASK-014 — Corpo v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela Corpo do mockup base):
+1. **Review Codex** da TASK-014 + loop; **gate visual + merge do usuário**.
+2. Depois: **TASK-013** erro amigável p/ plano corrompido (crash → estado de erro).
+
+**(escopo TASK-014 original, para referência)** — **TASK-014 — Corpo v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela Corpo do mockup base):
 criar branch `ai/TASK-014-corpo-v2-claude` + contrato. Escopo: **número grande + chip de delta**
 ("↓ 1,8 kg últ. 30 dias") na tendência de peso; tabs **Medidas / Histórico**; **Medidas
 principais** (cintura/peito/coxa/braço — estende `bodylog` ou store novo, + Editar); refino do
