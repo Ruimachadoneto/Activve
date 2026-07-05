@@ -224,6 +224,15 @@ Depois: **TASK-013** erro amigável p/ plano corrompido (crash → estado de err
 (`tips`/`quickTip`/`mediaId`). Material pronto para colar no GPT em **`docs/ai/GENERATOR_1.1.md`**
 (instruções + vocabulários + exemplo few-shot + **catálogo de 76 exercícios com mediaId verificado**).
 Escolhida a **Opção B** (catálogo trava name↔mediaId↔equipment; GPT atribui músculos).
+
+**Visão de produto + Coach (2026-07-04):** ciclo fechado confirmado com o usuário (site "Activve
+Health System" faz anamnese+gera+ajusta ↔ app rastreia+exporta relatório). Registrado em
+`docs/ai/PRODUCT_VISION.md`. **Spec do coach** pronto pra rodar como Claude Project em
+`docs/ai/coach/ACTIVVE_HEALTH_SYSTEM.md` (anamnese + geração do documento/PlanFile + ajuste por
+ReportFile). Estratégia: local-first (dados no aparelho) + coach/billing na nuvem só na Fase 2, após
+validar. Usuário vai **testar app + coach** e escalar se aprovar.
+Elo faltante do loop (Fase 1, app): **export do `ReportFile`**, dieta leve (marcar refeição), exibir
+plano de bem-estar.
 Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de dieta).
 
 **(escopo TASK-012 original, para referência)** — **TASK-012 — Como fazer v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela 3): criar branch
