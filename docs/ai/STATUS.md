@@ -221,7 +221,9 @@ recovery já pronta. Mesmo processo (contrato → gates → browser → review �
 Depois: **TASK-013** erro amigável p/ plano corrompido (crash → estado de erro).
 
 **Pendências fora do repo:** o **gerador (artifact do GPT) precisa aprender o schema 1.1**
-(`tips`/`quickTip`/`mediaId`) — ver PLAN_SCHEMA.md §3.6.2 + ADR-005.
+(`tips`/`quickTip`/`mediaId`). Material pronto para colar no GPT em **`docs/ai/GENERATOR_1.1.md`**
+(instruções + vocabulários + exemplo few-shot + **catálogo de 76 exercícios com mediaId verificado**).
+Escolhida a **Opção B** (catálogo trava name↔mediaId↔equipment; GPT atribui músculos).
 Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de dieta).
 
 **(escopo TASK-012 original, para referência)** — **TASK-012 — Como fazer v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela 3): criar branch
