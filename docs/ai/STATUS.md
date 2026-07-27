@@ -4,8 +4,14 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `main` (limpa; TASK-014 mergeada em `1b2ae92`). Sem branches de feature abertas.
-- **`main`** tem **TASK-001→014 mergeadas** (PLAN_SCHEMA 1.1). Falta só a TASK-013 do ciclo do mockup.
+- **Branch atual:** `main` (limpa; TASK-015 mergeada em `cb1b07b`). Sem branches de feature abertas.
+- **`main`** tem **TASK-001→012, 014, 015 mergeadas**. TASK-013 (erro amigável) segue pendente.
+- **2026-07-27 — feedback de uso real (app publicado no Vercel):** usuário testou e mapeou 4 pontos:
+  (1) sem relatório/calendário de treino + export semanal/mensal, (2) sem trocar o treino "oficial"
+  do dia, (3) timer de descanso diverge em background/sem notificação, (4) sem UI pra reimportar
+  plano. Plano de resposta: **TASK-015** (✅ mergeada) → **TASK-016** (dia/treino) → **TASK-017**
+  (timer) → **TASK-018** (calendário/relatório). PWA (manifest+SW, necessário pra notificação real
+  em background) vira **TASK-019** à parte.
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
 ## O alvo (não-negociável)
@@ -203,8 +209,25 @@ Contrato: `docs/ai/tasks/TASK-014-corpo-v2.md`. Implementado (2026-07-04):
   helpers covered by tests, same-day weight/measure merges preserved; no actionable regression".
   **TASK-014 chancelada — pendente gate visual + merge do usuário.**
 
+## TASK-015 — Trocar plano visível na UI (MERGEADA em `main` `cb1b07b`, 2026-07-27)
+Contrato: `docs/ai/tasks/TASK-015-trocar-plano.md`. Causa raiz do "preciso limpar cache pra
+reimportar": `saveImportedPlan` **nunca apagou** `sessions`/`bodylog` — só faltava um caminho de UI
+(`/import` só linkava quando `!plan`). Implementado: página `/mais` (resumo do plano ativo + CTA
+"Trocar plano"); `BottomNav` "Mais" deixou de ser inerte; `goalLabel` consolidado em `labels.ts`
+(estava triplicado). Verificado no browser com seed direto no IndexedDB: reimportar plano com
+**planId diferente** (simulando novo ciclo do coach) não apaga nada — confirmado por inspeção
+direta do IndexedDB pós-reimport. Gates: **116/116** ✓. Review Codex ciclo 1: **APROVADO, LIMPO**.
+- **Descoberta p/ TASK-018:** o mapa de recuperação em `/corpo` é filtrado por `planId` **ativo**
+  (`getSessionsForPlan`) — ao trocar de plano, sessões do ciclo anterior somem do mapa (não é bug,
+  é o design do ADR-002, mas o calendário/relatório da TASK-018 **deve** listar sessões de todos os
+  planos, não só o ativo, senão o histórico "sumiria" visualmente a cada novo ciclo).
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**TASK-013 — Robustez: estado de erro amigável p/ plano corrompido** (última do ciclo do mockup).
+**TASK-016 — Selecionar/fixar treino do dia** (2ª do plano de resposta ao feedback 2026-07-27).
+Ver contrato em `docs/ai/tasks/TASK-016-*.md` (em andamento). Depois: TASK-017 (timer), TASK-018
+(calendário/relatório), TASK-013 (erro amigável, ainda pendente do ciclo do mockup).
+
+**(referência) TASK-013 — Robustez: estado de erro amigável p/ plano corrompido** (última do ciclo do mockup, ainda não iniciada).
 Bug descoberto na auditoria: plano parcial/corrompido no IndexedDB (sem weekSchedule/howTo/diet.meals)
 derruba Hoje/Treino com runtime error (tela vermelha) — viola VISUAL_QUALITY §8 (estados). Criar
 branch `ai/TASK-013-erro-plano-claude` + contrato. Escopo: as páginas que leem o plano (`page.tsx`,
@@ -275,3 +298,4 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-011 | Hoje v2 (saudação, hero, foco do dia, lista de exercícios) | MERGEADA | main (`ef33d74`) |
 | TASK-012 | Como fazer v2 + PLAN_SCHEMA 1.1 (tips/quickTip/mediaId) | MERGEADA | main (`c1b40ea`) |
 | TASK-014 | Corpo v2 (tendência+delta, medidas, histórico) | MERGEADA | main (`1b2ae92`) |
+| TASK-015 | Trocar plano visível na UI | MERGEADA | main (`cb1b07b`) |
