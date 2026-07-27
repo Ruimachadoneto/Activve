@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pause, Play, SkipForward, X } from "lucide-react";
 
 const BASE_PRESETS = [30, 60, 90, 120];
@@ -29,6 +29,13 @@ export function RestTimer({
   const [duration, setDuration] = useState(seconds);
   const [remaining, setRemaining] = useState(seconds);
   const [running, setRunning] = useState(false);
+  // Âncora absoluta (epoch ms) de quando o descanso zera — a fonte da verdade do
+  // countdown, nunca um decremento. É o que faz o timer se corrigir sozinho ao voltar
+  // de segundo plano/aba oculta: o browser faz throttling de timers em background, mas
+  // `endAt - Date.now()` continua correto não importa quantos ticks foram perdidos.
+  const endAtRef = useRef<number | null>(null);
+  const remainingRef = useRef(seconds);
+  const vibratedRef = useRef(false);
 
   const [prevToken, setPrevToken] = useState(runToken);
   if (runToken !== prevToken) {
@@ -38,25 +45,60 @@ export function RestTimer({
     setRunning(true);
   }
 
-  // Countdown por timeout re-agendado (`remaining` nas deps): qualquer mudança de
-  // tempo — preset, +15s, reinício — religa o tique sozinha, inclusive depois de
-  // zerar. Um setInterval keyed só em `running` congelava após o fim (running
-  // true→true não re-dispara o efeito).
+  // Refs não podem ser escritas durante o render — mantém `remainingRef` em sincronia
+  // com o reset acima. Roda antes do efeito de ancoragem abaixo (ordem de declaração).
   useEffect(() => {
-    if (!open || !running || remaining === 0) return;
-    const id = setTimeout(() => {
-      if (remaining === 1) {
-        // Aviso tátil no fim do descanso (mobile; ignorado onde não há suporte).
-        try {
-          navigator.vibrate?.([180, 90, 180]);
-        } catch {
-          /* sem vibração disponível */
+    remainingRef.current = seconds;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runToken]);
+
+  // (Re)ancora sempre que o cronômetro passa a rodar com uma duração nova (novo ciclo,
+  // preset, +15s) ou é retomado do pause. Não decrementa nada — só marca o alvo.
+  useEffect(() => {
+    if (!running) {
+      endAtRef.current = null;
+      return;
+    }
+    endAtRef.current = Date.now() + remainingRef.current * 1000;
+    vibratedRef.current = remainingRef.current <= 0;
+  }, [running, duration]);
+
+  // Recalcula `remaining` a partir de `endAt` (nunca decrementa) — corrige sozinho
+  // qualquer atraso de timer em segundo plano. Reancora ao focar/voltar visível pra
+  // atualizar na hora, sem esperar o próximo tick.
+  useEffect(() => {
+    if (!open || !running) return;
+    function tick() {
+      const endAt = endAtRef.current;
+      if (endAt == null) return;
+      const left = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+      remainingRef.current = left;
+      setRemaining(left);
+      if (left === 0) {
+        if (!vibratedRef.current) {
+          vibratedRef.current = true;
+          try {
+            navigator.vibrate?.([180, 90, 180]);
+          } catch {
+            /* sem vibração disponível */
+          }
         }
+        setRunning(false);
       }
-      setRemaining(remaining - 1);
-    }, 1000);
-    return () => clearTimeout(id);
-  }, [open, running, remaining]);
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", tick);
+    };
+  }, [open, running]);
 
   useEffect(() => {
     if (!open) return;
@@ -75,6 +117,7 @@ export function RestTimer({
   const done = remaining === 0;
 
   function setPreset(p: number) {
+    remainingRef.current = p;
     setDuration(p);
     setRemaining(p);
     setRunning(true);
@@ -82,12 +125,32 @@ export function RestTimer({
 
   /** +15s sem reiniciar: estende o descanso atual (comum quando a série pesou). */
   function addTime(extra: number) {
+    const next = remainingRef.current + extra;
+    remainingRef.current = next;
     setDuration((d) => d + extra);
-    setRemaining((r) => r + extra);
+    setRemaining(next);
     setRunning(true);
   }
 
+  function toggleRun() {
+    if (done) return;
+    if (running) {
+      // Congela o valor calculado de endAt (não o último tick, que pode estar
+      // desatualizado se o timer estava em segundo plano no momento do pause).
+      const endAt = endAtRef.current;
+      if (endAt != null) {
+        const left = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+        remainingRef.current = left;
+        setRemaining(left);
+      }
+      setRunning(false);
+    } else {
+      setRunning(true); // o efeito de ancoragem reancora a partir de remainingRef
+    }
+  }
+
   function skip() {
+    remainingRef.current = 0;
     setRemaining(0);
     setRunning(false);
     onClose();
@@ -183,7 +246,7 @@ export function RestTimer({
           <div className="mt-5 flex w-full items-center gap-2">
             <button
               type="button"
-              onClick={() => setRunning((v) => !v)}
+              onClick={toggleRun}
               aria-label={running && !done ? "Pausar" : "Continuar"}
               disabled={done}
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-line text-sm text-muted active:bg-surface2 disabled:opacity-40"
