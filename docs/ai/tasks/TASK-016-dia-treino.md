@@ -91,3 +91,10 @@ npm run typecheck && npm run lint && npm run test && npm run build
   tela trocar. → override tratado como 3 estados (`overrideLoading`), página mostra "Carregando…"
   até resolver (mesmo padrão do `loading` do plano). Aplicado também na Hoje, por consistência
   (evita "piscar" o nome do treino errado). Gates: **120/120** ✓ · typecheck/lint ✓ · build ✓.
+- **Review Codex (ciclo 2, 2026-07-27) — 1 achado [P2] aceito e corrigido:** com override ativo, ao
+  pré-visualizar outro treino (ex.: override=B, clica em A pra olhar), o botão "Voltar ao planejado"
+  sumia — a lógica era if/else-if, então só um dos dois controles aparecia por vez. Ficava sem
+  como limpar o override sem sair da tela. Os dois controles agora são independentes: "Definir
+  como treino de hoje" aparece quando o treino visualizado difere do oficial; "Voltar ao planejado"
+  aparece sempre que há override ativo, não importa o que está sendo pré-visualizado. Verificado no
+  browser: override=B, clique em A → ambos os botões aparecem juntos. Gates: **120/120** ✓ · build ✓.

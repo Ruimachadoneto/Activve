@@ -292,9 +292,12 @@ export default function TreinoPage() {
         >
           Definir {workout.name} como treino de hoje
         </button>
-      ) : override ? (
+      ) : null}
+      {/* Independente do que está sendo pré-visualizado: enquanto houver override ativo,
+          precisa dar pra limpá-lo sem sair da tela (achado do review Codex). */}
+      {override ? (
         <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-muted">
-          <span>Este é o treino de hoje (trocado por você).</span>
+          {workout.id === officialTodayId ? <span>Este é o treino de hoje (trocado por você).</span> : null}
           <button
             type="button"
             onClick={voltarAoPlanejado}
