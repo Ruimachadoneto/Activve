@@ -40,6 +40,10 @@ export default function HojePage() {
   const { loading, plan } = useActivePlan();
   const [doneDates, setDoneDates] = useState<Set<string>>(new Set());
   const [override, setOverride] = useState<string | null>(null);
+  // Sem isso, a tela mostra o treino do weekSchedule por um instante e só troca
+  // quando o IndexedDB responde (mesmo achado do review Codex na TASK-016, aplicado
+  // aqui também para não piscar o treino errado antes do override carregar).
+  const [overrideLoading, setOverrideLoading] = useState(true);
 
   // Dias da semana com treino concluído (lê as sessões do período ativo).
   useEffect(() => {
@@ -57,11 +61,13 @@ export default function HojePage() {
 
   // Treino trocado pelo usuário para hoje (TASK-016), se houver.
   useEffect(() => {
-    if (!plan) return;
     let cancelled = false;
-    getDayOverride(plan.planId, isoDate()).then((value) => {
-      if (!cancelled) setOverride(value);
-    });
+    (async () => {
+      const value = plan ? await getDayOverride(plan.planId, isoDate()) : null;
+      if (cancelled) return;
+      setOverride(value);
+      setOverrideLoading(false);
+    })();
     return () => {
       cancelled = true;
     };
@@ -73,7 +79,7 @@ export default function HojePage() {
     setOverride(null);
   }
 
-  if (loading) {
+  if (loading || overrideLoading) {
     return (
       <main className="mx-auto flex w-full max-w-[440px] flex-1 items-center justify-center px-5">
         <p className="text-sm text-muted">Carregando…</p>

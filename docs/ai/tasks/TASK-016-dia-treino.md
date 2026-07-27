@@ -84,4 +84,10 @@ npm run typecheck && npm run lint && npm run test && npm run build
   sessão de teste; **registrado como achado para a TASK-013** (robustez/erro amigável, ainda
   pendente) — o app real nunca escreve sessão nesse formato errado, mas qualquer corrupção de dado
   no IndexedDB (real ou de terceiros) crasha `/treino` hoje sem tela de erro.
-- **Estado**: CONCLUÍDO — pendente review Codex + gate de merge do usuário.
+- **Estado**: CONCLUÍDO.
+- **Review Codex (ciclo 1, 2026-07-27) — 1 achado [P2] aceito e corrigido:** `/treino` derivava
+  `activeId`/`workout`/`draft session` do `weekSchedule` **antes** da leitura assíncrona do override
+  resolver — numa abertura fria, o usuário podia logar série na sessão errada por um instante até a
+  tela trocar. → override tratado como 3 estados (`overrideLoading`), página mostra "Carregando…"
+  até resolver (mesmo padrão do `loading` do plano). Aplicado também na Hoje, por consistência
+  (evita "piscar" o nome do treino errado). Gates: **120/120** ✓ · typecheck/lint ✓ · build ✓.

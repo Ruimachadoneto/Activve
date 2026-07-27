@@ -48,6 +48,10 @@ export default function TreinoPage() {
   const [allSetsOpen, setAllSetsOpen] = useState(false);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
   const [override, setOverride] = useState<string | null>(null);
+  // Guarda a leitura do override até resolver: sem isso, a página deriva treino/sessão
+  // do weekSchedule por um instante e só troca quando o IndexedDB responde — nessa
+  // janela o usuário pode logar série no treino errado (achado do review Codex).
+  const [overrideLoading, setOverrideLoading] = useState(true);
 
   const p = plan?.plan;
   const planId = plan?.planId ?? null;
@@ -55,11 +59,13 @@ export default function TreinoPage() {
 
   // Treino trocado pelo usuário para hoje (TASK-016), se houver.
   useEffect(() => {
-    if (!planId) return;
     let cancelled = false;
-    getDayOverride(planId, isoDate()).then((value) => {
-      if (!cancelled) setOverride(value);
-    });
+    (async () => {
+      const value = planId ? await getDayOverride(planId, isoDate()) : null;
+      if (cancelled) return;
+      setOverride(value);
+      setOverrideLoading(false);
+    })();
     return () => {
       cancelled = true;
     };
@@ -106,7 +112,7 @@ export default function TreinoPage() {
 
   const session = stored && draft && stored.sessionId === draft.sessionId ? stored : draft;
 
-  if (loading) {
+  if (loading || overrideLoading) {
     return (
       <main className="mx-auto flex w-full max-w-[440px] flex-1 items-center justify-center px-5">
         <p className="text-sm text-muted">Carregando…</p>
