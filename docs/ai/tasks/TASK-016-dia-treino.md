@@ -98,3 +98,12 @@ npm run typecheck && npm run lint && npm run test && npm run build
   como treino de hoje" aparece quando o treino visualizado difere do oficial; "Voltar ao planejado"
   aparece sempre que há override ativo, não importa o que está sendo pré-visualizado. Verificado no
   browser: override=B, clique em A → ambos os botões aparecem juntos. Gates: **120/120** ✓ · build ✓.
+- **Review Codex (ciclo 3, 2026-07-27) — 1 achado [P2] aceito e corrigido:** `voltarAoPlanejado`
+  limpava o override no storage mas não resetava `selected` — como `activeId = selected ??
+  today.workoutId`, se o usuário tinha clicado explicitamente na pill do treino trocado (setando
+  `selected`), a tela ficava presa nele mesmo depois de "Voltar ao planejado" (o override sumia do
+  storage, mas a UI mentia). → `voltarAoPlanejado` agora também `setSelected(null)` +
+  `setCurrent(0)`. Verificado no browser reproduzindo o cenário exato do achado: override=B, clique
+  na pill B (fixa `selected`), "Voltar ao planejado" → volta pro Treino A corretamente.
+  ⚠️ **Limite de ciclos (AGENTS §13): 3 ciclos completos de correção nesta task.** Gates:
+  **120/120** ✓ · typecheck/lint ✓ · build ✓.

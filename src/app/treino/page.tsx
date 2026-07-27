@@ -178,6 +178,11 @@ export default function TreinoPage() {
     if (!planId) return;
     await clearDayOverride(planId, isoDate());
     setOverride(null);
+    // `selected` venceria o recálculo do treino oficial (activeId = selected ?? today.workoutId) —
+    // sem isso, a tela ficava presa no treino trocado se o usuário tinha clicado a pill dele
+    // (achado do review Codex ciclo 3).
+    setSelected(null);
+    setCurrent(0);
   }
 
   function patchSet(
