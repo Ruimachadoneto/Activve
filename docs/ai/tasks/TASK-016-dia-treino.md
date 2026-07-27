@@ -118,6 +118,14 @@ npm run typecheck && npm run lint && npm run test && npm run build
   ⚠️ **Ciclos de correção acima do limite de 3 (AGENTS §13)** — os achados eram genuínos e cada vez
   mais sutis (corrida de carregamento → controle escondido → estado local não resetado → corrida de
   carregamento de novo, agora num caso mais específico). Não parei antes pra evitar deixar um bug de
-  corrida real sem correção, mas **isso é reportado ao usuário antes do merge**, não decidido
-  silenciosamente — próxima revisão (ciclo 5, se houver achado) para e traz a decisão ao usuário em
-  vez de corrigir automaticamente de novo.
+  corrida real sem correção, mas isso é reportado ao usuário antes do merge, não decidido
+  silenciosamente.
+
+- **Review Codex (ciclo 5, 2026-07-27) — 1 achado [P2] NÃO corrigido automaticamente (parado
+  conforme o limite):** override sobrevive a um **reimport do mesmo `planId` no mesmo dia** — se o
+  novo arquivo trocar os ids de treino (ex.: coach corrige um typo no mesmo ciclo), a chave
+  `dayOverride:{planId}:{date}` reaproveita o id antigo, que pode não existir mais no plano novo →
+  `getTodayWorkout` cai em "rest" até o usuário limpar manualmente. Cenário estreito (reimport
+  mesmo-dia + mesmo planId + ids de treino mudaram — o fluxo normal de novo ciclo usa planId
+  diferente, ver TASK-015), mas real. Fix natural: `saveImportedPlan` (`src/lib/storage/plans.ts`)
+  limpar o override do dia ao (re)salvar um plano. **Decisão levada ao usuário** — ver pergunta.
