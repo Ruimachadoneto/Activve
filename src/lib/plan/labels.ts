@@ -1,4 +1,17 @@
-import type { Muscle } from "./schema";
+import type { Muscle, PlanFile } from "./schema";
+
+/** Rótulos pt-BR do vocabulário de objetivo do plano. */
+export const GOAL_LABEL: Record<PlanFile["goal"]["type"], string> = {
+  lose_fat: "Perder gordura",
+  gain_muscle: "Ganhar músculo",
+  recomp: "Recomposição",
+  maintain: "Manutenção",
+  performance: "Performance",
+};
+
+export function goalLabel(type: PlanFile["goal"]["type"]): string {
+  return GOAL_LABEL[type] ?? type;
+}
 
 /** Rótulos pt-BR do vocabulário de equipamento do plano (ver schema EQUIPMENT). */
 export const EQUIP_LABEL: Record<string, string> = {

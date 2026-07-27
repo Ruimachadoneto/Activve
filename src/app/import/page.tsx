@@ -5,15 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { parsePlan, type ParseResult } from "@/lib/plan/parse";
 import { saveImportedPlan } from "@/lib/storage/plans";
-import type { PlanFile } from "@/lib/plan/schema";
-
-const GOAL_LABEL: Record<PlanFile["goal"]["type"], string> = {
-  lose_fat: "Perder gordura",
-  gain_muscle: "Ganhar músculo",
-  recomp: "Recomposição",
-  maintain: "Manutenção",
-  performance: "Performance",
-};
+import { goalLabel } from "@/lib/plan/labels";
 
 export default function ImportPage() {
   const router = useRouter();
@@ -118,7 +110,7 @@ export default function ImportPage() {
         <div className="mt-5">
           <p className="mb-2 text-xs uppercase tracking-wider text-faint">Prévia do plano</p>
           <div className="rounded-card border border-line bg-surface">
-            <PreviewRow label="Objetivo" value={result.plan.goal.summary ?? GOAL_LABEL[result.plan.goal.type]} />
+            <PreviewRow label="Objetivo" value={result.plan.goal.summary ?? goalLabel(result.plan.goal.type)} />
             <PreviewRow label="Frequência" value={`${result.plan.profile.daysPerWeek}x por semana`} />
             <PreviewRow label="Treinos" value={`${result.plan.training.workouts.length}`} />
             <PreviewRow
