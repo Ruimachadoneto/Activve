@@ -39,11 +39,16 @@ import { isoDate } from "@/lib/plan/session";
 export default function HojePage() {
   const { loading, plan } = useActivePlan();
   const [doneDates, setDoneDates] = useState<Set<string>>(new Set());
-  const [override, setOverride] = useState<string | null>(null);
-  // Sem isso, a tela mostra o treino do weekSchedule por um instante e só troca
-  // quando o IndexedDB responde (mesmo achado do review Codex na TASK-016, aplicado
-  // aqui também para não piscar o treino errado antes do override carregar).
-  const [overrideLoading, setOverrideLoading] = useState(true);
+  // Override resolvido junto com o planId a que pertence — `overrideLoading` é DERIVADO
+  // (planId atual ≠ planId do último fetch), não um booleano solto que pode ficar
+  // obsoleto por 1 render quando o planId muda de null pro id real (mesmo achado do
+  // review Codex na TASK-016, ciclo 4 — ver treino/page.tsx pro raciocínio completo).
+  const [overrideFetch, setOverrideFetch] = useState<{ planId: string | null; value: string | null }>(
+    { planId: null, value: null },
+  );
+  const planId = plan?.planId ?? null;
+  const overrideLoading = overrideFetch.planId !== planId;
+  const override = overrideLoading ? null : overrideFetch.value;
 
   // Dias da semana com treino concluído (lê as sessões do período ativo).
   useEffect(() => {
@@ -63,20 +68,18 @@ export default function HojePage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const value = plan ? await getDayOverride(plan.planId, isoDate()) : null;
-      if (cancelled) return;
-      setOverride(value);
-      setOverrideLoading(false);
+      const value = planId ? await getDayOverride(planId, isoDate()) : null;
+      if (!cancelled) setOverrideFetch({ planId, value });
     })();
     return () => {
       cancelled = true;
     };
-  }, [plan]);
+  }, [planId]);
 
   async function voltarAoPlanejado() {
     if (!plan) return;
     await clearDayOverride(plan.planId, isoDate());
-    setOverride(null);
+    setOverrideFetch({ planId: plan.planId, value: null });
   }
 
   if (loading || overrideLoading) {

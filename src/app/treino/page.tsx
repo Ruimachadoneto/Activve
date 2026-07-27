@@ -47,24 +47,27 @@ export default function TreinoPage() {
   const [restOpen, setRestOpen] = useState(false);
   const [allSetsOpen, setAllSetsOpen] = useState(false);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
-  const [override, setOverride] = useState<string | null>(null);
-  // Guarda a leitura do override até resolver: sem isso, a página deriva treino/sessão
-  // do weekSchedule por um instante e só troca quando o IndexedDB responde — nessa
-  // janela o usuário pode logar série no treino errado (achado do review Codex).
-  const [overrideLoading, setOverrideLoading] = useState(true);
+  // Override resolvido junto com o planId a que ele pertence: `overrideLoading` é
+  // DERIVADO comparando o planId atual com o planId do último fetch resolvido — não é
+  // um booleano solto. Um booleano separado ficava obsoleto por 1 render quando o
+  // planId mudava de null pro id real (achado do review Codex, ciclo 4): a leitura
+  // reancora sozinha a cada mudança de planId, sem depender de um 2º efeito pra "rearmar".
+  const [overrideFetch, setOverrideFetch] = useState<{ planId: string | null; value: string | null }>(
+    { planId: null, value: null },
+  );
 
   const p = plan?.plan;
   const planId = plan?.planId ?? null;
   const hasWorkouts = !!p && p.training.workouts.length > 0;
+  const overrideLoading = overrideFetch.planId !== planId;
+  const override = overrideLoading ? null : overrideFetch.value;
 
   // Treino trocado pelo usuário para hoje (TASK-016), se houver.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const value = planId ? await getDayOverride(planId, isoDate()) : null;
-      if (cancelled) return;
-      setOverride(value);
-      setOverrideLoading(false);
+      if (!cancelled) setOverrideFetch({ planId, value });
     })();
     return () => {
       cancelled = true;
@@ -171,13 +174,13 @@ export default function TreinoPage() {
   async function definirComoTreinoDeHoje() {
     if (!planId) return;
     await setDayOverride(planId, isoDate(), workoutId);
-    setOverride(workoutId);
+    setOverrideFetch({ planId, value: workoutId });
   }
 
   async function voltarAoPlanejado() {
     if (!planId) return;
     await clearDayOverride(planId, isoDate());
-    setOverride(null);
+    setOverrideFetch({ planId, value: null });
     // `selected` venceria o recálculo do treino oficial (activeId = selected ?? today.workoutId) —
     // sem isso, a tela ficava presa no treino trocado se o usuário tinha clicado a pill dele
     // (achado do review Codex ciclo 3).

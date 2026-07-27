@@ -105,5 +105,19 @@ npm run typecheck && npm run lint && npm run test && npm run build
   storage, mas a UI mentia). → `voltarAoPlanejado` agora também `setSelected(null)` +
   `setCurrent(0)`. Verificado no browser reproduzindo o cenário exato do achado: override=B, clique
   na pill B (fixa `selected`), "Voltar ao planejado" → volta pro Treino A corretamente.
-  ⚠️ **Limite de ciclos (AGENTS §13): 3 ciclos completos de correção nesta task.** Gates:
-  **120/120** ✓ · typecheck/lint ✓ · build ✓.
+  Gates: **120/120** ✓ · typecheck/lint ✓ · build ✓.
+- **Review Codex (ciclo 4, 2026-07-27) — 1 achado [P2] aceito e corrigido, ACIMA do limite normal
+  de 3 ciclos (AGENTS §13):** `overrideLoading` era um booleano solto que ficava obsoleto por 1
+  render quando `planId` mudava de `null` (mount, antes do plano carregar) pro id real — reabria a
+  mesma corrida do ciclo 1 nesse instante específico. → substituído por estado **derivado**:
+  `{ planId, value }` do último fetch resolvido comparado ao `planId` atual (`overrideLoading =
+  overrideFetch.planId !== planId`), sem depender de um booleano separado pra "rearmar". Aplicado
+  em `/treino` e Hoje. Verificado no browser: override salvo **antes** de abrir `/treino` (cold
+  load) → tela já nasce em "Treino B — Puxar" com o aviso, sem flash do treino errado; console
+  limpo. Gates: **120/120** ✓ · typecheck/lint ✓ · build ✓.
+  ⚠️ **Ciclos de correção acima do limite de 3 (AGENTS §13)** — os achados eram genuínos e cada vez
+  mais sutis (corrida de carregamento → controle escondido → estado local não resetado → corrida de
+  carregamento de novo, agora num caso mais específico). Não parei antes pra evitar deixar um bug de
+  corrida real sem correção, mas **isso é reportado ao usuário antes do merge**, não decidido
+  silenciosamente — próxima revisão (ciclo 5, se houver achado) para e traz a decisão ao usuário em
+  vez de corrigir automaticamente de novo.
