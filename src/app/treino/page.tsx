@@ -32,6 +32,7 @@ import {
   type WorkoutSession,
 } from "@/lib/plan/session";
 import { getSession, saveSession, getAllSessions } from "@/lib/storage/sessions";
+import { getDayOverride, setDayOverride, clearDayOverride } from "@/lib/storage/overrides";
 
 const LOAD_STEP = 2.5;
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -46,16 +47,39 @@ export default function TreinoPage() {
   const [restOpen, setRestOpen] = useState(false);
   const [allSetsOpen, setAllSetsOpen] = useState(false);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
+  // Override resolvido junto com o planId a que ele pertence: `overrideLoading` é
+  // DERIVADO comparando o planId atual com o planId do último fetch resolvido — não é
+  // um booleano solto. Um booleano separado ficava obsoleto por 1 render quando o
+  // planId mudava de null pro id real (achado do review Codex, ciclo 4): a leitura
+  // reancora sozinha a cada mudança de planId, sem depender de um 2º efeito pra "rearmar".
+  const [overrideFetch, setOverrideFetch] = useState<{ planId: string | null; value: string | null }>(
+    { planId: null, value: null },
+  );
 
   const p = plan?.plan;
   const planId = plan?.planId ?? null;
   const hasWorkouts = !!p && p.training.workouts.length > 0;
+  const overrideLoading = overrideFetch.planId !== planId;
+  const override = overrideLoading ? null : overrideFetch.value;
 
-  const today = p ? getTodayWorkout(p) : null;
+  // Treino trocado pelo usuário para hoje (TASK-016), se houver.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const value = planId ? await getDayOverride(planId, isoDate()) : null;
+      if (!cancelled) setOverrideFetch({ planId, value });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [planId]);
+
+  const today = p ? getTodayWorkout(p, new Date(), override) : null;
   const activeId =
     selected ??
     (today?.kind === "workout" ? today.workoutId : p?.training.workouts[0]?.id) ??
     null;
+  const officialTodayId = today?.kind === "workout" ? today.workoutId : null;
   const workout = p?.training.workouts.find((w) => w.id === activeId) ?? p?.training.workouts[0];
 
   const draft = useMemo(
@@ -91,7 +115,7 @@ export default function TreinoPage() {
 
   const session = stored && draft && stored.sessionId === draft.sessionId ? stored : draft;
 
-  if (loading) {
+  if (loading || overrideLoading) {
     return (
       <main className="mx-auto flex w-full max-w-[440px] flex-1 items-center justify-center px-5">
         <p className="text-sm text-muted">Carregando…</p>
@@ -145,6 +169,24 @@ export default function TreinoPage() {
     session.sessionId,
     log?.swappedToId ?? ex.id,
   );
+
+  const workoutId = workout.id;
+  async function definirComoTreinoDeHoje() {
+    if (!planId) return;
+    await setDayOverride(planId, isoDate(), workoutId);
+    setOverrideFetch({ planId, value: workoutId });
+  }
+
+  async function voltarAoPlanejado() {
+    if (!planId) return;
+    await clearDayOverride(planId, isoDate());
+    setOverrideFetch({ planId, value: null });
+    // `selected` venceria o recálculo do treino oficial (activeId = selected ?? today.workoutId) —
+    // sem isso, a tela ficava presa no treino trocado se o usuário tinha clicado a pill dele
+    // (achado do review Codex ciclo 3).
+    setSelected(null);
+    setCurrent(0);
+  }
 
   function patchSet(
     exerciseId: string,
@@ -247,6 +289,30 @@ export default function TreinoPage() {
               {w.id}
             </button>
           ))}
+        </div>
+      ) : null}
+
+      {workout.id !== officialTodayId ? (
+        <button
+          type="button"
+          onClick={definirComoTreinoDeHoje}
+          className="mx-auto mt-2 block text-xs font-medium text-accent underline-offset-2 hover:underline"
+        >
+          Definir {workout.name} como treino de hoje
+        </button>
+      ) : null}
+      {/* Independente do que está sendo pré-visualizado: enquanto houver override ativo,
+          precisa dar pra limpá-lo sem sair da tela (achado do review Codex). */}
+      {override ? (
+        <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-muted">
+          {workout.id === officialTodayId ? <span>Este é o treino de hoje (trocado por você).</span> : null}
+          <button
+            type="button"
+            onClick={voltarAoPlanejado}
+            className="font-medium text-accent underline-offset-2 hover:underline"
+          >
+            Voltar ao planejado
+          </button>
         </div>
       ) : null}
 

@@ -33,10 +33,22 @@ import {
   WEEK_DAYS,
 } from "@/lib/plan/today";
 import { getSessionsForPlan } from "@/lib/storage/sessions";
+import { getDayOverride, clearDayOverride } from "@/lib/storage/overrides";
+import { isoDate } from "@/lib/plan/session";
 
 export default function HojePage() {
   const { loading, plan } = useActivePlan();
   const [doneDates, setDoneDates] = useState<Set<string>>(new Set());
+  // Override resolvido junto com o planId a que pertence — `overrideLoading` é DERIVADO
+  // (planId atual ≠ planId do último fetch), não um booleano solto que pode ficar
+  // obsoleto por 1 render quando o planId muda de null pro id real (mesmo achado do
+  // review Codex na TASK-016, ciclo 4 — ver treino/page.tsx pro raciocínio completo).
+  const [overrideFetch, setOverrideFetch] = useState<{ planId: string | null; value: string | null }>(
+    { planId: null, value: null },
+  );
+  const planId = plan?.planId ?? null;
+  const overrideLoading = overrideFetch.planId !== planId;
+  const override = overrideLoading ? null : overrideFetch.value;
 
   // Dias da semana com treino concluído (lê as sessões do período ativo).
   useEffect(() => {
@@ -52,7 +64,25 @@ export default function HojePage() {
     };
   }, [plan]);
 
-  if (loading) {
+  // Treino trocado pelo usuário para hoje (TASK-016), se houver.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const value = planId ? await getDayOverride(planId, isoDate()) : null;
+      if (!cancelled) setOverrideFetch({ planId, value });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [planId]);
+
+  async function voltarAoPlanejado() {
+    if (!plan) return;
+    await clearDayOverride(plan.planId, isoDate());
+    setOverrideFetch({ planId: plan.planId, value: null });
+  }
+
+  if (loading || overrideLoading) {
     return (
       <main className="mx-auto flex w-full max-w-[440px] flex-1 items-center justify-center px-5">
         <p className="text-sm text-muted">Carregando…</p>
@@ -78,7 +108,7 @@ export default function HojePage() {
   }
 
   const p = plan.plan;
-  const today = getTodayWorkout(p);
+  const today = getTodayWorkout(p, new Date(), override);
   const ti = todayIndex();
   const week = weekDates();
   const doneThisWeek = week.filter((d) => doneDates.has(d)).length;
@@ -140,6 +170,19 @@ export default function HojePage() {
           {p.training.split} · {trainingDays}x por semana
         </span>
       </div>
+
+      {override ? (
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-accent/30 bg-accent/5 px-3.5 py-2.5">
+          <span className="text-xs text-ink">Você trocou o treino de hoje.</span>
+          <button
+            type="button"
+            onClick={voltarAoPlanejado}
+            className="shrink-0 text-xs font-medium text-accent underline-offset-2 hover:underline"
+          >
+            Voltar ao planejado
+          </button>
+        </div>
+      ) : null}
 
       {today.kind === "workout" ? (
         <>

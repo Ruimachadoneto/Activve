@@ -34,6 +34,29 @@ describe("getTodayWorkout", () => {
     const monday = new Date("2026-06-22T10:00:00");
     expect(getTodayWorkout(broken, monday).kind).toBe("rest");
   });
+
+  it("override troca o treino do dia, ignorando o weekSchedule (TASK-016)", () => {
+    const monday = new Date("2026-06-22T10:00:00"); // agendado: A
+    const result = getTodayWorkout(plan, monday, "B");
+    expect(result.kind).toBe("workout");
+    if (result.kind === "workout") expect(result.workoutId).toBe("B");
+  });
+
+  it("override 'rest' força descanso mesmo num dia de treino", () => {
+    const monday = new Date("2026-06-22T10:00:00");
+    expect(getTodayWorkout(plan, monday, "rest").kind).toBe("rest");
+  });
+
+  it("override inexistente cai em descanso (mesmo fallback defensivo)", () => {
+    const monday = new Date("2026-06-22T10:00:00");
+    expect(getTodayWorkout(plan, monday, "Z").kind).toBe("rest");
+  });
+
+  it("sem override, comportamento idêntico ao atual", () => {
+    const monday = new Date("2026-06-22T10:00:00");
+    expect(getTodayWorkout(plan, monday, null)).toEqual(getTodayWorkout(plan, monday));
+    expect(getTodayWorkout(plan, monday, undefined)).toEqual(getTodayWorkout(plan, monday));
+  });
 });
 
 describe("greeting", () => {
