@@ -100,4 +100,20 @@ npm run typecheck && npm run lint && npm run test && npm run build
   sessões — renderiza "0 concluídos de 13 agendados" sem crashar, nada inventado); "Copiar" escreve
   na área de transferência. Link "Relatórios de treino" em `/mais` navega corretamente. Console
   limpo em todos os passos.
-- **Estado**: CONCLUÍDO — pendente review Codex + gate de merge do usuário.
+- **Estado**: CONCLUÍDO.
+- **Review Codex (ciclo 1, 2026-07-27) — 2 achados aceitos e corrigidos:**
+  - **[P1] Export misturava planos** — `exportPeriod` passava TODAS as sessões do período pro
+    `buildReport`, mesmo as de um `planId` **anterior** ao ativo; a agregação (weekSchedule, nomes
+    de exercício, músculos, `refersToPlanId`) usava só a definição do plano ATIVO, então um período
+    que atravessa uma troca de ciclo gerava um relatório incoerente pras sessões antigas. → o
+    export agora filtra `sessions.filter(s => s.planId === plan.planId)` antes de chamar
+    `buildReport` — o `ReportFile` é por natureza escopado a UM `refersToPlanId`
+    (`REPORT_SCHEMA.md`); sessões de ciclos anteriores continuam visíveis no **calendário**
+    (que não tem esse escopo), só não entram no export. Documentado no código.
+  - **[P2] Nome da variação trocada não resolvia** — o detalhe do dia passava `swappedToId` direto
+    pro lookup de exercícios de topo do treino; ids de variação são escopados ao exercício base
+    (mesma pegadinha do `recovery.ts`), então caía no id bruto (ex.: "machine"). → novo
+    `movementName(planId, exerciseId, swappedToId?)` busca dentro de `alternatives` do exercício
+    base. Verificado no browser: trocado "Agachamento" → "Leg press" em `/treino`, o detalhe do dia
+    em `/relatorios` agora mostra "Leg press" corretamente (antes mostraria o id bruto).
+  - Gates: typecheck ✓ · lint ✓ · **128/128** ✓ · build ✓.

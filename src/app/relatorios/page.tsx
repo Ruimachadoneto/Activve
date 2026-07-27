@@ -101,14 +101,21 @@ export default function RelatoriosPage() {
     return map;
   }, [plans, plan]);
 
-  function exerciseName(planId: string, exerciseId: string): string {
+  /**
+   * Nome do movimento efetivamente executado: se houve troca (`swappedToId`), busca
+   * dentro das `alternatives` do exercício base — ids de variação são escopados ao
+   * exercício, não existem no nível do treino (mesma pegadinha do `recovery.ts`).
+   */
+  function movementName(planId: string, exerciseId: string, swappedToId?: string): string {
     const p = plansById.get(planId);
-    if (!p) return exerciseId;
+    if (!p) return swappedToId ?? exerciseId;
     for (const w of p.training.workouts) {
       const ex = w.exercises.find((e) => e.id === exerciseId);
-      if (ex) return ex.name;
+      if (!ex) continue;
+      if (!swappedToId) return ex.name;
+      return ex.alternatives?.find((a) => a.id === swappedToId)?.name ?? ex.name;
     }
-    return exerciseId;
+    return swappedToId ?? exerciseId;
   }
 
   function workoutName(planId: string, workoutId: string): string {
@@ -117,7 +124,14 @@ export default function RelatoriosPage() {
 
   function exportPeriod(period: ReportPeriod, label: string) {
     if (!plan) return;
-    const report = buildReport(plan.plan, sessions, bodyEntries, period);
+    // Só sessões do plano ATIVO: misturar sessões de um ciclo anterior com a definição
+    // do plano vigente (weekSchedule, nomes de exercício, músculos) produz um relatório
+    // incoerente quando o período atravessa uma troca de plano (achado do review Codex).
+    // O `ReportFile` já é por natureza escopado a UM `refersToPlanId` (REPORT_SCHEMA.md);
+    // sessões de ciclos anteriores dentro do mesmo período simplesmente não entram —
+    // continuam visíveis no calendário (que não tem esse escopo), só não no export.
+    const sessionsForActivePlan = sessions.filter((s) => s.planId === plan.planId);
+    const report = buildReport(plan.plan, sessionsForActivePlan, bodyEntries, period);
     downloadJson(`activve-relatorio-${period.from}_a_${period.to}.json`, report);
     setExportPreview({ label, markdown: reportToMarkdown(report) });
     setCopied(false);
@@ -248,7 +262,7 @@ export default function RelatoriosPage() {
                           return (
                             <div key={ex.exerciseId} className="rounded-xl bg-surface2/40 px-3 py-2">
                               <p className="text-xs font-medium text-ink">
-                                {exerciseName(s.planId, ex.swappedToId ?? ex.exerciseId)}
+                                {movementName(s.planId, ex.exerciseId, ex.swappedToId)}
                               </p>
                               <div className="mt-1 flex flex-col gap-0.5">
                                 {doneSets.map((set, i) => (
