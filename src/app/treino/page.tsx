@@ -32,6 +32,7 @@ import {
   type WorkoutSession,
 } from "@/lib/plan/session";
 import { getSession, saveSession, getAllSessions } from "@/lib/storage/sessions";
+import { getDayOverride, setDayOverride, clearDayOverride } from "@/lib/storage/overrides";
 
 const LOAD_STEP = 2.5;
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -46,16 +47,30 @@ export default function TreinoPage() {
   const [restOpen, setRestOpen] = useState(false);
   const [allSetsOpen, setAllSetsOpen] = useState(false);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
+  const [override, setOverride] = useState<string | null>(null);
 
   const p = plan?.plan;
   const planId = plan?.planId ?? null;
   const hasWorkouts = !!p && p.training.workouts.length > 0;
 
-  const today = p ? getTodayWorkout(p) : null;
+  // Treino trocado pelo usuário para hoje (TASK-016), se houver.
+  useEffect(() => {
+    if (!planId) return;
+    let cancelled = false;
+    getDayOverride(planId, isoDate()).then((value) => {
+      if (!cancelled) setOverride(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [planId]);
+
+  const today = p ? getTodayWorkout(p, new Date(), override) : null;
   const activeId =
     selected ??
     (today?.kind === "workout" ? today.workoutId : p?.training.workouts[0]?.id) ??
     null;
+  const officialTodayId = today?.kind === "workout" ? today.workoutId : null;
   const workout = p?.training.workouts.find((w) => w.id === activeId) ?? p?.training.workouts[0];
 
   const draft = useMemo(
@@ -145,6 +160,19 @@ export default function TreinoPage() {
     session.sessionId,
     log?.swappedToId ?? ex.id,
   );
+
+  const workoutId = workout.id;
+  async function definirComoTreinoDeHoje() {
+    if (!planId) return;
+    await setDayOverride(planId, isoDate(), workoutId);
+    setOverride(workoutId);
+  }
+
+  async function voltarAoPlanejado() {
+    if (!planId) return;
+    await clearDayOverride(planId, isoDate());
+    setOverride(null);
+  }
 
   function patchSet(
     exerciseId: string,
@@ -247,6 +275,27 @@ export default function TreinoPage() {
               {w.id}
             </button>
           ))}
+        </div>
+      ) : null}
+
+      {workout.id !== officialTodayId ? (
+        <button
+          type="button"
+          onClick={definirComoTreinoDeHoje}
+          className="mx-auto mt-2 block text-xs font-medium text-accent underline-offset-2 hover:underline"
+        >
+          Definir {workout.name} como treino de hoje
+        </button>
+      ) : override ? (
+        <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-muted">
+          <span>Este é o treino de hoje (trocado por você).</span>
+          <button
+            type="button"
+            onClick={voltarAoPlanejado}
+            className="font-medium text-accent underline-offset-2 hover:underline"
+          >
+            Voltar ao planejado
+          </button>
         </div>
       ) : null}
 

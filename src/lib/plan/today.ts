@@ -12,13 +12,19 @@ export type TodayResult =
     };
 
 /**
- * Treino de hoje a partir do weekSchedule (índice 0 = segunda).
+ * Treino de hoje a partir do weekSchedule (índice 0 = segunda), ou do `override` do
+ * usuário quando presente (TASK-016: "rest" ou um workoutId — tem precedência sobre o
+ * weekSchedule, mesmo fallback defensivo: id desconhecido → rest).
  * Agenda é uma sugestão (decisão de produto: agenda flexível) — aqui só resolvemos
- * o que está previsto para o dia atual.
+ * o que está previsto/escolhido para o dia atual.
  */
-export function getTodayWorkout(plan: PlanFile, now: Date = new Date()): TodayResult {
+export function getTodayWorkout(
+  plan: PlanFile,
+  now: Date = new Date(),
+  override?: string | null,
+): TodayResult {
   const mondayIndex = (now.getDay() + 6) % 7; // getDay(): 0=domingo → mapeia p/ 0=segunda
-  const entry = plan.training.weekSchedule[mondayIndex];
+  const entry = override ?? plan.training.weekSchedule[mondayIndex];
   if (!entry || entry === "rest") return { kind: "rest" };
 
   const workout = plan.training.workouts.find((w) => w.id === entry);

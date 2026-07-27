@@ -33,10 +33,13 @@ import {
   WEEK_DAYS,
 } from "@/lib/plan/today";
 import { getSessionsForPlan } from "@/lib/storage/sessions";
+import { getDayOverride, clearDayOverride } from "@/lib/storage/overrides";
+import { isoDate } from "@/lib/plan/session";
 
 export default function HojePage() {
   const { loading, plan } = useActivePlan();
   const [doneDates, setDoneDates] = useState<Set<string>>(new Set());
+  const [override, setOverride] = useState<string | null>(null);
 
   // Dias da semana com treino concluído (lê as sessões do período ativo).
   useEffect(() => {
@@ -51,6 +54,24 @@ export default function HojePage() {
       cancelled = true;
     };
   }, [plan]);
+
+  // Treino trocado pelo usuário para hoje (TASK-016), se houver.
+  useEffect(() => {
+    if (!plan) return;
+    let cancelled = false;
+    getDayOverride(plan.planId, isoDate()).then((value) => {
+      if (!cancelled) setOverride(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [plan]);
+
+  async function voltarAoPlanejado() {
+    if (!plan) return;
+    await clearDayOverride(plan.planId, isoDate());
+    setOverride(null);
+  }
 
   if (loading) {
     return (
@@ -78,7 +99,7 @@ export default function HojePage() {
   }
 
   const p = plan.plan;
-  const today = getTodayWorkout(p);
+  const today = getTodayWorkout(p, new Date(), override);
   const ti = todayIndex();
   const week = weekDates();
   const doneThisWeek = week.filter((d) => doneDates.has(d)).length;
@@ -140,6 +161,19 @@ export default function HojePage() {
           {p.training.split} · {trainingDays}x por semana
         </span>
       </div>
+
+      {override ? (
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-accent/30 bg-accent/5 px-3.5 py-2.5">
+          <span className="text-xs text-ink">Você trocou o treino de hoje.</span>
+          <button
+            type="button"
+            onClick={voltarAoPlanejado}
+            className="shrink-0 text-xs font-medium text-accent underline-offset-2 hover:underline"
+          >
+            Voltar ao planejado
+          </button>
+        </div>
+      ) : null}
 
       {today.kind === "workout" ? (
         <>
