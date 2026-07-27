@@ -4,14 +4,14 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `main` (limpa; TASK-016 mergeada em `76c7dcb`). Sem branches de feature abertas.
-- **`main`** tem **TASK-001→012, 014, 015, 016 mergeadas**. TASK-013 (erro amigável) segue pendente.
+- **Branch atual:** `main` (limpa; TASK-017 mergeada em `fb09bbe`). Sem branches de feature abertas.
+- **`main`** tem **TASK-001→012, 014→017 mergeadas**. TASK-013 (erro amigável) segue pendente.
 - **2026-07-27 — feedback de uso real (app publicado no Vercel):** usuário testou e mapeou 4 pontos:
   (1) sem relatório/calendário de treino + export semanal/mensal, (2) sem trocar o treino "oficial"
   do dia, (3) timer de descanso diverge em background/sem notificação, (4) sem UI pra reimportar
-  plano. Plano de resposta: **TASK-015** (✅ mergeada) → **TASK-016** (✅ mergeada) → **TASK-017**
-  (timer) → **TASK-018** (calendário/relatório). PWA (manifest+SW, necessário pra notificação real
-  em background) vira **TASK-019** à parte.
+  plano. Plano de resposta: **TASK-015** (✅) → **TASK-016** (✅) → **TASK-017** (✅) → **TASK-018**
+  (calendário/relatório — falta). PWA (manifest+SW, necessário pra notificação real em background)
+  vira **TASK-019** à parte.
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
 ## O alvo (não-negociável)
@@ -240,13 +240,30 @@ parâmetro; Hoje e `/treino` mostram/permitem trocar, com aviso e reversão.
   ciclo, incluindo o cenário exato de cada achado (cold-load com override pré-existente, reimport
   do mesmo planId via `/import` real).
 
+## TASK-017 — Timer de descanso ancorado em tempo real (MERGEADA em `main` `fb09bbe`, 2026-07-27)
+Contrato: `docs/ai/tasks/TASK-017-timer-ancorado.md`. `RestTimer.tsx` reescrito: `endAtRef` (epoch
+ms) é a fonte da verdade, `remaining` sempre recalculado de `endAt - Date.now()` (nunca
+decrementado); recalcula na hora ao voltar foco/visibilidade. **Sem** notificação em background
+(isso é PWA/Service Worker → TASK-019, à parte) — só resolve a contagem não divergir.
+- **2 ciclos de review Codex, 1 achado [P1] real:** reiniciar o descanso com a **mesma duração**
+  enquanto já `running` (ex.: fechar cedo via X, concluir outra série do mesmo exercício pouco
+  depois) não reancorava — o efeito de ancoragem dependia de `running`/`duration` **mudarem de
+  valor**, e nesse caso nenhum dos dois muda. → toda ação que (re)inicia a contagem ancora
+  **explicitamente**, nunca inferido de mudança de valor.
+- Verificado no browser: `Date.now` mockado +30s/+35s + `visibilitychange`/`focus` sem esperar tick
+  real → corrige na hora; pause/resume sem pular segundos; +15s correto; zera e revive com preset
+  (sem reintroduzir o bug da TASK-010); reiniciar com mesma duração reancora fresco (não o achado).
+  Gates: **120/120** ✓ · build ✓.
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**TASK-017 — Timer de descanso ancorado em tempo real** (3ª do plano de resposta ao feedback
-2026-07-27). Contrato pronto em `docs/ai/tasks/TASK-017-timer-ancorado.md`. Reescrever o núcleo do
-`RestTimer.tsx` pra usar uma âncora `Date.now()` (`endAt`) em vez de decremento relativo — hoje o
-countdown diverge quando o app sai/volta de foco (browser faz throttling de timer em background).
-Sem notificação em background nesta task (isso é PWA/Service Worker → TASK-019, à parte). Depois:
-TASK-018 (calendário/relatório), TASK-013 (erro amigável, ainda pendente do ciclo do mockup).
+**TASK-018 — Calendário de treinos + export semanal/mensal** (4ª e última do plano de resposta ao
+feedback 2026-07-27 — o maior escopo). Ainda sem contrato escrito. Objetivo: usuário clica num dia
+no calendário e vê o relatório do treino feito (série/peso/reps/RPE); export de relatório
+semanal/mensal. Dados já existem em `sessions` (IndexedDB) — falta a UI de calendário/detalhe e a
+agregação. **Atenção ao achado da TASK-015:** o calendário/relatório deve listar sessões de
+**todos os planos** (`getAllSessions`), não só o `planId` ativo, senão o histórico "sumiria"
+visualmente a cada novo ciclo de coach. Depois: TASK-013 (erro amigável, ainda pendente do ciclo do
+mockup), TASK-019 (PWA — manifest+SW, habilita notificação real do timer em background).
 
 **(referência) TASK-013 — Robustez: estado de erro amigável p/ plano corrompido** (última do ciclo do mockup, ainda não iniciada).
 Bug descoberto na auditoria: plano parcial/corrompido no IndexedDB (sem weekSchedule/howTo/diet.meals)
@@ -321,3 +338,4 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-014 | Corpo v2 (tendência+delta, medidas, histórico) | MERGEADA | main (`1b2ae92`) |
 | TASK-015 | Trocar plano visível na UI | MERGEADA | main (`cb1b07b`) |
 | TASK-016 | Selecionar/fixar treino do dia | MERGEADA | main (`76c7dcb`) |
+| TASK-017 | Timer de descanso ancorado em tempo real | MERGEADA | main (`fb09bbe`) |
