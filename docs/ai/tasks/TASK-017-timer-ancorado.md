@@ -2,11 +2,11 @@
 
 ## Metadados
 
-- Status: `planned`
+- Status: `in_progress`
 - Risco: `médio` (reescreve o núcleo do `RestTimer`; componente já teve 1 bug de countdown
   corrigido na TASK-010 — atenção redobrada pra não reintroduzir regressão)
 - Lead/Planner: `Claude` · Implementer: `Claude` · Reviewer: `Codex`
-- Branch: `ai/TASK-017-timer-ancorado-claude` (a criar) · Base: `origin/main`
+- Branch: `ai/TASK-017-timer-ancorado-claude` · Base: `origin/main` (`0a4a3cd`)
 
 ## Objetivo
 
@@ -60,4 +60,49 @@ npm run typecheck && npm run lint && npm run test && npm run build
 
 ## Registro de execução
 
-- Data: 2026-07-27 · Resultado: planejado, aguardando início.
+- Data: 2026-07-27 · Implementado: `RestTimer.tsx` reescrito. Núcleo agora usa `endAtRef` (epoch ms,
+  `Date.now() + remaining*1000`) como fonte da verdade; `remaining` exibido é sempre recalculado de
+  `endAt - Date.now()` (nunca decrementado). Recalcula na hora ao voltar foco/visibilidade
+  (`visibilitychange`, `focus`), sem esperar o próximo tick. Pausar congela o valor **calculado no
+  momento do clique** (via endAt), não o último tick armazenado. `remainingRef` (mirror síncrono)
+  evita reler `endAt` de forma inconsistente entre preset/+15s/pause/resume. Vibração 1x guardada
+  por `vibratedRef`. Preservado: overlay, `role=dialog`, Escape fecha, presets, `runToken` reinicia.
+- Gates: typecheck ✓ · lint ✓ (1 ajuste: `react-hooks/refs` proíbe escrever ref durante o render —
+  o reset por `runToken` movido pra um efeito dedicado, antes do efeito de ancoragem na ordem de
+  declaração) · **120/120** ✓ · build ✓.
+- **Verificado no browser** (`/treino`, descanso real de 120s pós "Concluir série"):
+  - **Correção automática**: `Date.now` mockado +30s + `visibilitychange`/`focus` disparados sem
+    esperar tick real → contador saltou exatamente o tempo decorrido (30s mock + latência real),
+    não "1 tick só". Prova a âncora absoluta funcionando (o cenário exato do bug relatado).
+  - **Pause/resume**: pausado, congelado durante 3s reais parado, retomado → continuou do valor
+    correto (sem pular nem duplicar segundos).
+  - **+15s**: estendeu corretamente a partir do valor real no momento do clique.
+  - **Zerar + revivir**: mock +35s até 0:00 ("Descanso fim"/"Pronto para a próxima série"), depois
+    clique num preset (60s) → religou e voltou a contar normalmente — **não reintroduz o bug da
+    TASK-010** ("timer morria após zerar").
+  - Console limpo em todos os passos.
+- **Fora de escopo confirmado**: sem notificação do sistema com o app minimizado/tela apagada —
+  isso exige Service Worker (TASK-019). O que esta task resolve é a contagem **não divergir**
+  quando o usuário volta pro app; a notificação real fica pra depois do PWA existir.
+- **Review Codex (ciclo 1, 2026-07-27) — 1 achado [P1] aceito e corrigido:** reiniciar o descanso
+  com a **mesma duração** enquanto já `running` (ex.: fechar o overlay cedo via X, sem pular, e
+  concluir outra série do mesmo exercício pouco depois) não reancorava — nem `running` nem
+  `duration` mudavam de VALOR, então o efeito de ancoragem (antes keyed em `[running, duration]`)
+  não disparava, e o próximo tick sobrescrevia o `remaining` recém-resetado com o tempo restante do
+  ciclo ANTIGO. → removida a dependência em "valores mudarem"; toda ação que (re)inicia a contagem
+  (`runToken` novo, preset, +15s, retomar do pause) agora ancora `endAtRef` **explicitamente** no
+  próprio evento/efeito que a dispara, nunca inferido. +1 efeito só de limpeza (`if (!running)
+  endAtRef.current = null`, keyed em `[running]`).
+  - Ajuste de lint: `react-hooks/purity` acusou `Date.now()` em `setPreset` (não em `addTime`/
+    `toggleRun`, código idêntico — aparenta falso positivo pontual da regra experimental) → 1
+    `eslint-disable-next-line` justificado no local.
+  - Verificado no browser (2 tentativas; a 1ª mostrou erro de contagem de hooks no console que se
+    revelou artefato do Fast Refresh numa aba com HMR do código antigo — confirmado limpo numa aba
+    nova repetindo a mesma sequência): abrir descanso (1:57) → fechar via X (não Pular, `running`
+    interno continua true) → aguardar 6s → concluir a próxima série do mesmo exercício (mesmo
+    `rest_s=120`) → reabre **fresco em 1:57**, não continuando o alvo antigo. Console limpo.
+  - Gates: typecheck ✓ · lint ✓ · **120/120** ✓ · build ✓.
+- **Re-review de confirmação (2026-07-27) — APROVADO, LIMPO:** "the timer rewrite appears to
+  preserve existing behavior while fixing the background-throttling issue... no discrete
+  regression in the changed code that is clearly actionable from the diff alone". **TASK-017
+  chancelada** — pendente gate de merge do usuário.
