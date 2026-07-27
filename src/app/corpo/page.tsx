@@ -25,14 +25,7 @@ import {
   stimuliFromSessions,
 } from "@/lib/plan/recovery";
 import type { WorkoutSession } from "@/lib/plan/session";
-
-const GOAL_LABEL: Record<string, string> = {
-  lose_fat: "Perder gordura",
-  gain_muscle: "Ganhar músculo",
-  recomp: "Recomposição",
-  maintain: "Manter",
-  performance: "Performance",
-};
+import { goalLabel } from "@/lib/plan/labels";
 
 type Tab = "overview" | "measures" | "history";
 
@@ -313,7 +306,7 @@ export default function CorpoPage() {
 
           <section className="mt-4 rounded-card border border-line bg-surface p-5">
             <p className="text-[11px] uppercase tracking-wider text-faint">Sua meta</p>
-            <h2 className="mt-1.5 text-lg font-medium">{GOAL_LABEL[goal.type] ?? goal.type}</h2>
+            <h2 className="mt-1.5 text-lg font-medium">{goalLabel(goal.type)}</h2>
             {goal.summary ? <p className="mt-1 text-sm text-muted">{goal.summary}</p> : null}
             {goal.targetWeight_kg || goal.targetDate ? (
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
