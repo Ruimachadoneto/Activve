@@ -43,3 +43,12 @@ export async function getActivePlan(): Promise<StoredPlan | null> {
   const record = (await db.get(STORE_PLANS, activeId)) as StoredPlan | undefined;
   return record ?? null;
 }
+
+/**
+ * Todos os planos já importados (não só o ativo) — usado pra resolver nome de
+ * exercício/treino de sessões de ciclos anteriores no calendário/relatório (TASK-018).
+ */
+export async function getAllPlans(): Promise<StoredPlan[]> {
+  const db = await getDB();
+  return (await db.getAll(STORE_PLANS)) as StoredPlan[];
+}
