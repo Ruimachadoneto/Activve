@@ -102,4 +102,7 @@ npm run typecheck && npm run lint && npm run test && npm run build
     interno continua true) → aguardar 6s → concluir a próxima série do mesmo exercício (mesmo
     `rest_s=120`) → reabre **fresco em 1:57**, não continuando o alvo antigo. Console limpo.
   - Gates: typecheck ✓ · lint ✓ · **120/120** ✓ · build ✓.
-- **Estado**: CONCLUÍDO — pendente review Codex de confirmação + gate de merge do usuário.
+- **Re-review de confirmação (2026-07-27) — APROVADO, LIMPO:** "the timer rewrite appears to
+  preserve existing behavior while fixing the background-throttling issue... no discrete
+  regression in the changed code that is clearly actionable from the diff alone". **TASK-017
+  chancelada** — pendente gate de merge do usuário.
