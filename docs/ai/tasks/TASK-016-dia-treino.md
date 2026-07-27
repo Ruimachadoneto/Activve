@@ -128,4 +128,10 @@ npm run typecheck && npm run lint && npm run test && npm run build
   `getTodayWorkout` cai em "rest" até o usuário limpar manualmente. Cenário estreito (reimport
   mesmo-dia + mesmo planId + ids de treino mudaram — o fluxo normal de novo ciclo usa planId
   diferente, ver TASK-015), mas real. Fix natural: `saveImportedPlan` (`src/lib/storage/plans.ts`)
-  limpar o override do dia ao (re)salvar um plano. **Decisão levada ao usuário** — ver pergunta.
+  limpar o override do dia ao (re)salvar um plano. **Decisão levada ao usuário: corrigir e mergear
+  (aprovado).** → `saveImportedPlan` agora chama `clearDayOverride(planId, isoDate())` após salvar
+  (import: `../plan/session` + `./overrides`). Verificado no browser: override B setado pra
+  `pl_task016` → reimportado o MESMO planId com treino renomeado pra "C" (via `/import`, fluxo real,
+  não seed direto) → Hoje mostra "Treino C — Full body" corretamente (weekSchedule novo), sem cair
+  em "descanso" nem mostrar o aviso de override obsoleto. Gates: **120/120** ✓ · typecheck/lint ✓ ·
+  build ✓.

@@ -1,5 +1,7 @@
 import { getDB, STORE_KV, STORE_PLANS } from "./db";
 import type { PlanFile } from "../plan/schema";
+import { isoDate } from "../plan/session";
+import { clearDayOverride } from "./overrides";
 
 const KEY_ACTIVE = "activePlanId";
 
@@ -24,6 +26,12 @@ export async function saveImportedPlan(plan: PlanFile): Promise<StoredPlan> {
   await tx.objectStore(STORE_PLANS).put(record);
   await tx.objectStore(STORE_KV).put(record.planId, KEY_ACTIVE);
   await tx.done;
+  // Reimportar o MESMO planId no mesmo dia (ex.: coach corrige o plano no ciclo
+  // atual) pode trocar os ids de treino — um override de hoje (TASK-016) apontando
+  // pro id antigo ficaria órfão e cairia em "descanso" até o usuário limpar na mão.
+  // Um plano novo sempre limpa a escolha de hoje; se ela ainda fizer sentido no
+  // plano novo, o usuário escolhe de novo em /treino.
+  await clearDayOverride(record.planId, isoDate());
   return record;
 }
 
