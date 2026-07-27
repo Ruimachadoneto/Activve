@@ -45,23 +45,24 @@ export function RestTimer({
     setRunning(true);
   }
 
-  // Refs não podem ser escritas durante o render — mantém `remainingRef` em sincronia
-  // com o reset acima. Roda antes do efeito de ancoragem abaixo (ordem de declaração).
+  // Refs não podem ser escritas durante o render — a ancoragem do reset acima acontece
+  // aqui. Importante: NÃO depender de `running`/`duration` terem mudado de VALOR pra
+  // reancorar (bug real do review Codex — reiniciar com o mesmo `seconds`/já `running`,
+  // ex. marcar ✓ noutra série durante um descanso do mesmo tamanho, ou tocar um preset
+  // igual ao atual, não muda nenhum dos dois e o timer ficava mirando o alvo antigo).
+  // Toda ação que (re)inicia a contagem ancora explicitamente aqui e nos handlers abaixo.
   useEffect(() => {
     remainingRef.current = seconds;
+    endAtRef.current = Date.now() + seconds * 1000;
+    vibratedRef.current = seconds <= 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runToken]);
 
-  // (Re)ancora sempre que o cronômetro passa a rodar com uma duração nova (novo ciclo,
-  // preset, +15s) ou é retomado do pause. Não decrementa nada — só marca o alvo.
+  // Só cuida da limpeza ao pausar — o (re)ancoramento ao rodar é sempre explícito
+  // (efeito acima + handlers), nunca inferido de `running`/`duration` mudarem de valor.
   useEffect(() => {
-    if (!running) {
-      endAtRef.current = null;
-      return;
-    }
-    endAtRef.current = Date.now() + remainingRef.current * 1000;
-    vibratedRef.current = remainingRef.current <= 0;
-  }, [running, duration]);
+    if (!running) endAtRef.current = null;
+  }, [running]);
 
   // Recalcula `remaining` a partir de `endAt` (nunca decrementa) — corrige sozinho
   // qualquer atraso de timer em segundo plano. Reancora ao focar/voltar visível pra
@@ -117,7 +118,14 @@ export function RestTimer({
   const done = remaining === 0;
 
   function setPreset(p: number) {
+    // Só roda a partir do onClick (evento do usuário), nunca durante o render — mesmo
+    // padrão de Date.now() usado em addTime/toggleRun logo abaixo, que não disparam o
+    // lint (a regra `react-hooks/purity` aparenta ter um falso positivo pontual aqui).
+    // eslint-disable-next-line react-hooks/purity
+    const now = Date.now();
     remainingRef.current = p;
+    endAtRef.current = now + p * 1000;
+    vibratedRef.current = false;
     setDuration(p);
     setRemaining(p);
     setRunning(true);
@@ -125,8 +133,11 @@ export function RestTimer({
 
   /** +15s sem reiniciar: estende o descanso atual (comum quando a série pesou). */
   function addTime(extra: number) {
+    const now = Date.now();
     const next = remainingRef.current + extra;
     remainingRef.current = next;
+    endAtRef.current = now + next * 1000;
+    vibratedRef.current = next <= 0;
     setDuration((d) => d + extra);
     setRemaining(next);
     setRunning(true);
@@ -134,18 +145,20 @@ export function RestTimer({
 
   function toggleRun() {
     if (done) return;
+    const now = Date.now();
     if (running) {
       // Congela o valor calculado de endAt (não o último tick, que pode estar
       // desatualizado se o timer estava em segundo plano no momento do pause).
       const endAt = endAtRef.current;
       if (endAt != null) {
-        const left = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+        const left = Math.max(0, Math.ceil((endAt - now) / 1000));
         remainingRef.current = left;
         setRemaining(left);
       }
       setRunning(false);
     } else {
-      setRunning(true); // o efeito de ancoragem reancora a partir de remainingRef
+      endAtRef.current = now + remainingRef.current * 1000;
+      setRunning(true);
     }
   }
 
