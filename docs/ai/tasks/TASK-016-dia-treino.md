@@ -135,3 +135,9 @@ npm run typecheck && npm run lint && npm run test && npm run build
   não seed direto) → Hoje mostra "Treino C — Full body" corretamente (weekSchedule novo), sem cair
   em "descanso" nem mostrar o aviso de override obsoleto. Gates: **120/120** ✓ · typecheck/lint ✓ ·
   build ✓.
+- **Review Codex (ciclo 6, 2026-07-27) — APROVADO, LIMPO:** "implements day-specific workout
+  overrides consistently across the Today and Workout screens, covers the core resolver with
+  tests, and addresses the stale-override import case without introducing a clear regression".
+  **TASK-016 chancelada** (6 ciclos — 5 achados reais e cada vez mais sutis, todos corrigidos e
+  verificados no browser; usuário aprovou continuar além do limite normal de 3 do AGENTS §13 dado
+  que cada achado era genuíno) — pendente gate de merge do usuário.
