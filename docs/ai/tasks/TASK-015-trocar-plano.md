@@ -79,4 +79,6 @@ npm run typecheck && npm run lint && npm run test && npm run build
   - `/treino` teve falha intermitente do preview ("This page couldn't load") sem erro no console e
     com o servidor respondendo 200 quatro vezes seguidas — instabilidade conhecida da máquina
     (STATUS.md), não é regressão do código (rota não foi tocada nesta task).
-- **Estado**: CONCLUÍDO — pendente review Codex + gate de merge do usuário.
+- **Estado**: CONCLUÍDO.
+- **Review Codex (ciclo 1, 2026-07-27) — APROVADO, LIMPO:** "no discrete, actionable bugs in the
+  diff relative to the base commit". **TASK-015 chancelada — pendente gate de merge do usuário.**
