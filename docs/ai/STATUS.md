@@ -4,12 +4,12 @@
 > + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
 
 ## Onde estamos
-- **Branch atual:** `main` (limpa; TASK-015 mergeada em `cb1b07b`). Sem branches de feature abertas.
-- **`main`** tem **TASK-001→012, 014, 015 mergeadas**. TASK-013 (erro amigável) segue pendente.
+- **Branch atual:** `main` (limpa; TASK-016 mergeada em `76c7dcb`). Sem branches de feature abertas.
+- **`main`** tem **TASK-001→012, 014, 015, 016 mergeadas**. TASK-013 (erro amigável) segue pendente.
 - **2026-07-27 — feedback de uso real (app publicado no Vercel):** usuário testou e mapeou 4 pontos:
   (1) sem relatório/calendário de treino + export semanal/mensal, (2) sem trocar o treino "oficial"
   do dia, (3) timer de descanso diverge em background/sem notificação, (4) sem UI pra reimportar
-  plano. Plano de resposta: **TASK-015** (✅ mergeada) → **TASK-016** (dia/treino) → **TASK-017**
+  plano. Plano de resposta: **TASK-015** (✅ mergeada) → **TASK-016** (✅ mergeada) → **TASK-017**
   (timer) → **TASK-018** (calendário/relatório). PWA (manifest+SW, necessário pra notificação real
   em background) vira **TASK-019** à parte.
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
@@ -222,10 +222,31 @@ direta do IndexedDB pós-reimport. Gates: **116/116** ✓. Review Codex ciclo 1:
   é o design do ADR-002, mas o calendário/relatório da TASK-018 **deve** listar sessões de todos os
   planos, não só o ativo, senão o histórico "sumiria" visualmente a cada novo ciclo).
 
+## TASK-016 — Selecionar/fixar treino do dia (MERGEADA em `main` `76c7dcb`, 2026-07-27)
+Contrato: `docs/ai/tasks/TASK-016-dia-treino.md`. Override por data (`src/lib/storage/overrides.ts`,
+store `kv`, sem migration) permite trocar qual treino é o "oficial" de hoje quando o `weekSchedule`
+fixo não bate com o que o usuário quer fazer. `getTodayWorkout(plan, now, override?)` ganha 3º
+parâmetro; Hoje e `/treino` mostram/permitem trocar, com aviso e reversão.
+- **6 ciclos de review Codex, 5 achados reais (acima do limite normal de 3 do AGENTS §13 —
+  aprovado explicitamente pelo usuário pra continuar, cada achado era genuíno, não cosmético):**
+  corrida de carregamento (`/treino` derivava sessão antes do override resolver — risco real de
+  logar série no treino errado); botão "Voltar ao planejado" sumia ao pré-visualizar outro treino
+  com override ativo; `selected` local não resetava ao reverter (tela ficava presa); a MESMA
+  corrida reaparecia numa variante mais sutil (booleano `overrideLoading` ficava obsoleto quando
+  `planId` mudava de `null` pro id real — resolvido trocando por estado **derivado**
+  `{planId, value}` comparado ao planId atual); override sobrevivia a reimport do MESMO planId no
+  mesmo dia com ids de treino trocados (`saveImportedPlan` agora limpa o override do dia ao salvar).
+- Gates finais: typecheck ✓ · lint ✓ · **120/120** ✓ · build ✓. Verificado no browser em cada
+  ciclo, incluindo o cenário exato de cada achado (cold-load com override pré-existente, reimport
+  do mesmo planId via `/import` real).
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**TASK-016 — Selecionar/fixar treino do dia** (2ª do plano de resposta ao feedback 2026-07-27).
-Ver contrato em `docs/ai/tasks/TASK-016-*.md` (em andamento). Depois: TASK-017 (timer), TASK-018
-(calendário/relatório), TASK-013 (erro amigável, ainda pendente do ciclo do mockup).
+**TASK-017 — Timer de descanso ancorado em tempo real** (3ª do plano de resposta ao feedback
+2026-07-27). Contrato pronto em `docs/ai/tasks/TASK-017-timer-ancorado.md`. Reescrever o núcleo do
+`RestTimer.tsx` pra usar uma âncora `Date.now()` (`endAt`) em vez de decremento relativo — hoje o
+countdown diverge quando o app sai/volta de foco (browser faz throttling de timer em background).
+Sem notificação em background nesta task (isso é PWA/Service Worker → TASK-019, à parte). Depois:
+TASK-018 (calendário/relatório), TASK-013 (erro amigável, ainda pendente do ciclo do mockup).
 
 **(referência) TASK-013 — Robustez: estado de erro amigável p/ plano corrompido** (última do ciclo do mockup, ainda não iniciada).
 Bug descoberto na auditoria: plano parcial/corrompido no IndexedDB (sem weekSchedule/howTo/diet.meals)
@@ -299,3 +320,4 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-012 | Como fazer v2 + PLAN_SCHEMA 1.1 (tips/quickTip/mediaId) | MERGEADA | main (`c1b40ea`) |
 | TASK-014 | Corpo v2 (tendência+delta, medidas, histórico) | MERGEADA | main (`1b2ae92`) |
 | TASK-015 | Trocar plano visível na UI | MERGEADA | main (`cb1b07b`) |
+| TASK-016 | Selecionar/fixar treino do dia | MERGEADA | main (`76c7dcb`) |
