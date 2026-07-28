@@ -2,7 +2,7 @@
 
 ## Metadados
 
-- Status: `in_progress`
+- Status: `review` (implementada, revisada e verificada — aguardando só o gate humano de merge)
 - Risco: `médio` (várias telas, novo comportamento de leitura; sem migração de dados, sem auth)
 - Lead/Planner: `Claude`
 - Implementer: `Claude`
@@ -60,18 +60,22 @@ recuperação e o botão de reimportar; o console não acusa runtime error não 
 
 ## Critérios de aceite
 
-- [ ] Dado um plano **sem `training`** no IndexedDB, quando abro `/`, então vejo o estado de erro
-      amigável com botão "Reimportar plano" — e **não** a tela de crash.
-- [ ] Idem para plano **sem `diet.meals`**, **sem `howTo`** num exercício e com `weekSchedule` de
-      tamanho errado (os casos citados na auditoria).
-- [ ] Idem em `/treino`, `/corpo`, `/relatorios` e `/mais`.
-- [ ] Dado um plano **válido**, todas as telas funcionam exatamente como antes (sem regressão).
-- [ ] O estado de erro oferece **detalhe técnico** (campo + motivo) sob demanda, em texto escapado.
-- [ ] Um erro de render por causa **não** prevista (bug de componente) é capturado por um
-      `error.tsx` e vira tela de recuperação, não tela branca/vermelha.
-- [ ] Testes cobrem: validação de plano inválido na leitura, plano válido intacto, e o formato dos
-      erros expostos.
-- [ ] `typecheck`, `lint`, `test`, `build` verdes.
+- [x] Dado um plano **sem `training`** no IndexedDB, quando abro `/`, então vejo o estado de erro
+      amigável com botão "Reimportar plano" — e **não** a tela de crash. *(browser, plano real do
+      usuário clonado e corrompido)*
+- [x] Idem para plano **sem `diet.meals`**, **sem `howTo`** num exercício e com `weekSchedule` de
+      tamanho errado. *(4 variantes verificadas; detalhe técnico mostrou o campo certo em cada uma)*
+- [x] Idem em `/treino`, `/corpo`, `/relatorios` e `/mais`. *(5 rotas percorridas)*
+- [x] Dado um plano **válido**, todas as telas funcionam exatamente como antes (sem regressão).
+      *(Hoje/Treino/Corpo/Mais/Relatórios com os 2 planos reais semeados)*
+- [x] O estado de erro oferece **detalhe técnico** (campo + motivo) sob demanda, em texto escapado
+      e truncado.
+- [x] Um erro de render por causa **não** prevista é capturado por `error.tsx`. *(verificado com
+      `throw` temporário em `/mais`, depois revertido)*
+- [x] Testes cobrem validação na leitura, plano válido intacto e formato dos erros — **mais** toda a
+      classe de plano histórico malformado levantada nos 8 ciclos de review.
+- [x] `typecheck`, `lint`, `test` (**161/161**), `build` verdes.
+- [ ] **Gate humano: merge em `main`** — único item pendente.
 
 ## Plano proposto
 
