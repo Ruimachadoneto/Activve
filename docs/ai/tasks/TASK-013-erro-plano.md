@@ -140,7 +140,34 @@ cada rota; conferir console limpo de erro não tratado; 375px sem overflow.
 - **Resultado:** critérios de aceite atendidos e verificados no browser. Gates: typecheck ✓ ·
   lint ✓ · **148/148** ✓ · build ✓. Pendente: decisão do item abaixo + gate humano de merge.
 
-### Decisão pendente (achado [P2] do review Codex, ciclo 3 — NÃO corrigido)
+### Decisão tomada pelo usuário (2026-07-28): **opção B**
+
+Implementada. A proteção mora na **origem da leitura**, não num filtro de entrada:
+
+- `buildExerciseMuscles` (`recovery.ts`) normaliza o lookup — `primary` sempre array,
+  `secondary`/`alternatives` não-array tratados como ausentes, elementos nulos pulados, variação
+  herdando de `base` já normalizado (`Array.isArray` antes de aceitar `primaryMuscles`, porque
+  string também tem `.length` e faria o consumidor iterar letras como músculos).
+- `workoutsScheduled` (`report.ts`) ignora plano com `weekSchedule` ilegível — sem agenda não dá pra
+  afirmar que o dia era de treino, e inventar "agendado" faria a constância parecer pior (anti-culpa).
+- Resolver nome virou **função total** (`label`/`planLabel`): sempre devolve string usável, caindo
+  em `swappedToId ?? exerciseId` / `workoutId`.
+- `hasReadableTraining` voltou à forma mínima (só `workouts` percorrível): rigidez na guarda é
+  all-or-nothing e descartava um ciclo inteiro por defeito localizado.
+
+Resultado: defeito parcial degrada só a parte afetada; nome, músculos e agenda de ciclos antigos
+continuam corretos onde os dados existem.
+
+**Ciclos de review após a decisão:** 5 rodadas, 8 achados [P2], todos reais e corrigidos. Cada
+rodada apontou **outro campo** possivelmente malformado (`exercises` → `primaryMuscles` →
+`alternatives` → elementos nulos → `name`). A última correção fecha a classe por construção
+(nome sempre string, músculos sempre array, agenda guardada) em vez de enumerar campos — mas o
+padrão é o sinal de parada registrado abaixo.
+
+**Estado ao encerrar:** gates typecheck ✓ · lint ✓ · **161/161** ✓ · build ✓; cada achado
+verificado no browser no cenário exato. Pendente só o **gate humano de merge**.
+
+### Histórico: como o achado [P2] do ciclo 3 foi apresentado (mantido para rastreabilidade)
 
 `knownPlans` (o que alimenta `buildReport`) filtra por `validatePlan` completo. Consequência real:
 um plano histórico **cosmeticamente** inválido (ex.: `weekSchedule` apontando pra um treino

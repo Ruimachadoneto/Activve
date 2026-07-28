@@ -50,3 +50,22 @@ Use este arquivo como área de triagem. Um aprendizado só deve virar regra em `
   pertence a quem lê, não a quem chama.
 - Deve virar regra, teste, hook ou CI?: não; é heurística de design, fica registrada aqui.
 - Status: `observando`
+
+### 2026-07-28 — Contra dado não confiável, torne o leitor TOTAL em vez de enumerar campos
+
+- Tarefa: TASK-013, 8 ciclos de review Codex.
+- Sintoma: cada rodada de review encontrava **outro campo** de plano histórico possivelmente
+  malformado — `exercises`, depois `primaryMuscles`, depois `alternatives`, depois elementos nulos
+  dentro dos arrays, depois `name`. Todos os achados eram reais; a lista não convergia.
+- Causa: eu tratava cada caso como um defeito pontual ("falta checar mais este campo"), quando o
+  problema era de forma: enquanto o leitor confia no dado, a superfície de falha é do tamanho do
+  schema, e o revisor sempre acha mais um.
+- Correção: transformar cada leitor em **função total** — sempre devolve algo utilizável,
+  independentemente da entrada. `buildExerciseMuscles` sempre devolve arrays; resolver nome sempre
+  devolve string não-vazia (senão cai no id); `workoutsScheduled` ignora agenda ilegível. Feito
+  isso, a classe fecha por construção e a guarda de entrada volta a ser mínima.
+- Como detectar cedo: **se uma guarda/validação cresce a cada rodada de review, o formato está
+  errado.** Crescimento repetido é sinal de que a proteção está no chamador quando deveria estar no
+  leitor. Vale parar e mudar a forma em vez de aplicar o próximo remendo.
+- Deve virar regra, teste, hook ou CI?: candidato a regra curta em `AGENTS.md` §10. Observando.
+- Status: `observando`
