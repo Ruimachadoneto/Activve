@@ -79,8 +79,12 @@ export function validatePlan(json: unknown): ParseResult {
  * silenciosa. O que realmente precisa ser garantido é só que dá para percorrer a
  * estrutura sem estourar.
  *
- * O plano ATIVO continua exigindo `validatePlan` completo: dele o app monta a agenda,
- * o treino do dia e a dieta, então meia-validade não serve.
+ * Escopo desta guarda: **só leitura rasa de `id`/`name`** percorrendo
+ * workouts/exercises (o calendário de `/relatorios`). Quem faz cálculo profundo sobre
+ * um plano — `buildReport`, que desce até músculos/volume/variações — precisa de
+ * `validatePlan` completo; espelhar campo a campo aqui seria reescrever o schema pior.
+ * O plano ATIVO também exige `validatePlan`: dele o app monta agenda, treino do dia e
+ * dieta, então meia-validade não serve.
  */
 export function hasReadableTraining(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;

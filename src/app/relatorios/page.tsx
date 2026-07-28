@@ -7,7 +7,7 @@ import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { ReportView } from "@/components/ReportView";
 import { PlanErrorState } from "@/components/PlanErrorState";
-import { hasReadableTraining } from "@/lib/plan/parse";
+import { hasReadableTraining, validatePlan } from "@/lib/plan/parse";
 import { getAllSessions } from "@/lib/storage/sessions";
 import { getBodyLog } from "@/lib/storage/bodylog";
 import { getAllPlans, type StoredPlan } from "@/lib/storage/plans";
@@ -76,11 +76,12 @@ export default function RelatoriosPage() {
       if (cancelled) return;
       setSessions(s);
       setBodyEntries(b);
-      // Planos HISTÓRICOS passam por uma guarda só ESTRUTURAL (TASK-013), não pela
-      // validação completa: um registro impossível de percorrer derrubaria o calendário,
-      // mas exigir validade total descartaria planos antigos ainda perfeitamente úteis
-      // pro único uso que esta tela faz deles (resolver o nome do exercício/treino de
-      // sessões passadas) — e o histórico regrediria pra ids crus. Ver `hasReadableTraining`.
+      // Planos históricos são filtrados por CONSUMIDOR (TASK-013, ciclo 2 do review):
+      // esta lista alimenta só a resolução de NOMES no calendário, que lê `id`/`name`
+      // percorrendo workouts/exercises — daí a guarda estrutural, que preserva planos
+      // antigos ainda úteis em vez de regredir o histórico pra ids crus. O relatório
+      // (`knownPlans`, abaixo) exige validação COMPLETA, porque calcula músculos,
+      // volume e variações.
       setPlans(p.filter((record) => hasReadableTraining(record.plan)));
       setDataLoading(false);
     });
@@ -109,8 +110,18 @@ export default function RelatoriosPage() {
   // Todos os planos já importados, com a data de início de cada ciclo — o relatório
   // (buildReport) usa isso pra resolver nome de exercício/agenda de cada sessão pelo
   // plano que valia NAQUELE momento, não só o ativo (histórico cruza trocas de plano).
+  //
+  // Aqui a exigência é VALIDAÇÃO COMPLETA, não a guarda estrutural (TASK-013, ciclo 2
+  // do review): `buildReport` desce até `buildExerciseMuscles`/volume por músculo, que
+  // fazem `for (const muscle of muscles.primary)` — um exercício sem `primaryMuscles`,
+  // ou com `alternatives` não-iterável, derruba a geração do relatório. Espelhar campo
+  // a campo numa guarda estrutural seria reescrever o schema pior; quem precisa do
+  // contrato inteiro exige o contrato inteiro. Plano descartado aqui cai no fallback
+  // que `planForSession`/`planForDate` já têm (plano ativo) — sem crash.
   const knownPlans = useMemo<KnownPlan[]>(() => {
-    const list = plans.map((p) => ({ planId: p.planId, importedAt: p.importedAt, plan: p.plan }));
+    const list = plans
+      .filter((p) => validatePlan(p.plan).ok)
+      .map((p) => ({ planId: p.planId, importedAt: p.importedAt, plan: p.plan }));
     if (plan && !list.some((p) => p.planId === plan.planId)) {
       list.push({ planId: plan.planId, importedAt: plan.importedAt, plan: plan.plan });
     }
