@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CalendarDays, ChevronRight, RefreshCw, ShieldCheck } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
+import { PlanErrorState } from "@/components/PlanErrorState";
 import { goalLabel } from "@/lib/plan/labels";
 
 function formatDate(iso: string): string {
@@ -12,7 +13,11 @@ function formatDate(iso: string): string {
 }
 
 export default function MaisPage() {
-  const { loading, plan } = useActivePlan();
+  const { loading, plan, invalid } = useActivePlan();
+
+  if (invalid) {
+    return <PlanErrorState errors={invalid.errors} />;
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-7">

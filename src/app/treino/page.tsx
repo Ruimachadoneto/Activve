@@ -16,6 +16,7 @@ import { getTodayWorkout } from "@/lib/plan/today";
 import { BottomNav } from "@/components/BottomNav";
 import { ExerciseSheet } from "@/components/ExerciseSheet";
 import { RestTimer } from "@/components/RestTimer";
+import { PlanErrorState } from "@/components/PlanErrorState";
 import { ExerciseMediaCard, ExerciseThumb, PreloadImages } from "@/components/ExerciseMediaCard";
 import { resolveMovement, videoHref } from "@/lib/plan/movement";
 import { resolveExerciseMedia } from "@/lib/plan/exerciseMedia";
@@ -38,7 +39,7 @@ const LOAD_STEP = 2.5;
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export default function TreinoPage() {
-  const { loading, plan } = useActivePlan();
+  const { loading, plan, invalid } = useActivePlan();
   const [selected, setSelected] = useState<string | null>(null);
   const [stored, setStored] = useState<WorkoutSession | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -121,6 +122,10 @@ export default function TreinoPage() {
         <p className="text-sm text-muted">Carregando…</p>
       </main>
     );
+  }
+
+  if (invalid) {
+    return <PlanErrorState errors={invalid.errors} />;
   }
 
   if (!plan || !p) {

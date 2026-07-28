@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight, Copy, FileDown } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { ReportView } from "@/components/ReportView";
+import { PlanErrorState } from "@/components/PlanErrorState";
+import { hasReadableTraining } from "@/lib/plan/parse";
 import { getAllSessions } from "@/lib/storage/sessions";
 import { getBodyLog } from "@/lib/storage/bodylog";
 import { getAllPlans, type StoredPlan } from "@/lib/storage/plans";
@@ -52,7 +54,7 @@ function monthPeriod(y: number, m: number): ReportPeriod {
 }
 
 export default function RelatoriosPage() {
-  const { loading, plan } = useActivePlan();
+  const { loading, plan, invalid } = useActivePlan();
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [bodyEntries, setBodyEntries] = useState<BodyEntry[]>([]);
   const [plans, setPlans] = useState<StoredPlan[]>([]);
@@ -74,7 +76,12 @@ export default function RelatoriosPage() {
       if (cancelled) return;
       setSessions(s);
       setBodyEntries(b);
-      setPlans(p);
+      // Planos HISTÓRICOS passam por uma guarda só ESTRUTURAL (TASK-013), não pela
+      // validação completa: um registro impossível de percorrer derrubaria o calendário,
+      // mas exigir validade total descartaria planos antigos ainda perfeitamente úteis
+      // pro único uso que esta tela faz deles (resolver o nome do exercício/treino de
+      // sessões passadas) — e o histórico regrediria pra ids crus. Ver `hasReadableTraining`.
+      setPlans(p.filter((record) => hasReadableTraining(record.plan)));
       setDataLoading(false);
     });
     return () => {
@@ -169,6 +176,10 @@ export default function RelatoriosPage() {
 
   const weeks = monthGrid(view.y, view.m);
   const selectedSessions = selected ? (sessionsByDate.get(selected) ?? []) : [];
+
+  if (invalid) {
+    return <PlanErrorState errors={invalid.errors} />;
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-7">
