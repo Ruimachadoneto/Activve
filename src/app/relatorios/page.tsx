@@ -138,7 +138,10 @@ export default function RelatoriosPage() {
       const ex = w.exercises.find((e) => e.id === exerciseId);
       if (!ex) continue;
       if (!swappedToId) return ex.name;
-      return ex.alternatives?.find((a) => a.id === swappedToId)?.name ?? ex.name;
+      // `alternatives` não-array (plano histórico corrompido) não tem `.find` — cai no
+      // nome do exercício base em vez de estourar (TASK-013 / review Codex).
+      if (!Array.isArray(ex.alternatives)) return ex.name;
+      return ex.alternatives.find((a) => a.id === swappedToId)?.name ?? ex.name;
     }
     return swappedToId ?? exerciseId;
   }

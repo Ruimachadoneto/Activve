@@ -149,8 +149,13 @@ export function buildExerciseMuscles(plan: PlanFile): GetMuscles {
         // nela); herda sempre os secundários do pai — senão um swap subestima a fadiga.
         // Herda de `base` (já normalizado), não dos campos crus do exercício — senão a
         // variação reintroduziria o `undefined` que acabamos de eliminar.
+        // O `Array.isArray` não é redundante com o `.length`: uma STRING também tem
+        // `length`, e `primary: "chest"` faria o consumidor iterar 'c','h','e','s','t'
+        // como se fossem músculos — volume silenciosamente corrompido, pior que crash
+        // (achado do review Codex).
+        const altPrimary = alt.primaryMuscles;
         alts.set(alt.id, {
-          primary: alt.primaryMuscles?.length ? alt.primaryMuscles : base.primary,
+          primary: Array.isArray(altPrimary) && altPrimary.length ? altPrimary : base.primary,
           secondary: base.secondary,
         });
       }

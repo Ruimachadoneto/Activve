@@ -281,6 +281,31 @@ describe("buildExerciseMuscles", () => {
       const vazio = buildExerciseMuscles({} as unknown as PlanFile);
       expect(vazio("qualquer")).toBeUndefined();
     });
+
+    it("variação com primaryMuscles STRING cai no músculo do pai (não itera letras)", () => {
+      // Achado do review Codex: string tem `.length`, então checar só `.length` deixava
+      // passar `primary: "chest"` — e o consumidor iteraria 'c','h','e','s','t' como
+      // músculos, corrompendo o volume em silêncio (pior que crash).
+      const plan = {
+        training: {
+          workouts: [
+            {
+              exercises: [
+                {
+                  id: "supino",
+                  primaryMuscles: ["chest"],
+                  secondaryMuscles: ["triceps"],
+                  alternatives: [{ id: "torta", primaryMuscles: "chest" }],
+                },
+              ],
+            },
+          ],
+        },
+      } as unknown as PlanFile;
+      const gm = buildExerciseMuscles(plan);
+      expect(gm("supino", "torta")).toEqual({ primary: ["chest"], secondary: ["triceps"] });
+      expect(typeof gm("supino", "torta")?.primary).not.toBe("string");
+    });
   });
 });
 

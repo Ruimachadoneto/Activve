@@ -275,6 +275,38 @@ describe("buildReport — histórico entre planos (troca de ciclo no meio do per
     expect(r.adherence.workoutsScheduled).toBe(0);
   });
 
+  it("resolve nome de sessão com swap quando `alternatives` está corrompido", () => {
+    // Achado do review Codex: `alternatives` não-array não tem `.find` — a tela de
+    // relatórios estourava ao abrir/exportar uma sessão com variação trocada.
+    const altTorta = JSON.parse(JSON.stringify(plan));
+    altTorta.training.workouts[0].exercises[0].alternatives = "nao-e-array";
+    const known: KnownPlan[] = [
+      { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: altTorta },
+    ];
+    const sessions: WorkoutSession[] = [
+      {
+        sessionId: "s_swap",
+        planId: "pl_test",
+        workoutId: "A",
+        date: "2026-06-22",
+        status: "done",
+        startedAt: "2026-06-22T10:00:00Z",
+        completedAt: "2026-06-22T11:00:00Z",
+        exercises: [
+          {
+            exerciseId: "supino",
+            swappedToId: "supino_halteres",
+            sets: [{ done: true, load_kg: 30, reps: 10 }],
+          },
+        ],
+      },
+    ];
+    expect(() => buildReport(altTorta, known, sessions, [], period)).not.toThrow();
+    const r = buildReport(altTorta, known, sessions, [], period);
+    // sem catálogo de variações legível, cai no nome do exercício base
+    expect(r.training.exercises[0].name).toBe("Supino reto");
+  });
+
   it("gera relatório de plano histórico sem primaryMuscles em vez de estourar", () => {
     const semMusculos = JSON.parse(JSON.stringify(plan));
     for (const w of semMusculos.training.workouts) {
