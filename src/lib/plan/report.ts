@@ -120,14 +120,17 @@ export type KnownPlan = { planId: string; importedAt: string; plan: PlanFile };
 /**
  * Plano vigente numa data: o mais recente entre os que já existiam nela
  * (`importedAt <= date`). Sem nenhum candidato (data anterior a todo histórico
- * conhecido — não deveria acontecer, sessão não existe sem app), cai no mais antigo
- * conhecido; sem nenhum plano conhecido, cai no `fallback` (o ativo).
+ * conhecido), cai no mais antigo conhecido — melhor aproximação disponível; sem
+ * nenhum plano conhecido, cai no `fallback` (o ativo). **Não decide sozinho se o dia
+ * "conta" como agendado** — isso é responsabilidade de quem chama (ver `earliestKnown`
+ * em `buildReport`: dias antes do primeiro plano nunca deveriam ter agenda nenhuma).
  */
 function planForDate(knownPlans: KnownPlan[], date: string, fallback: PlanFile): PlanFile {
   if (knownPlans.length === 0) return fallback;
-  const candidates = knownPlans.filter((p) => p.importedAt.slice(0, 10) <= date);
-  const pool = candidates.length > 0 ? candidates : knownPlans;
-  return [...pool].sort((a, b) => a.importedAt.localeCompare(b.importedAt))[pool.length - 1].plan;
+  const sorted = [...knownPlans].sort((a, b) => a.importedAt.localeCompare(b.importedAt));
+  const candidates = sorted.filter((p) => p.importedAt.slice(0, 10) <= date);
+  if (candidates.length > 0) return candidates[candidates.length - 1].plan; // mais recente válido
+  return sorted[0].plan; // nenhum existia ainda: mais antigo conhecido
 }
 
 /** Plano de uma sessão pelo `planId` dela — histórico real, não o ativo (TASK-018). */
@@ -162,7 +165,16 @@ export function buildReport(
   const sessions = allSessions.filter((s) => inPeriod(s.date, period));
 
   // ---- adherence ----
+  // Dia ANTES de qualquer plano ter existido não "conta" como agendado — não dá pra
+  // ter perdido um treino de um app que a pessoa nem tinha ainda (achado do review
+  // Codex: sem isso, exportar um período que começa antes do primeiro plano inventava
+  // agenda pra dias em que não havia plano nenhum, usando o mais antigo por engano).
+  const earliestKnown =
+    knownPlans.length > 0
+      ? [...knownPlans].sort((a, b) => a.importedAt.localeCompare(b.importedAt))[0].importedAt.slice(0, 10)
+      : null;
   const workoutsScheduled = days.filter((date) => {
+    if (earliestKnown != null && date < earliestKnown) return false;
     const p = planForDate(knownPlans, date, activePlan);
     const idx = (new Date(`${date}T12:00:00`).getDay() + 6) % 7; // 0 = segunda
     return p.training.weekSchedule[idx] !== "rest";

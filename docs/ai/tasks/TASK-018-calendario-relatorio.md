@@ -266,3 +266,16 @@ npm run typecheck && npm run lint && npm run test && npm run build
     mesmo assim resolveu certo). Objetivo mostrado ("Recomposição") é do plano ativo. Clique no dia
     do ciclo antigo no calendário mostra "Treino A — Ciclo 1" corretamente. Console limpo.
   - Gates: typecheck ✓ · lint ✓ · **131/131** ✓ · build ✓.
+
+- **Review Codex (ciclo 7, 2026-07-27) — 1 achado [P1] aceito e corrigido:** o fix do ciclo 6
+  removeu o recorte de `period.from`, mas não considerou dias **antes do primeiro plano
+  importado** — `planForDate` caía no único (ou mais antigo) plano conhecido como fallback pra
+  QUALQUER data sem candidato, inclusive dias em que o usuário nem tinha o app configurado ainda,
+  inventando agenda pra eles. → `workoutsScheduled` agora exclui explicitamente dias anteriores ao
+  `importedAt` do plano mais antigo conhecido (`earliestKnown`), antes mesmo de chamar
+  `planForDate`. De quebra, corrigido um bug real no próprio fallback de `planForDate`: quando não
+  havia candidato, pegava o plano **mais recente** entre todos (`[pool.length-1]` após sort
+  ascendente do pool errado), não o mais antigo como o comentário dizia — agora restaurado pra
+  fazer o que documenta. +1 teste (período começando antes do único plano conhecido: sem o fix
+  contaria 4 dias agendados incluindo dias pré-app; com o fix, só 2).
+  - Gates: typecheck ✓ · lint ✓ · **132/132** ✓ · build ✓.

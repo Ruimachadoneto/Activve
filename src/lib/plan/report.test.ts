@@ -247,6 +247,20 @@ describe("buildReport — histórico entre planos (troca de ciclo no meio do per
     // refersToPlanId continua sendo o ciclo ATIVO — o relatório é gerado "hoje".
     expect(r.meta.refersToPlanId).toBe("pl_test2");
   });
+
+  it("não inventa agenda pra dias ANTES do primeiro plano importado", () => {
+    // Só um plano conhecido, importado no MEIO do período (25/06, quinta) — dias
+    // 22–24/06 (seg/ter/qua) são de ANTES de qualquer plano existir.
+    const knownPlansLateStart: KnownPlan[] = [
+      { planId: "pl_test", importedAt: "2026-06-25T00:00:00.000Z", plan },
+    ];
+    const r = buildReport(plan, knownPlansLateStart, [], [], period);
+    // weekSchedule seg..dom = A,rest,B,rest,A,B,rest. Sem o fix, os dias 22(seg=A) e
+    // 24(qua=B) — ANTES do plano existir — cairiam no fallback (o único plano
+    // conhecido) e contariam como agendados, dando 4 (22+24+26+27). Com o fix, só
+    // 25/06 em diante conta: sex(26)=A e sáb(27)=B → 2 agendados.
+    expect(r.adherence.workoutsScheduled).toBe(2);
+  });
 });
 
 describe("buildReport — honestidade do v1 (campos sem dado real ficam neutros)", () => {
