@@ -275,6 +275,34 @@ describe("buildReport — histórico entre planos (troca de ciclo no meio do per
     expect(r.adherence.workoutsScheduled).toBe(0);
   });
 
+  it("um treino corrompido não cega os outros treinos do mesmo ciclo", () => {
+    // Achado do review Codex: descartar o plano inteiro por um subtree ruim fazia o
+    // ciclo perder TODOS os nomes. Agora o treino ruim é pulado e o resto resolve.
+    const parcial = JSON.parse(JSON.stringify(plan));
+    parcial.training.workouts.unshift({ id: "X", name: "Treino corrompido" }); // sem exercises
+    parcial.training.workouts.push(null);
+    const known: KnownPlan[] = [
+      { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: parcial },
+    ];
+    const sessions: WorkoutSession[] = [
+      {
+        sessionId: "s_parcial",
+        planId: "pl_test",
+        workoutId: "A",
+        date: "2026-06-22",
+        status: "done",
+        startedAt: "2026-06-22T10:00:00Z",
+        completedAt: "2026-06-22T11:00:00Z",
+        exercises: [{ exerciseId: "supino", sets: [{ done: true, load_kg: 60, reps: 8 }] }],
+      },
+    ];
+    expect(() => buildReport(parcial, known, sessions, [], period)).not.toThrow();
+    const r = buildReport(parcial, known, sessions, [], period);
+    // o nome vem do treino BOM, apesar do corrompido estar antes dele na lista
+    expect(r.training.exercises[0].name).toBe("Supino reto");
+    expect(r.training.volumeByMuscle.map((v) => v.muscle)).toContain("chest");
+  });
+
   it("resolve nome de sessão com swap quando `alternatives` está corrompido", () => {
     // Achado do review Codex: `alternatives` não-array não tem `.find` — a tela de
     // relatórios estourava ao abrir/exportar uma sessão com variação trocada.

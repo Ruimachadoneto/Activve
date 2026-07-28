@@ -134,8 +134,11 @@ export default function RelatoriosPage() {
   function movementName(planId: string, exerciseId: string, swappedToId?: string): string {
     const p = plansById.get(planId);
     if (!p) return swappedToId ?? exerciseId;
-    for (const w of p.training.workouts) {
-      const ex = w.exercises.find((e) => e.id === exerciseId);
+    for (const w of Array.isArray(p.training?.workouts) ? p.training.workouts : []) {
+      // Um treino corrompido no meio de um plano histórico não pode cegar os OUTROS
+      // treinos do mesmo ciclo — pula só ele (TASK-013 / review Codex).
+      if (!Array.isArray(w?.exercises)) continue;
+      const ex = w.exercises.find((e) => e?.id === exerciseId);
       if (!ex) continue;
       if (!swappedToId) return ex.name;
       // `alternatives` não-array (plano histórico corrompido) não tem `.find` — cai no
@@ -147,7 +150,10 @@ export default function RelatoriosPage() {
   }
 
   function workoutName(planId: string, workoutId: string): string {
-    return plansById.get(planId)?.training.workouts.find((w) => w.id === workoutId)?.name ?? workoutId;
+    const workouts = plansById.get(planId)?.training?.workouts;
+    if (!Array.isArray(workouts)) return workoutId;
+    // `w?.id`: elemento nulo num plano corrompido não pode derrubar a busca.
+    return workouts.find((w) => w?.id === workoutId)?.name ?? workoutId;
   }
 
   function exportPeriod(period: ReportPeriod, label: string) {

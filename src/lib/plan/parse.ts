@@ -91,22 +91,16 @@ export function hasReadableTraining(value: unknown): boolean {
   const training = (value as { training?: unknown }).training;
   if (!training || typeof training !== "object") return false;
   const { workouts } = training as { workouts?: unknown };
-  if (!Array.isArray(workouts)) return false;
-  // `weekSchedule` NÃO é exigido: quem usa esta guarda lê nome de treino/exercício,
-  // nunca a agenda. Exigi-lo aqui descartava plano antigo com defeito só no
-  // weekSchedule e o histórico regredia pra ids crus (achado do review Codex, ciclo 3).
-  // Quem for ler `weekSchedule` (ex.: `buildReport` via `planForDate`) precisa de
-  // garantia própria — esta função não a oferece.
-
-  // Não basta `workouts` ser array: quem lê o histórico percorre
-  // `workout.exercises.find(...)` (report.ts e o `movementName` da tela de
-  // relatórios), então um item sem `exercises` — ou um exercício nulo dentro dele —
-  // estouraria do mesmo jeito. A guarda cobre exatamente o que é desreferenciado.
-  return workouts.every(
-    (w) =>
-      !!w &&
-      typeof w === "object" &&
-      Array.isArray((w as { exercises?: unknown }).exercises) &&
-      (w as { exercises: unknown[] }).exercises.every((ex) => !!ex && typeof ex === "object"),
-  );
+  // Só isto: `workouts` percorrível. Nada mais.
+  //
+  // A guarda já foi mais rígida (exigia `weekSchedule`, depois que TODO workout tivesse
+  // `exercises` de objetos) e cada aperto custou caro no review: descartava um plano
+  // inteiro por um defeito localizado, e o histórico daquele ciclo regredia pra ids
+  // crus. Rigidez aqui é all-or-nothing — não existe "descartar meio plano".
+  //
+  // O caminho certo é o oposto: cada LEITOR se protege do que desreferencia
+  // (`buildExerciseMuscles` normaliza músculos/variações; `exerciseName`/`movementName`
+  // pulam treino ilegível; `workoutsScheduled` ignora agenda ausente). Assim a
+  // corrupção degrada só a parte afetada e o resto do ciclo continua legível.
+  return Array.isArray(workouts);
 }

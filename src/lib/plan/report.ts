@@ -104,8 +104,11 @@ function inPeriod(date: string, period: ReportPeriod): boolean {
  * corrigida na UI do calendário — aqui é a mesma lógica pro relatório).
  */
 function exerciseName(plan: PlanFile, exerciseId: string, swappedToId?: string): string {
-  for (const w of plan.training.workouts) {
-    const ex = w.exercises.find((e) => e.id === exerciseId);
+  for (const w of Array.isArray(plan.training?.workouts) ? plan.training.workouts : []) {
+    // Um treino corrompido no meio de um plano histórico não pode cegar os OUTROS
+    // treinos do mesmo ciclo — pula só ele (TASK-013 / review Codex).
+    if (!Array.isArray(w?.exercises)) continue;
+    const ex = w.exercises.find((e) => e?.id === exerciseId);
     if (!ex) continue;
     if (!swappedToId) return ex.name;
     // `alternatives` não-array (plano histórico corrompido) não tem `.find` — cai no
