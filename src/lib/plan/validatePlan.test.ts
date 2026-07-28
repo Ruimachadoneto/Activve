@@ -159,10 +159,15 @@ describe("hasReadableTraining (planos históricos)", () => {
     expect(hasReadableTraining(plan)).toBe(true);
   });
 
+  it("aceita plano sem weekSchedule (nome não depende da agenda)", () => {
+    // Achado do review Codex, ciclo 3: exigir weekSchedule descartava plano antigo
+    // ainda perfeitamente legível pro único uso da guarda — resolver nomes.
+    expect(hasReadableTraining(without("training.weekSchedule"))).toBe(true);
+  });
+
   it("recusa o que não dá pra percorrer sem estourar", () => {
     expect(hasReadableTraining(without("training"))).toBe(false);
     expect(hasReadableTraining(without("training.workouts"))).toBe(false);
-    expect(hasReadableTraining(without("training.weekSchedule"))).toBe(false);
     for (const value of [undefined, null, "", 42, [], { training: "nao-e-objeto" }]) {
       expect(hasReadableTraining(value)).toBe(false);
     }

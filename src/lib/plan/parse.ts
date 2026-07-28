@@ -90,8 +90,13 @@ export function hasReadableTraining(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   const training = (value as { training?: unknown }).training;
   if (!training || typeof training !== "object") return false;
-  const { workouts, weekSchedule } = training as { workouts?: unknown; weekSchedule?: unknown };
-  if (!Array.isArray(workouts) || !Array.isArray(weekSchedule)) return false;
+  const { workouts } = training as { workouts?: unknown };
+  if (!Array.isArray(workouts)) return false;
+  // `weekSchedule` NÃO é exigido: quem usa esta guarda lê nome de treino/exercício,
+  // nunca a agenda. Exigi-lo aqui descartava plano antigo com defeito só no
+  // weekSchedule e o histórico regredia pra ids crus (achado do review Codex, ciclo 3).
+  // Quem for ler `weekSchedule` (ex.: `buildReport` via `planForDate`) precisa de
+  // garantia própria — esta função não a oferece.
 
   // Não basta `workouts` ser array: quem lê o histórico percorre
   // `workout.exercises.find(...)` (report.ts e o `movementName` da tela de
