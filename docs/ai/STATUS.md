@@ -357,12 +357,59 @@ Contrato: `docs/ai/tasks/TASK-013-erro-plano.md`. Implementada em 2026-07-28.
   diferentes: o plano ATIVO precisa do contrato inteiro (monta agenda/treino/dieta), um plano
   histórico usado só pra resolver nome precisa apenas ser percorrível.
 
+## UPGRADE VISUAL v2 (em andamento — iniciado 2026-07-28)
+
+**Origem:** o usuário classificou o app como "monótono/simples" e pediu algo "arrojado, imersivo,
+surpreendente, premium — que valha a assinatura de um pagante". Três queixas concretas: sino de
+notificação morto, gráficos precários, monotonia geral.
+
+**Diagnóstico medido no código** (não impressão) — em `docs/ai/BENCHMARK_VISUAL_2026-07.md`:
+sino é `<span>` sem handler (`page.tsx:145`); gráficos usam `preserveAspectRatio="none"` (distorce
+traço/pontos) e não mostram um único número legível; 1 acento faz tudo; todo card tem o mesmo
+tratamento (sem elevação); o app inteiro tem 2 animações; nenhum momento de celebração.
+
+**Benchmark concluído** (exigência da `VISUAL_QUALITY.md` §3, antes de qualquer pixel): WHOOP,
+Oura, Strong, Hevy + estado da arte de movimento/microinterações. Padrões adotados e **rejeitados
+com justificativa** (score 0–100 fabricado, streaks punitivos, glass/gradiente pesado, copiar telas,
+lib de gráfico de terceiros) no documento.
+
+**Decisões do usuário (2026-07-28):**
+- **Direção: A + B + C** — os três registros. Risco de identidade difusa foi levantado e o usuário
+  decidiu pelos três mesmo assim; a mitigação está na §0 do `docs/DESIGN_SYSTEM.md`: são
+  **registros escolhidos pela tarefa**, com 6 invariantes que nunca mudam entre eles.
+- **Número-herói: prontidão muscular do dia**, derivado do `recovery.ts` que já existe e é testado.
+  Regras de honestidade na §9 do design system (não é score de saúde, sem dado não exibe número,
+  nunca é nota do usuário).
+- **Sino: virar centro de avisos locais real** (IndexedDB, sem Service Worker, sem backend).
+
+**`docs/DESIGN_SYSTEM.md` reescrito para v2** com o que faltava e causa a monotonia: modelo de
+**elevação** (E0–E4, máx. 1 foco por tela), **semântica estrita de cor** (cada matiz significa uma
+coisa só), **escala com degrau de display** + regra de `tabular-nums` obrigatória em toda métrica,
+**sistema de movimento** (tokens de duração/easing + regra 80/20 + reduced-motion) e **9 regras de
+dataviz**.
+
+### Roadmap de tasks do upgrade
+
+| ID | Task | Depende de | Entrega |
+|---|---|---|---|
+| TASK-020 | Fundação do sistema v2 (tokens de elevação/movimento, tabular-nums, utilitários) | — | Base que as demais consomem |
+| TASK-021 | Dataviz v2 (`WeightChart`, `ReportLineChart` conforme §7) | 020 | Maior salto de percepção; resolve a queixa mais concreta |
+| TASK-022 | Hoje v3 — registro A (número-herói de prontidão + elevação) | 020, 021 | Tela de entrada vira "instrumento" |
+| TASK-023 | Centro de avisos (substitui o sino morto) | 020 | Feature nova, local-first |
+| TASK-024 | Modo Treino — registro B (imersivo + celebração de recorde) | 020 | O momento "uau" |
+| TASK-025 | Corpo + Relatórios — registro A | 020, 021 | Consistência do sistema |
+| TASK-026 | Registro C (Como fazer, import, PDF, estados vazios) | 020 | Acabamento editorial |
+
+Cada task segue o fluxo do projeto: contrato → gates → verificação no browser → review Codex →
+**gate visual + aprovação humana de merge** (o usuário aprova cada merge).
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**TASK-013 está IMPLEMENTADA, revisada e verificada** na branch `ai/TASK-013-erro-plano-claude`
-(seção da task acima). A decisão arquitetural pendente foi **tomada pelo usuário (opção B)** e
-implementada. Falta **só o gate humano de merge em `main`** — enquanto isso, produção
-(`activve.vercel.app`) segue sem a proteção. Nada além disso está em andamento. Candidatos
-seguintes:
+**TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
+branch apagada. ⚠️ **`main` está à frente de `origin` e o push NÃO foi feito** — o push dispara o
+deploy do Vercel, e isso é decisão do usuário.
+
+**Trabalho atual: UPGRADE VISUAL v2** (seção acima). Benchmark e direção aprovados;
+executando o roadmap TASK-020 → 026. Candidatos que seguem depois dele:
 1. **TASK-019 — PWA (manifest + Service Worker)**: instalação na tela inicial + notificação REAL
    do timer em background (a TASK-017 corrigiu a contagem não divergir, mas só um Service Worker
    pode notificar com o app minimizado/tela apagada — documentado como fora de escopo da TASK-017).
