@@ -164,6 +164,10 @@ rodada apontou **outro campo** possivelmente malformado (`exercises` → `primar
 (nome sempre string, músculos sempre array, agenda guardada) em vez de enumerar campos — mas o
 padrão é o sinal de parada registrado abaixo.
 
+**Re-review de confirmação — APROVADO, LIMPO** (2026-07-28): nenhuma regressão acionável; fluxo de
+validação/erro e tratamento defensivo de plano histórico "internally consistent and covered by
+targeted tests".
+
 **Estado ao encerrar:** gates typecheck ✓ · lint ✓ · **161/161** ✓ · build ✓; cada achado
 verificado no browser no cenário exato. Pendente só o **gate humano de merge**.
 

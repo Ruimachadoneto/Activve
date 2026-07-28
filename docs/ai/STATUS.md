@@ -347,6 +347,10 @@ Contrato: `docs/ai/tasks/TASK-013-erro-plano.md`. Implementada em 2026-07-28.
   `alternatives` → elementos nulos → `name`). A correção final fecha a classe **por construção**
   — resolver nome virou função total, músculos sempre array, agenda guardada — em vez de enumerar
   campos. Raciocínio completo no contrato da task.
+- **Re-review de confirmação (2026-07-28) — APROVADO, LIMPO:** "I did not identify any actionable
+  regressions… the new validation/error-state flow and the defensive historical-plan handling
+  appear internally consistent and are covered by targeted tests." **TASK-013 chancelada — pendente
+  apenas o gate humano de merge.**
 - **Aprendizado registrado durante a execução:** a primeira versão descartava planos históricos por
   `validatePlan` completo e **regredia o histórico pra ids crus** — pego pela verificação no
   browser, não pelos testes. Validação uniforme é errada quando os consumidores têm necessidades
