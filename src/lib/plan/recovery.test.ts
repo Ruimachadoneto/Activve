@@ -238,6 +238,50 @@ describe("buildExerciseMuscles", () => {
     expect(gm("supino", "machine")).toEqual({ primary: ["chest"], secondary: ["triceps"] });
     expect(gm("agachamento", "machine")).toEqual({ primary: ["quads"], secondary: ["glutes"] });
   });
+
+  // TASK-013: em tempo de execução isto recebe planos HISTÓRICOS do IndexedDB, que
+  // passam só por uma guarda estrutural. Campos de músculo ausentes/torto viravam
+  // `for (const muscle of undefined)` nos consumidores e derrubavam o relatório.
+  describe("planos históricos malformados (defensivo na origem)", () => {
+    const malformado = {
+      training: {
+        workouts: [
+          { exercises: [{ id: "sem_musculo" }] }, // sem primaryMuscles
+          { exercises: [{ id: "alt_torta", primaryMuscles: ["chest"], alternatives: "nao-e-array" }] },
+          { exercises: [{ id: "sec_torto", primaryMuscles: ["quads"], secondaryMuscles: 42 }] },
+          { exercises: "nao-e-array" },
+          {},
+        ],
+      },
+    } as unknown as PlanFile;
+
+    it("não estoura ao construir o lookup", () => {
+      expect(() => buildExerciseMuscles(malformado)).not.toThrow();
+    });
+
+    it("`primary` é sempre iterável, mesmo sem primaryMuscles no plano", () => {
+      const gm = buildExerciseMuscles(malformado);
+      expect(gm("sem_musculo")).toEqual({ primary: [], secondary: undefined });
+      // o consumidor real faz `for (const muscle of muscles.primary)`
+      expect(() => [...(gm("sem_musculo")?.primary ?? [])]).not.toThrow();
+    });
+
+    it("`alternatives` não-array não impede a leitura do exercício base", () => {
+      const gm = buildExerciseMuscles(malformado);
+      expect(gm("alt_torta")).toEqual({ primary: ["chest"], secondary: undefined });
+      expect(gm("alt_torta", "qualquer")).toEqual({ primary: ["chest"], secondary: undefined });
+    });
+
+    it("`secondaryMuscles` não-array vira undefined (e não quebra o `?? []` do consumidor)", () => {
+      const gm = buildExerciseMuscles(malformado);
+      expect(gm("sec_torto")).toEqual({ primary: ["quads"], secondary: undefined });
+    });
+
+    it("plano sem training nenhum devolve lookup vazio em vez de estourar", () => {
+      const vazio = buildExerciseMuscles({} as unknown as PlanFile);
+      expect(vazio("qualquer")).toBeUndefined();
+    });
+  });
 });
 
 describe("hoursToReady", () => {

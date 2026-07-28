@@ -129,16 +129,29 @@ export function stimuliFromSessions(
 export function buildExerciseMuscles(plan: PlanFile): GetMuscles {
   type Entry = { muscles: ExerciseMuscles; alts: Map<string, ExerciseMuscles> };
   const map = new Map<string, Entry>();
-  for (const workout of plan.training.workouts) {
-    for (const ex of workout.exercises) {
-      const base: ExerciseMuscles = { primary: ex.primaryMuscles, secondary: ex.secondaryMuscles };
+  // Defensivo de propósito (TASK-013): o tipo diz `PlanFile`, mas em tempo de execução
+  // isto pode ser um plano HISTÓRICO lido do IndexedDB, que só passou por uma guarda
+  // estrutural — não pelo schema inteiro. Um campo de músculo ausente virava
+  // `for (const muscle of undefined)` lá em `stimuliFromSessions`/volume por músculo e
+  // derrubava a geração do relatório. Normalizar aqui, na ORIGEM do lookup, fecha a
+  // classe inteira de erro num ponto só, em vez de exigir o contrato completo de todo
+  // chamador (o que apagaria nomes/volume de ciclos antigos ainda perfeitamente úteis).
+  const workouts = Array.isArray(plan.training?.workouts) ? plan.training.workouts : [];
+  for (const workout of workouts) {
+    for (const ex of Array.isArray(workout?.exercises) ? workout.exercises : []) {
+      const base: ExerciseMuscles = {
+        primary: Array.isArray(ex.primaryMuscles) ? ex.primaryMuscles : [],
+        secondary: Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles : undefined,
+      };
       const alts = new Map<string, ExerciseMuscles>();
-      for (const alt of ex.alternatives ?? []) {
+      for (const alt of Array.isArray(ex.alternatives) ? ex.alternatives : []) {
         // A alternativa só sobrescreve os PRIMÁRIOS (o schema não expressa secundários
         // nela); herda sempre os secundários do pai — senão um swap subestima a fadiga.
+        // Herda de `base` (já normalizado), não dos campos crus do exercício — senão a
+        // variação reintroduziria o `undefined` que acabamos de eliminar.
         alts.set(alt.id, {
-          primary: alt.primaryMuscles?.length ? alt.primaryMuscles : ex.primaryMuscles,
-          secondary: ex.secondaryMuscles,
+          primary: alt.primaryMuscles?.length ? alt.primaryMuscles : base.primary,
+          secondary: base.secondary,
         });
       }
       map.set(ex.id, { muscles: base, alts });

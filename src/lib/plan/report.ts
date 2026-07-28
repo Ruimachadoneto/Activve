@@ -177,7 +177,13 @@ export function buildReport(
     if (earliestKnown != null && date < earliestKnown) return false;
     const p = planForDate(knownPlans, date, activePlan);
     const idx = (new Date(`${date}T12:00:00`).getDay() + 6) % 7; // 0 = segunda
-    return p.training.weekSchedule[idx] !== "rest";
+    // Plano histórico pode ter passado só pela guarda estrutural (TASK-013), que não
+    // exige `weekSchedule`. Sem agenda legível não dá pra afirmar que o dia era de
+    // treino — e inventar "agendado" faria a constância parecer PIOR do que foi, o que
+    // viola o princípio anti-culpa. Na dúvida, o dia não conta.
+    const schedule = p.training?.weekSchedule;
+    if (!Array.isArray(schedule)) return false;
+    return schedule[idx] !== "rest";
   }).length;
   const workoutsCompleted = sessions.filter((s) => s.status === "done").length;
   const workoutsPartial = sessions.filter((s) => s.status === "in_progress").length;
