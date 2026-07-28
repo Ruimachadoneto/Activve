@@ -1,17 +1,35 @@
 # Estado atual do projeto — CHECKPOINT DE RETOMADA
 
-> Atualizado: `2026-06-29`. Este doc + `CLAUDE.md` + `docs/ai/tasks/*` + `docs/DESIGN_SYSTEM.md`
-> + git history permitem **retomar numa sessão nova sem o histórico do chat**. Leia primeiro.
+> Atualizado: `2026-07-27` (sessão longa — 4 tasks + pivô de produto; ver `CHECKPOINT DE RETOMADA`
+> no final do arquivo pra um resumo denso). Este doc + `CLAUDE.md` + `docs/ai/tasks/*` +
+> `docs/DESIGN_SYSTEM.md` + git history permitem **retomar numa sessão nova sem o histórico do
+> chat**. Leia primeiro — se estiver com pressa, leia só "Onde estamos" + o
+> "CHECKPOINT DE RETOMADA" no final.
+
+## O que é o Activve (pra quem está chegando agora)
+App de fitness **local-first** (Next 16 + TS + Tailwind v4 + IndexedDB, zero backend hoje) que o
+usuário treina/acompanha no aparelho. A visão de produto completa (`docs/ai/PRODUCT_VISION.md`)
+é um **ciclo fechado de coaching**: um "Activve Health System" (hoje um **Claude Project**, spec em
+`docs/ai/coach/ACTIVVE_HEALTH_SYSTEM.md`) faz anamnese e gera um `PlanFile` (JSON) que o usuário
+importa no app; o app treina/acompanha; o usuário exporta um relatório de volta pro coach ajustar o
+próximo ciclo. **Local-first é decisão deliberada** (privacidade como diferencial), coach/conta/
+billing na nuvem só numa Fase 2 futura, depois de validar (usuário está validando pessoalmente
+agora). App publicado em produção: `activve.vercel.app` (deploy feito pelo próprio usuário).
 
 ## Onde estamos
-- **Branch atual:** `main` (limpa; TASK-017 mergeada em `fb09bbe`). Sem branches de feature abertas.
-- **`main`** tem **TASK-001→012, 014→017 mergeadas**. TASK-013 (erro amigável) segue pendente.
-- **2026-07-27 — feedback de uso real (app publicado no Vercel):** usuário testou e mapeou 4 pontos:
-  (1) sem relatório/calendário de treino + export semanal/mensal, (2) sem trocar o treino "oficial"
-  do dia, (3) timer de descanso diverge em background/sem notificação, (4) sem UI pra reimportar
-  plano. Plano de resposta: **TASK-015** (✅) → **TASK-016** (✅) → **TASK-017** (✅) → **TASK-018**
-  (calendário/relatório — falta). PWA (manifest+SW, necessário pra notificação real em background)
-  vira **TASK-019** à parte.
+- **Branch atual:** `main` (limpa; TASK-018 mergeada em `98a7703`). Sem branches de feature abertas.
+- **`main`** tem **TASK-001→012, 014→018 mergeadas**. TASK-013 (erro amigável) segue pendente —
+  é a única task do ciclo do mockup original ainda não feita.
+- **2026-07-27 — sessão de resposta ao feedback de uso real** (usuário testou o app publicado e
+  mapeou 4 pontos): (1) sem relatório/calendário de treino, (2) sem trocar o treino "oficial" do
+  dia, (3) timer de descanso divergia em background, (4) sem UI pra reimportar plano. **Os 4 foram
+  resolvidos e mergeados** nesta sessão: TASK-015 (✅ trocar plano) → TASK-016 (✅ dia/treino) →
+  TASK-017 (✅ timer) → TASK-018 (✅ calendário + relatório visual). Ver seção de cada task abaixo
+  e o `CHECKPOINT DE RETOMADA` no final pra um resumo consolidado.
+- **Pivô de produto dentro da TASK-018** (pedido explícito do usuário, meio da implementação): o
+  export do relatório **não é mais JSON pro coach** — virou um **relatório VISUAL** (gráficos de
+  progressão de peso/carga, PDF via impressão nativa do browser) pro **usuário acompanhar o próprio
+  progresso**. Detalhe completo na seção TASK-018 abaixo.
 - Repo: `github.com/Ruimachadoneto/Activve`. App roda em `C:\Users\Rui Neto\dev\activve` (Next 16 + TS + Tailwind v4 + IndexedDB, local-first).
 
 ## O alvo (não-negociável)
@@ -255,15 +273,70 @@ decrementado); recalcula na hora ao voltar foco/visibilidade. **Sem** notificaç
   (sem reintroduzir o bug da TASK-010); reiniciar com mesma duração reancora fresco (não o achado).
   Gates: **120/120** ✓ · build ✓.
 
+## TASK-018 — Calendário de treinos + relatório visual (MERGEADA em `main` `98a7703`, 2026-07-27)
+Contrato: `docs/ai/tasks/TASK-018-calendario-relatorio.md` (o mais detalhado — leia se for mexer
+em `report.ts`/`relatorios/page.tsx`, tem o raciocínio completo de 8 ciclos de review).
+- **Calendário** (`/relatorios`, linkado em `/mais`): grade do mês, navegação, dias com sessão
+  marcados/clicáveis (usa `getAllSessions()` — **todos os planos**, não só o ativo, per o achado da
+  TASK-015). Clicar no dia mostra treino + série/peso/reps/RPE por exercício, com o nome do
+  movimento resolvido pelo plano **daquela sessão** (não o ativo — `getAllPlans()` + `plansById`).
+- **Pivô de produto (pedido explícito do usuário, no meio da implementação):** o export
+  "Esta semana"/"Este mês" **não é mais um `ReportFile` JSON baixado como arquivo** — virou um
+  **relatório VISUAL** na tela (gráficos SVG puros de progressão de peso e carga por exercício —
+  `ReportLineChart.tsx`, mesmo padrão do `WeightChart` já existente, zero lib nova) +
+  **"Baixar PDF" via `window.print()`** nativo (`.report-print` em `globals.css` sobrescreve os
+  tokens de cor só pro print, sem duplicar classe por elemento). `buildReport`/`reportToMarkdown`
+  (`src/lib/plan/report.ts`) continuam existindo — o Markdown virou uma opção secundária "Texto p/
+  coach" (ainda serve pro hand-off ao Claude Project).
+- **`buildReport` resolve histórico CROSS-PLANO**: recebe `knownPlans: KnownPlan[]` (todos os
+  planos já importados, com `importedAt`) e resolve agenda/nome de exercício/músculos pelo plano
+  que valia em CADA data/sessão (`planForDate`/`planForSession`) — trocar de plano não apaga mais o
+  histórico de um ciclo anterior do período exportado. `goal`/`refersToPlanId` continuam vindo do
+  plano **ativo** (é o ciclo vigente que importa pra meta).
+- **8 ciclos de review Codex** (muito acima do limite normal de 3 do AGENTS §13 — usuário consultado
+  2x via pergunta explícita e aprovou continuar/corrigir, dado que cada achado era genuíno):
+  7 achados reais corrigidos (corrida de carregamento em 2 variantes, export misturando planos,
+  variação trocada não separada na progressão, período invertido/futuro, `reportId` colidindo,
+  `importedAt` sobrescrito em reimport do mesmo plano, agenda inventada pra dias antes do primeiro
+  plano existir); **1 registrado como dívida técnica** por decisão do usuário (ver seção própria
+  abaixo — fronteira de troca de plano no mesmo dia calendário, impacto muito baixo).
+- Gates finais: typecheck ✓ · lint ✓ · **132/132** ✓ · build ✓. Verificado no browser em cada
+  ciclo — inclusive um cenário real de troca de ciclo (2 planos distintos no IndexedDB, sessão em
+  cada um dentro do mesmo mês): relatório mostrou as duas sessões juntas, peso cruzando os dois
+  ciclos, e cada exercício com o nome certo do plano de origem.
+
+## Dívida técnica registrada (decisões explícitas do usuário — revisitar se incomodar na prática)
+- **TASK-016 [P2]:** reimportar o **mesmo** `planId` com ids de treino/exercício **renomeados**
+  perde o nome antigo pras sessões anteriores àquele ciclo — `saveImportedPlan` **sobrescreve** o
+  registro por planId, a revisão antiga é apagada de verdade do IndexedDB (não é bug de lookup da
+  UI). Corrigir de verdade exige guardar histórico de revisões do plano (nova store ou chave
+  composta `planId+importedAt`) — mudança de arquitetura, não um ajuste pontual.
+- **TASK-018 [P2]:** `planForDate`/`earliestKnown` (`report.ts`) comparam só a **data**
+  (`importedAt.slice(0,10)`), não o timestamp completo — se um plano novo for importado no MEIO do
+  dia (mesmo dia calendário do plano anterior), o dia inteiro cai pro plano novo em vez de
+  reconhecer a fronteira por horário. Como `workoutsScheduled` já opera em granularidade de DIA
+  (não hora), afeta no máximo 1 dia de fronteira, cenário raro. Não corrigido.
+- **Dívida de teste (desde TASK-008):** faltam testes de UI/interação pra `/treino`, `RestTimer`,
+  `/relatorios` (infra Vitest é node-only; exigiria RTL/jsdom — nunca configurado).
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-**TASK-018 — Calendário de treinos + export semanal/mensal** (4ª e última do plano de resposta ao
-feedback 2026-07-27 — o maior escopo). Ainda sem contrato escrito. Objetivo: usuário clica num dia
-no calendário e vê o relatório do treino feito (série/peso/reps/RPE); export de relatório
-semanal/mensal. Dados já existem em `sessions` (IndexedDB) — falta a UI de calendário/detalhe e a
-agregação. **Atenção ao achado da TASK-015:** o calendário/relatório deve listar sessões de
-**todos os planos** (`getAllSessions`), não só o `planId` ativo, senão o histórico "sumiria"
-visualmente a cada novo ciclo de coach. Depois: TASK-013 (erro amigável, ainda pendente do ciclo do
-mockup), TASK-019 (PWA — manifest+SW, habilita notificação real do timer em background).
+Os 4 pontos do feedback de uso real estão **todos resolvidos e mergeados**. Não há task em
+andamento — **a próxima ação depende de decisão do usuário**, não é automática. Candidatos, em
+ordem de prioridade sugerida (mas perguntar antes de começar):
+1. **TASK-013 — erro amigável p/ plano corrompido** (única pendência do ciclo do mockup original,
+   nunca implementada). Bug conhecido: plano parcial/corrompido no IndexedDB (sem
+   weekSchedule/howTo/diet.meals) derruba Hoje/Treino com runtime error (tela vermelha) — viola
+   `VISUAL_QUALITY.md` §8 (estados). Ganhou urgência: app está em **produção** agora
+   (`activve.vercel.app`), um plano malformado vindo do coach quebraria o app de verdade pro
+   usuário, não só em teste. Escopo: páginas que leem o plano devem validar/cair num estado de erro
+   amigável em vez de crashar (`parsePlan`/schema no `useActivePlan` + possível ErrorBoundary).
+2. **TASK-019 — PWA (manifest + Service Worker)**: instalação na tela inicial + notificação REAL
+   do timer em background (a TASK-017 corrigiu a contagem não divergir, mas só um Service Worker
+   pode notificar com o app minimizado/tela apagada — documentado como fora de escopo da TASK-017).
+3. Seguir testando o app + o coach (`ACTIVVE_HEALTH_SYSTEM.md`) e trazer novo feedback de uso real
+   — o usuário mencionou que vai validar pessoalmente antes de decidir escalar (Fase 2).
+4. Fase 1 do `PRODUCT_VISION.md` ainda não iniciada: rastreio leve de dieta (marcar refeição), exibir
+   o plano de bem-estar/psicológico no app (hoje só existe no Documento humano do coach).
 
 **(referência) TASK-013 — Robustez: estado de erro amigável p/ plano corrompido** (última do ciclo do mockup, ainda não iniciada).
 Bug descoberto na auditoria: plano parcial/corrompido no IndexedDB (sem weekSchedule/howTo/diet.meals)
@@ -292,8 +365,11 @@ Health System" faz anamnese+gera+ajusta ↔ app rastreia+exporta relatório). Re
 `docs/ai/coach/ACTIVVE_HEALTH_SYSTEM.md` (anamnese + geração do documento/PlanFile + ajuste por
 ReportFile). Estratégia: local-first (dados no aparelho) + coach/billing na nuvem só na Fase 2, após
 validar. Usuário vai **testar app + coach** e escalar se aprovar.
-Elo faltante do loop (Fase 1, app): **export do `ReportFile`**, dieta leve (marcar refeição), exibir
-plano de bem-estar.
+Elo faltante do loop (Fase 1, app), **atualizado 2026-07-27**: o export virou relatório **visual**
+(TASK-018) — resolve "acompanhar progresso" pro usuário, mas o coach espera `ReportFile` **JSON**
+(ver nuance em `CHECKPOINT DE RETOMADA` no final deste arquivo — pode precisar reavaliar quando o
+ciclo com o coach for fechado de novo). Ainda faltam: dieta leve (marcar refeição), exibir plano de
+bem-estar.
 Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de dieta).
 
 **(escopo TASK-012 original, para referência)** — **TASK-012 — Como fazer v2** (auditoria `VISUAL_GAP_AUDIT_2026-06-30.md`, tela 3): criar branch
@@ -312,7 +388,7 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 - Demonstração de exercício: **`free-exercise-db`** (Unlicense) — 800+ exercícios com imagens + dados.
 
 ## Como rodar / verificar
-- `npm run dev` (porta 3000). Gates: `npm run typecheck && npm run lint && npm run test && npm run build` (85 testes).
+- `npm run dev` (porta 3000). Gates: `npm run typecheck && npm run lint && npm run test && npm run build` (**132 testes** em 2026-07-27).
 - ⚠️ **IndexedDB do preview é efêmero entre sessões** — pra ver `/corpo` aceso, semear plano de exemplo (`examples/plano-exemplo.json`) + sessões concluídas direto no IndexedDB (stores `plans`/`kv`/`sessions`).
 - **Preview screenshot está intermitente** (trava, ainda mais com o timer rodando). Verificar por: **abrir `localhost:3000`** (olhos do usuário) + DOM via eval. Seed de teste: gravar plano + sessões direto no IndexedDB (store `plans`/`kv`/`sessions`/`bodylog`).
 - ⚠️ **Aba do preview às vezes fica `document.hidden`** → Chromium NÃO carrega `loading="lazy"` em aba oculta (thumbs parecem quebrados e screenshot trava). **Não é bug do app** — validar forçando `img.loading='eager'` via eval ou pelos olhos do usuário. Não trocar lazy→eager no código por causa disso.
@@ -339,3 +415,106 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-015 | Trocar plano visível na UI | MERGEADA | main (`cb1b07b`) |
 | TASK-016 | Selecionar/fixar treino do dia | MERGEADA | main (`76c7dcb`) |
 | TASK-017 | Timer de descanso ancorado em tempo real | MERGEADA | main (`fb09bbe`) |
+| TASK-018 | Calendário de treinos + relatório visual (PDF) | MERGEADA | main (`98a7703`) |
+
+---
+
+# CHECKPOINT DE RETOMADA (2026-07-27, fim de sessão)
+
+> Seção pensada pra responder, sozinha, as 15 perguntas de continuidade do `CLAUDE.md` §2.3 —
+> se a janela de contexto for compactada ou limpa, comece por aqui.
+
+**Última task concluída**
+TASK-018 — Calendário de treinos + relatório visual (mergeada em `main` `98a7703`).
+
+**Task atual**
+Nenhuma em andamento. Os 4 pontos do feedback de uso real (2026-07-27) estão todos resolvidos e
+mergeados (TASK-015, 016, 017, 018). Sessão terminou aqui por pedido do usuário — ele pediu pra
+consolidar a documentação antes de continuar, prevendo que a janela de contexto ficaria cheia.
+
+**Último step concluído**
+Merge da TASK-018 na main + revalidação de gates (132 testes) + push + apagar branch local. Depois
+disso, esta atualização de documentação (STATUS.md).
+
+**Estado atual do código**
+`main` limpa, sem branches de feature abertas. Todos os gates verdes (`typecheck`, `lint`, `test`
+132/132, `build`). App funcional ponta a ponta: importar plano → treinar (Hoje/Treino/Corpo) →
+trocar plano/treino do dia → timer confiável → calendário + relatório visual com PDF.
+
+**O que funciona (verificado no browser nesta sessão)**
+- Trocar plano via `/mais` sem perder histórico (sessions/bodylog sobrevivem a reimport).
+- Fixar/trocar o treino "oficial" do dia (override por data), com reversão.
+- Timer de descanso corrige sozinho a contagem ao sair/voltar do app (não notifica em background
+  ainda — isso é PWA, ver TASK-019 candidata).
+- Calendário em `/relatorios`: dias com sessão marcados, clique mostra detalhe completo
+  (série/peso/reps/RPE), inclusive de planos antigos (nome do exercício resolvido corretamente
+  pelo plano da sessão, não o ativo).
+- Relatório visual: gráficos de progressão de peso e carga por exercício, "Baixar PDF"
+  (`window.print()`), histórico cruzando trocas de plano dentro do mesmo período exportado.
+
+**O que não funciona / não existe ainda**
+- Estado de erro amigável pra plano corrompido — ainda crasha (TASK-013, pendente desde o ciclo do
+  mockup original, nunca implementada).
+- Notificação real do timer com o app minimizado/tela apagada — exige Service Worker (PWA), fora
+  de escopo da TASK-017 de propósito.
+- App não é instalável (sem `manifest.json`/Service Worker) — TASK-019 candidata.
+- Sem rastreio de dieta (marcar refeição) nem exibição do plano de bem-estar no app — Fase 1 do
+  `PRODUCT_VISION.md`, não iniciada.
+- **Nuance a resolver quando o coach for usado de novo**: `ACTIVVE_HEALTH_SYSTEM.md` (spec do
+  coach) espera reingerir um `ReportFile` **JSON**; depois do pivô da TASK-018, a UI só oferece
+  **Markdown** ("Texto p/ coach") como export primário pro usuário — não removi a função
+  `buildReport`/o tipo `ReportFile`, só parei de expor o download de JSON na tela. Se o usuário for
+  fechar o ciclo com o coach de verdade, ou o Markdown basta (Claude Project lê texto bem) ou vale
+  reavaliar se precisa reexpor o JSON como opção terciária.
+
+**Arquivos-chave desta sessão (se for mexer de novo, comece por eles)**
+- `src/lib/plan/report.ts` — núcleo puro do relatório (`buildReport`, `KnownPlan`,
+  `planForDate`/`planForSession`, `reportToMarkdown`). Mexeu muito, testado a fundo (132 testes).
+- `src/app/relatorios/page.tsx` — calendário + UI do relatório visual.
+- `src/components/ReportView.tsx` / `ReportLineChart.tsx` — o relatório visual em si + gráfico SVG.
+- `src/lib/storage/overrides.ts` — override de treino do dia (TASK-016).
+- `src/lib/storage/plans.ts` — `saveImportedPlan` (preserva `importedAt` original em reimport do
+  mesmo planId), `getAllPlans`.
+- `src/components/RestTimer.tsx` — reescrito com âncora `Date.now()` (TASK-017).
+- `src/app/mais/page.tsx` — hub de navegação novo (trocar plano, relatórios).
+
+**Decisões tomadas nesta sessão (não reabrir sem justificativa nova)**
+- Relatório é **visual/PDF**, não JSON, pro usuário (pedido explícito) — ver nuance do coach acima.
+- Relatório/calendário atravessa **todos os planos** (histórico cross-plano), não só o ativo —
+  `goal`/`refersToPlanId` continuam vindo do plano ativo (é o ciclo vigente).
+- `saveImportedPlan` preserva `importedAt` original em reimport do mesmo `planId` (semântica:
+  "início do ciclo", não "última escrita").
+- Duas dívidas técnicas aceitas conscientemente (ver seção "Dívida técnica" acima) — não são bugs
+  esquecidos, são trade-offs decididos com o usuário.
+
+**Testes executados**
+`npm run typecheck && npm run lint && npm run test && npm run build` — todos verdes, 132/132
+testes, revalidados na `main` pós-merge de cada task. Verificação manual no browser em cada ciclo
+de review (Codex + humano), incluindo cenários de borda semeados direto no IndexedDB (múltiplos
+planos, sessões cross-ciclo, medidas com lápide, período invertido, etc. — ver os arquivos
+`docs/ai/tasks/TASK-01{5,6,7,8}-*.md` pro detalhe de cada verificação).
+
+**Testes pendentes**
+Nenhum teste automatizado pendente pras 4 tasks desta sessão. Dívida de longo prazo: testes de
+UI/interação (RTL/jsdom nunca configurado — infra Vitest atual é node-only).
+
+**Riscos**
+- Perda de contexto entre sessões — mitigado por este arquivo + os contratos de task detalhados.
+- App em produção (`activve.vercel.app`) sem estado de erro amigável — um plano corrompido vindo
+  do coach quebra a experiência de verdade agora, não só em teste (motivo da TASK-013 ter subido
+  de prioridade).
+- Nenhum risco novo introduzido pelas mudanças desta sessão que não esteja já registrado como
+  dívida técnica acima.
+
+**Próxima ação exata**
+**Perguntar ao usuário** qual dos 4 candidatos da seção "PRÓXIMA AÇÃO EXATA" (no topo do arquivo)
+ele quer priorizar — não presumir. Se ele não responder e for preciso decidir sozinho, a
+recomendação é **TASK-013** (erro amigável), pelo risco de produção já registrado acima.
+
+**Comando recomendado**
+```bash
+git status && git log --oneline -5
+```
+
+**Arquivo inicial a ser lido**
+- `docs/ai/STATUS.md` (este arquivo, inteiro) → depois `docs/ai/tasks/TASK-018-calendario-relatorio.md` se for mexer no relatório, ou o contrato da task escolhida.
