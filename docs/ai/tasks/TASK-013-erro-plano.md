@@ -122,6 +122,40 @@ cada rota; conferir console limpo de erro não tratado; 375px sem overflow.
 ## Registro de execução
 
 - Data: 2026-07-28
-- Alterações de plano: [preencher ao final]
-- Impedimentos: [preencher ao final]
-- Resultado: [preencher ao final]
+- **Alterações de plano:** o passo 5 (planos históricos em `/relatorios`) mudou de forma três vezes
+  durante os ciclos de review — é o ponto quente da task:
+  1. Começou como `validatePlan` para todos os planos históricos. **Errado**: a verificação no
+     browser mostrou que descartava o `pl_ciclo1` real (inválido só porque o `weekSchedule` aponta
+     pra um treino "B" removido) e o calendário regredia de "Supino reto (ciclo 1)" pro id cru
+     `supino`.
+  2. Virou guarda estrutural `hasReadableTraining`. O review Codex achou dois furos reais: workouts
+     com itens não percorríveis (ciclo 1) e exercícios sem `primaryMuscles` derrubando
+     `buildReport` em `for (const muscle of muscles.primary)` (ciclo 2).
+  3. Virou **filtro por consumidor**: guarda rasa pro calendário (lê `id`/`name`), `validatePlan`
+     completo pro `buildReport` (calcula músculos/volume/variações). O ciclo 3 do review apontou o
+     custo disso (ver "Decisão pendente").
+- **Impedimentos:** nenhum bloqueio técnico. Parada em **3 ciclos de review** por regra
+  (`AGENTS.md` §13) — ciclos 2 e 3 apontam em direções opostas sobre onde a robustez deve morar,
+  o que é exatamente a "divergência arquitetural" que a regra manda levar a decisão humana.
+- **Resultado:** critérios de aceite atendidos e verificados no browser. Gates: typecheck ✓ ·
+  lint ✓ · **148/148** ✓ · build ✓. Pendente: decisão do item abaixo + gate humano de merge.
+
+### Decisão pendente (achado [P2] do review Codex, ciclo 3 — NÃO corrigido)
+
+`knownPlans` (o que alimenta `buildReport`) filtra por `validatePlan` completo. Consequência real:
+um plano histórico **cosmeticamente** inválido (ex.: `weekSchedule` apontando pra um treino
+removido — o caso do `pl_ciclo1`) é excluído do relatório; `planForSession` cai no plano **ativo**
+e o export pode mostrar nome de movimento errado/ausente e subcontar volume por músculo daquele
+ciclo. Não é crash — é perda de fidelidade.
+
+Opções:
+
+- **A — deixar como está.** Seguro; relatório perde fidelidade em plano antigo cosmeticamente
+  inválido. Custo zero agora.
+- **B (recomendada) — tornar `buildExerciseMuscles` defensivo na origem** (`recovery.ts`):
+  `primary` default `[]` e `alternatives` não-array tratado como vazio. Aí `knownPlans` pode voltar
+  a usar a guarda rasa sem risco de crash, e a fidelidade do histórico é preservada. Fecha a classe
+  inteira de erro num ponto só, em vez de espelhar o schema em cada chamador. Exige também garantir
+  `weekSchedule` em `planForDate`.
+- **C — guarda estrutural profunda**, espelhando campo a campo o que `buildReport` desreferencia.
+  Rejeitada: é reescrever o schema pior, e foi o que gerou os achados dos ciclos 1 e 2.
