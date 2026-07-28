@@ -237,3 +237,32 @@ npm run typecheck && npm run lint && npm run test && npm run build
     "Agachamento" (55 kg) e "Leg press" (70 kg) como entradas **separadas** na progressão de carga;
     console limpo.
   - Gates: typecheck ✓ · lint ✓ · **130/130** ✓ · build ✓.
+
+- **Review Codex (ciclo 6, 2026-07-27) — 1 achado [P1], corrigido com mudança estrutural (pedido
+  explícito do usuário — perguntei antes de mexer, dado que exigia mudar a assinatura de
+  `buildReport`):** o export continuava escopado ao plano ATIVO (herança do ciclo 2) — se o usuário
+  trocasse de plano e pedisse um período **anterior** à troca, vinha vazio, mesmo o calendário
+  mostrando essas sessões normalmente. Contraditório com o pivô: o relatório agora é
+  "acompanhe seu progresso", não um hand-off de UM ciclo pro coach.
+  - **Decisão do usuário: corrigir agora.** `buildReport` ganhou um 2º parâmetro `knownPlans:
+    KnownPlan[]` (todos os planos já importados, com `importedAt`) — `planForDate`/`planForSession`
+    resolvem, pra cada data/sessão, **qual plano valia naquele momento** (o mais recente com
+    `importedAt <= data`), usado pra: agenda (`workoutsScheduled`), nome de exercício/variação, e
+    mapeamento de músculos (`volumeByMuscle`, cache por planId). `goal`/`refersToPlanId` continuam
+    vindo do plano **ativo** (`activePlan`, 1º parâmetro) — é o ciclo vigente que importa pra meta.
+  - `relatorios/page.tsx`: removido o filtro por `planId` e o recorte de `period.from` em
+    `exportPeriod` (não são mais necessários — `buildReport` resolve certo por conta própria);
+    `knownPlans` montado a partir de `plans` (todos) + o plano ativo. Mantido: recorte de
+    `period.to` em hoje (achado independente do ciclo 5).
+  - +2 testes: agenda/nome resolvidos pelo plano de cada sessão numa troca no meio do período
+    (com um 2º plano fixture só de teste, `pl_test2`, weekSchedule totalmente diferente).
+  - Todos os testes existentes migrados pra nova assinatura (`buildReport(plan, knownPlans, ...)`).
+  - **Verificado no browser** com um cenário real de troca de ciclo (2 planos distintos no
+    IndexedDB, `pl_ciclo1` importado 01/06 e `pl_ciclo2` importado 20/07 como ativo; 1 sessão em
+    cada ciclo, dentro do mesmo mês): "Este mês" mostrou **as duas sessões juntas** ("2 de 14
+    treinos concluídos"), **peso cruzando os dois ciclos** (85→83 kg, 2 registros), e os dois
+    exercícios como entradas separadas com o nome certo de cada plano ("Supino reto (ciclo 1)" e
+    "Supino inclinado (ciclo 2)" — o plano ativo nem tem o exercício do ciclo 1 no catálogo, e
+    mesmo assim resolveu certo). Objetivo mostrado ("Recomposição") é do plano ativo. Clique no dia
+    do ciclo antigo no calendário mostra "Treino A — Ciclo 1" corretamente. Console limpo.
+  - Gates: typecheck ✓ · lint ✓ · **131/131** ✓ · build ✓.

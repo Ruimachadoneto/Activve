@@ -113,15 +113,45 @@ function exerciseName(plan: PlanFile, exerciseId: string, swappedToId?: string):
   return swappedToId ?? exerciseId;
 }
 
+/** Um plano já importado, com a data em que o ciclo começou — pra resolver qual
+ * definição valia numa data específica (histórico cruza planos, TASK-018). */
+export type KnownPlan = { planId: string; importedAt: string; plan: PlanFile };
+
+/**
+ * Plano vigente numa data: o mais recente entre os que já existiam nela
+ * (`importedAt <= date`). Sem nenhum candidato (data anterior a todo histórico
+ * conhecido — não deveria acontecer, sessão não existe sem app), cai no mais antigo
+ * conhecido; sem nenhum plano conhecido, cai no `fallback` (o ativo).
+ */
+function planForDate(knownPlans: KnownPlan[], date: string, fallback: PlanFile): PlanFile {
+  if (knownPlans.length === 0) return fallback;
+  const candidates = knownPlans.filter((p) => p.importedAt.slice(0, 10) <= date);
+  const pool = candidates.length > 0 ? candidates : knownPlans;
+  return [...pool].sort((a, b) => a.importedAt.localeCompare(b.importedAt))[pool.length - 1].plan;
+}
+
+/** Plano de uma sessão pelo `planId` dela — histórico real, não o ativo (TASK-018). */
+function planForSession(knownPlans: KnownPlan[], planId: string, fallback: PlanFile): PlanFile {
+  return knownPlans.find((p) => p.planId === planId)?.plan ?? fallback;
+}
+
 function weightTrend(deltaKg: number): "up" | "flat" | "down" {
   if (deltaKg > 0.3) return "up";
   if (deltaKg < -0.3) return "down";
   return "flat";
 }
 
-/** Constrói o relatório de um período a partir dos dados já persistidos localmente. */
+/**
+ * Constrói o relatório de um período a partir dos dados já persistidos localmente.
+ * `activePlan` decide `goal`/`refersToPlanId` (o ciclo vigente); `knownPlans` resolve
+ * nome de exercício/músculos/agenda de cada sessão pelo plano que estava valendo
+ * NAQUELE momento — sem isso, sessões de antes de uma troca de plano ficariam sem
+ * dado (achado do review Codex: o relatório virou "acompanhe seu progresso", não faz
+ * sentido perder o histórico de um ciclo anterior só porque o usuário trocou de plano).
+ */
 export function buildReport(
-  plan: PlanFile,
+  activePlan: PlanFile,
+  knownPlans: KnownPlan[],
   allSessions: WorkoutSession[],
   bodyEntries: BodyEntry[],
   period: ReportPeriod,
@@ -133,8 +163,9 @@ export function buildReport(
 
   // ---- adherence ----
   const workoutsScheduled = days.filter((date) => {
+    const p = planForDate(knownPlans, date, activePlan);
     const idx = (new Date(`${date}T12:00:00`).getDay() + 6) % 7; // 0 = segunda
-    return plan.training.weekSchedule[idx] !== "rest";
+    return p.training.weekSchedule[idx] !== "rest";
   }).length;
   const workoutsCompleted = sessions.filter((s) => s.status === "done").length;
   const workoutsPartial = sessions.filter((s) => s.status === "in_progress").length;
@@ -145,7 +176,7 @@ export function buildReport(
   // uma troca de variação (ex.: agachamento → leg press) no mesmo grupo compararia cargas
   // de movimentos diferentes como se fossem progressão do mesmo (achado do review Codex;
   // mesmo critério já usado em `previousPerformance`/`session.ts` pra continuidade).
-  type Visit = { date: string; sets: { load_kg?: number; reps?: number; rpe?: number }[] };
+  type Visit = { date: string; planId: string; sets: { load_kg?: number; reps?: number; rpe?: number }[] };
   type Group = { exerciseId: string; swappedToId?: string; visits: Visit[] };
   const byMovement = new Map<string, Group>();
   for (const s of sessions) {
@@ -158,7 +189,7 @@ export function buildReport(
         swappedToId: ex.swappedToId,
         visits: [],
       };
-      group.visits.push({ date: s.date, sets: doneSets });
+      group.visits.push({ date: s.date, planId: s.planId, sets: doneSets });
       byMovement.set(movementKey, group);
     }
   }
@@ -190,9 +221,12 @@ export function buildReport(
       const series = visits
         .map((v) => ({ date: v.date, avgLoad: avgLoad(v) ?? undefined }))
         .filter((p): p is { date: string; avgLoad: number } => p.avgLoad != null);
+      // Nome resolvido pelo plano da visita mais RECENTE — se o exercício mudou de
+      // nome entre planos (mesmo id, continuidade do ADR-002), mostra como é hoje.
+      const namePlan = planForSession(knownPlans, lastVisit.planId, activePlan);
       return {
         exerciseId,
-        name: exerciseName(plan, exerciseId, swappedToId),
+        name: exerciseName(namePlan, exerciseId, swappedToId),
         sessions: visits.length,
         totalSets,
         bestSet: { load_kg: bestSet?.load_kg, reps: bestSet?.reps },
@@ -204,9 +238,20 @@ export function buildReport(
     .sort((a, b) => b.totalSets - a.totalSets);
 
   // ---- training.volumeByMuscle ----
-  const getMuscles = buildExerciseMuscles(plan);
+  // Resolve por sessão (memoizado por planId) — mesma razão do `training.exercises`
+  // acima: o mapeamento exercício→músculo pode diferir entre ciclos.
+  const musclesCache = new Map<string, ReturnType<typeof buildExerciseMuscles>>();
+  function getMusclesFor(planId: string) {
+    let fn = musclesCache.get(planId);
+    if (!fn) {
+      fn = buildExerciseMuscles(planForSession(knownPlans, planId, activePlan));
+      musclesCache.set(planId, fn);
+    }
+    return fn;
+  }
   const muscleAcc = new Map<Muscle, { sets: number; volume_kg: number }>();
   for (const s of sessions) {
+    const getMuscles = getMusclesFor(s.planId);
     for (const ex of s.exercises) {
       const doneSets = ex.sets.filter((x) => x.done);
       if (doneSets.length === 0) continue;
@@ -261,7 +306,7 @@ export function buildReport(
 
   // ---- goal ----
   const overallWeight = weightSeries(bodyEntries);
-  const currentWeight_kg = weightLatest ?? overallWeight[overallWeight.length - 1]?.weight ?? plan.profile.weight_kg;
+  const currentWeight_kg = weightLatest ?? overallWeight[overallWeight.length - 1]?.weight ?? activePlan.profile.weight_kg;
 
   return {
     schemaVersion: "1.0",
@@ -272,7 +317,7 @@ export function buildReport(
       generatedAt: now.toISOString(),
       app: "activve@0.1.0",
       locale: "pt-BR",
-      refersToPlanId: plan.meta.planId,
+      refersToPlanId: activePlan.meta.planId,
       period,
     },
     adherence: {
@@ -296,10 +341,10 @@ export function buildReport(
       measures,
     },
     goal: {
-      type: plan.goal.type,
-      targetWeight_kg: plan.goal.targetWeight_kg,
+      type: activePlan.goal.type,
+      targetWeight_kg: activePlan.goal.targetWeight_kg,
       currentWeight_kg,
-      targetDate: plan.goal.targetDate,
+      targetDate: activePlan.goal.targetDate,
       paceVsTarget: "na",
     },
     diet: { adherencePct: 0, notes: "Sem rastreio de refeições no app ainda." },

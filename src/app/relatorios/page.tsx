@@ -11,7 +11,7 @@ import { getBodyLog } from "@/lib/storage/bodylog";
 import { getAllPlans, type StoredPlan } from "@/lib/storage/plans";
 import { isoDate, type WorkoutSession } from "@/lib/plan/session";
 import type { BodyEntry } from "@/lib/plan/body";
-import { buildReport, reportToMarkdown, type ReportFile, type ReportPeriod } from "@/lib/plan/report";
+import { buildReport, reportToMarkdown, type KnownPlan, type ReportFile, type ReportPeriod } from "@/lib/plan/report";
 import { weekDates } from "@/lib/plan/today";
 import type { PlanFile } from "@/lib/plan/schema";
 
@@ -99,6 +99,17 @@ export default function RelatoriosPage() {
     return map;
   }, [plans, plan]);
 
+  // Todos os planos já importados, com a data de início de cada ciclo — o relatório
+  // (buildReport) usa isso pra resolver nome de exercício/agenda de cada sessão pelo
+  // plano que valia NAQUELE momento, não só o ativo (histórico cruza trocas de plano).
+  const knownPlans = useMemo<KnownPlan[]>(() => {
+    const list = plans.map((p) => ({ planId: p.planId, importedAt: p.importedAt, plan: p.plan }));
+    if (plan && !list.some((p) => p.planId === plan.planId)) {
+      list.push({ planId: plan.planId, importedAt: plan.importedAt, plan: plan.plan });
+    }
+    return list;
+  }, [plans, plan]);
+
   /**
    * Nome do movimento efetivamente executado: se houve troca (`swappedToId`), busca
    * dentro das `alternatives` do exercício base — ids de variação são escopados ao
@@ -122,40 +133,31 @@ export default function RelatoriosPage() {
 
   function exportPeriod(period: ReportPeriod, label: string) {
     if (!plan) return;
-    // Só sessões do plano ATIVO: misturar sessões de um ciclo anterior com a definição
-    // do plano vigente (weekSchedule, nomes de exercício, músculos) produz um relatório
-    // incoerente quando o período atravessa uma troca de plano (achado do review Codex).
-    // O `ReportFile` já é por natureza escopado a UM `refersToPlanId` (REPORT_SCHEMA.md);
-    // sessões de ciclos anteriores dentro do mesmo período simplesmente não entram —
-    // continuam visíveis no calendário (que não tem esse escopo), só não no export.
-    const sessionsForActivePlan = sessions.filter((s) => s.planId === plan.planId);
-    // Recorta o início do período pra não contar dias ANTES do plano existir como
-    // "agendados" — senão um plano importado no meio da semana/mês parece que o
-    // usuário pulou treinos que nem faziam parte do ciclo ainda (achado do review Codex).
-    const importedDate = plan.importedAt.slice(0, 10);
-    // Recorta o fim do período pra HOJE — "esta semana"/"este mês" pode ir até um dia
+    // Cross-plano de propósito: o relatório é "acompanhe seu progresso", não um
+    // hand-off formal pro coach — trocar de plano não pode apagar o histórico de um
+    // ciclo anterior do período pedido (achado do review Codex). `buildReport` resolve
+    // agenda/nome de exercício pelo plano de CADA sessão via `knownPlans`, então não
+    // precisamos mais filtrar por `planId` nem recortar o início do período aqui.
+    // Só o fim do período é recortado — "esta semana"/"este mês" pode ir até um dia
     // futuro (ex.: gerar o relatório na segunda conta a semana inteira até domingo);
     // contar dias que ainda nem chegaram como "agendados e não feitos" faz a constância
-    // parecer pior do que é logo no início do período (achado do review Codex).
+    // parecer pior do que é (achado do review Codex).
     const clippedPeriod: ReportPeriod = {
-      from: period.from < importedDate ? importedDate : period.from,
+      from: period.from,
       to: period.to > todayStr ? todayStr : period.to,
     };
-    // Período pedido inteiro anterior ao plano existir (ex.: navegou pro mês passado e
-    // clicou "Este mês") — recortar produziria from > to, um período impossível
-    // (achado do review Codex). Nada pra exportar; explica em vez de gerar lixo.
+    // Período pedido inteiro no futuro (ex.: navegou pro mês que vem e clicou "Este
+    // mês") — recortar produziria from > to. Nada pra exportar; explica em vez de
+    // gerar lixo.
     if (clippedPeriod.from > clippedPeriod.to) {
-      const message =
-        period.to < importedDate
-          ? `Nenhum dado neste período — o plano atual só existe a partir de ${importedDate}.`
-          : "Nenhum dado neste período — ele ainda não chegou.";
-      setReportEmptyMessage(message);
+      setReportEmptyMessage("Nenhum dado neste período — ele ainda não chegou.");
       setReportPreview(null);
       return;
     }
     const report = buildReport(
       plan.plan,
-      sessionsForActivePlan,
+      knownPlans,
+      sessions,
       bodyEntries,
       clippedPeriod,
       notesDraft.trim() || undefined,
