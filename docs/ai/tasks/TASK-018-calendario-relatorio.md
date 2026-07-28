@@ -26,6 +26,20 @@ uma opção de extrair relatório semanal, mensal." Fecha também o "elo faltant
 - Reuso: `body.ts` (`weightSeries`, `computeTrend`) pro bloco `body` do relatório;
   `recovery.ts` (`buildExerciseMuscles`) pra resolver músculos por exercício (`volumeByMuscle`).
 
+## Decisão registrada durante a implementação (2026-07-27)
+
+Depois do 4º ciclo de review (achados P1/P2 sobre reimportação do mesmo plano), o usuário pediu
+uma mudança de direção no export: **"o relatório não deve ser em json, afinal o usuário pode
+acompanhar seu progresso. o ideal é uma imagem ou pdf com observações de progressão de carga,
+comparativos e tudo mais, isso sim é um relatório."** — o export deixou de ser o `ReportFile` JSON
+baixado como arquivo (pensado só pro coach re-ingerir) e virou um **relatório visual** (gráficos de
+progressão de peso e carga por exercício, comparativos, observações do usuário) renderizado na tela
+e exportável como **PDF via `window.print()`** (sem lib nova — impressão nativa do browser).
+`buildReport`/`reportToMarkdown` continuam existindo e testados (o `ReportFile` ainda é a estrutura
+de dados interna, e o resumo Markdown virou uma opção secundária "Texto p/ coach" pra colar no chat
+do Claude Project) — só a **saída primária pro usuário** mudou de "arquivo pra baixar" pra
+"relatório pra ler/imprimir".
+
 ## Escopo
 
 - `src/lib/plan/report.ts` (puro, testado): `ReportFile` (tipo, espelha `REPORT_SCHEMA.md`),
@@ -147,4 +161,51 @@ npm run typecheck && npm run lint && npm run test && npm run build
     carregam à parte do `plan` (`useActivePlan`); clicar exportar antes de resolver geraria
     relatório vazio silenciosamente. → novo `dataLoading`, gate de "Carregando…" combinado com o
     `loading` do plano.
+  - Gates: typecheck ✓ · lint ✓ · **129/129** ✓ · build ✓.
+
+- **Review Codex (ciclo 4, 2026-07-27) — 2 achados, decisão levada ao usuário (acima do limite
+  normal de 3 do AGENTS §13):**
+  - **[P1] aceito e corrigido** — reimportar o MESMO `planId` (correção no ciclo, já suportado por
+    `saveImportedPlan`) sobrescrevia `importedAt` com o timestamp novo; o recorte do período
+    (ciclo 2) cortava sessões válidas registradas ANTES da correção. → `saveImportedPlan` agora
+    **preserva o `importedAt` original** ao reimportar o mesmo planId (semântica: "início do
+    ciclo", não "última escrita") — lê o registro existente antes de sobrescrever. Efeito colateral
+    positivo: "importado em" em `/mais` agora também reflete quando o ciclo realmente começou.
+  - **[P2] registrado como dívida técnica, não corrigido** — reimportar o mesmo planId com ids de
+    treino/exercício renomeados faz `movementName`/`workoutName` caírem no id bruto pras sessões
+    ANTIGAS daquele ciclo, porque `saveImportedPlan` **sobrescreve** o registro por planId — a
+    revisão anterior do plano é apagada de verdade do IndexedDB, não é um problema de lookup da
+    tela de relatórios. Corrigir de verdade exigiria guardar histórico de revisões do plano (nova
+    store ou chave composta `planId+importedAt`) — mudança de arquitetura, não um ajuste pontual.
+    **Decisão do usuário**: registrar como dívida técnica (ver `STATUS.md` §Dívida Técnica) e
+    seguir; decidir depois se vale a pena resolver.
+  - Gates: typecheck ✓ · lint ✓ · **129/129** ✓ · build ✓.
+
+- **Pivô de produto (2026-07-27, pedido explícito do usuário):** o export deixou de ser
+  `ReportFile` JSON baixado como arquivo e virou um **relatório visual** — gráficos de progressão
+  (peso, carga por exercício), constância, medidas, observações do usuário — renderizado na tela e
+  exportável como **PDF via `window.print()`** (zero dependência nova; impressão nativa do
+  browser). Detalhes da decisão na seção "Decisão registrada durante a implementação" acima.
+  - `report.ts`: `training.exercises[].series` (carga média por visita) e `body.weight.series`
+    (peso completo no período) — alimentam os gráficos; antes só existiam agregados
+    (start/latest). +2 asserções nos testes existentes.
+  - `src/components/ReportLineChart.tsx` — gráfico de linha genérico (SVG puro, mesmo padrão do
+    `WeightChart.tsx` já usado em Corpo — sem lib nova).
+  - `src/components/ReportView.tsx` — o relatório visual completo (constância, peso, medidas,
+    progressão de carga por exercício, observações). Classe `.report-print`: os tokens de cor viram
+    print-safe (tinta escura em fundo branco) só dentro dela via `@media print` em `globals.css`
+    (sobrescreve as CSS custom properties do tema — **todas** as classes existentes, tipo
+    `text-ink`/`bg-surface`, ficam corretas pra impressão automaticamente, sem duplicar `print:` em
+    cada elemento).
+  - `relatorios/page.tsx`: calendário/detalhe do dia/nav ganham `print:hidden` (só o relatório
+    imprime); textarea de observações (opcional) antes de gerar; botão primário "Baixar PDF"
+    (`window.print()`) + secundário "Texto p/ coach" (mantém `reportToMarkdown` pra colar no chat
+    do Claude Project — não removido, só deixou de ser a opção principal).
+  - **Verificado no browser**: relatório gerado com 2+ pontos de dados (peso 83→82,2 kg, carga do
+    agachamento 55→70 kg) — ambos os gráficos desenham corretamente, tendência "subindo"/queda
+    coerente com os números. Simulação das cores de impressão (override temporário fora do
+    `@media print`, sem abrir o diálogo do SO): fundo branco, texto escuro, totalmente legível —
+    confirma que `.report-print` funciona antes de confiar no `window.print()` real (que abre um
+    diálogo nativo do SO, fora do alcance da automação de browser). "Texto p/ coach" copia
+    corretamente ("Copiado"). Console limpo em todos os passos.
   - Gates: typecheck ✓ · lint ✓ · **129/129** ✓ · build ✓.

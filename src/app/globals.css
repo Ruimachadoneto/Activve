@@ -73,3 +73,25 @@ body {
     }
   }
 }
+
+/*
+ * Relatório visual (TASK-018): impresso/PDF precisa de tinta legível em papel branco, não
+ * do tema escuro da tela. Sobrescrever os tokens de cor só dentro de `.report-print` faz
+ * TODAS as classes existentes (text-ink, bg-surface, text-accent…) virarem print-safe
+ * automaticamente — sem duplicar `print:` em cada elemento do componente.
+ */
+@media print {
+  .report-print {
+    --color-bg: #ffffff;
+    --color-surface: #ffffff;
+    --color-surface2: #f3f4f6;
+    --color-line: #d1d5db;
+    --color-ink: #111827;
+    --color-muted: #4b5563;
+    --color-faint: #6b7280;
+    --color-accent: #111827;
+    --color-on-accent: #ffffff;
+    background: #ffffff;
+    color: #111827;
+  }
+}

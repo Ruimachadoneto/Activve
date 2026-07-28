@@ -107,6 +107,10 @@ describe("buildReport — training.exercises", () => {
     expect(ex!.bestSet.load_kg).toBe(70);
     expect(ex!.lastSet.load_kg).toBe(70);
     expect(ex!.trend).toBe("up"); // 60 → 70, +16.7%
+    expect(ex!.series).toEqual([
+      { date: "2026-06-22", avgLoad: 60 },
+      { date: "2026-06-25", avgLoad: 70 },
+    ]);
   });
 
   it("ignora sessões sem nenhuma série done", () => {
@@ -142,6 +146,10 @@ describe("buildReport — body", () => {
     expect(r.body.weight.latest_kg).toBe(80.5);
     expect(r.body.weight.trend).toBe("down");
     expect(r.body.weight.samples).toBe(2);
+    expect(r.body.weight.series).toEqual([
+      { date: "2026-06-22", weight: 82 },
+      { date: "2026-06-27", weight: 80.5 },
+    ]);
     const waist = r.body.measures.find((m) => m.key === "waist");
     expect(waist?.delta_cm).toBe(-2);
   });

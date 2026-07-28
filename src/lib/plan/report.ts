@@ -46,12 +46,21 @@ export type ReportFile = {
       bestSet: { load_kg?: number; reps?: number };
       lastSet: { load_kg?: number; reps?: number; effort?: number };
       trend: "up" | "flat" | "down";
+      /** Carga média por visita, em ordem — alimenta o gráfico de progressão. */
+      series: { date: string; avgLoad: number }[];
     }[];
     volumeByMuscle: { muscle: Muscle; sets: number; volume_kg?: number }[];
     flags: { exerciseId: string; type: "pain" | "skipped" | "swapped"; note?: string }[];
   };
   body: {
-    weight: { start_kg?: number; latest_kg?: number; trend: "up" | "flat" | "down"; samples: number };
+    weight: {
+      start_kg?: number;
+      latest_kg?: number;
+      trend: "up" | "flat" | "down";
+      samples: number;
+      /** Série completa (data+peso) dentro do período — alimenta o gráfico do relatório visual. */
+      series: { date: string; weight: number }[];
+    };
     measures: { key: string; start_cm?: number; latest_cm?: number; delta_cm?: number }[];
   };
   goal: {
@@ -159,6 +168,11 @@ export function buildReport(
         const change = (lastAvg - firstAvg) / firstAvg;
         trend = change > 0.05 ? "up" : change < -0.05 ? "down" : "flat";
       }
+      // Carga média por visita, em ordem — alimenta o gráfico de progressão no
+      // relatório visual (pedido do usuário: "observações de progressão de carga").
+      const series = visits
+        .map((v) => ({ date: v.date, avgLoad: avgLoad(v) ?? undefined }))
+        .filter((p): p is { date: string; avgLoad: number } => p.avgLoad != null);
       return {
         exerciseId,
         name: exerciseName(plan, exerciseId),
@@ -167,6 +181,7 @@ export function buildReport(
         bestSet: { load_kg: bestSet?.load_kg, reps: bestSet?.reps },
         lastSet: { load_kg: lastSet?.load_kg, reps: lastSet?.reps, effort: lastSet?.rpe },
         trend,
+        series,
       };
     })
     .sort((a, b) => b.totalSets - a.totalSets);
@@ -259,6 +274,7 @@ export function buildReport(
         trend:
           weightStart != null && weightLatest != null ? weightTrend(weightLatest - weightStart) : "flat",
         samples: weightPts.length,
+        series: weightPts,
       },
       measures,
     },

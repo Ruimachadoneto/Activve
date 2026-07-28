@@ -2,15 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Copy, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, FileDown } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
+import { ReportView } from "@/components/ReportView";
 import { getAllSessions } from "@/lib/storage/sessions";
 import { getBodyLog } from "@/lib/storage/bodylog";
 import { getAllPlans, type StoredPlan } from "@/lib/storage/plans";
 import { isoDate, type WorkoutSession } from "@/lib/plan/session";
 import type { BodyEntry } from "@/lib/plan/body";
-import { buildReport, reportToMarkdown, type ReportPeriod } from "@/lib/plan/report";
+import { buildReport, reportToMarkdown, type ReportFile, type ReportPeriod } from "@/lib/plan/report";
 import { weekDates } from "@/lib/plan/today";
 import type { PlanFile } from "@/lib/plan/schema";
 
@@ -50,16 +51,6 @@ function monthPeriod(y: number, m: number): ReportPeriod {
   return { from, to };
 }
 
-function downloadJson(filename: string, data: unknown) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export default function RelatoriosPage() {
   const { loading, plan } = useActivePlan();
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
@@ -68,7 +59,9 @@ export default function RelatoriosPage() {
   const today = useMemo(() => new Date(), []);
   const [view, setView] = useState(() => ({ y: today.getFullYear(), m: today.getMonth() }));
   const [selected, setSelected] = useState<string | null>(null);
-  const [exportPreview, setExportPreview] = useState<{ label: string; markdown: string } | null>(null);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [reportPreview, setReportPreview] = useState<{ label: string; report: ReportFile } | null>(null);
+  const [reportEmptyMessage, setReportEmptyMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   // Sem isso, o calendário mostra nenhum dia marcado e o export pode gerar um
   // relatório vazio se clicado antes do IndexedDB responder (achado do review Codex).
@@ -147,16 +140,19 @@ export default function RelatoriosPage() {
     // clicou "Este mês") — recortar produziria from > to, um período impossível
     // (achado do review Codex). Nada pra exportar; explica em vez de gerar lixo.
     if (clippedPeriod.from > clippedPeriod.to) {
-      setExportPreview({
-        label,
-        markdown: `Nenhum dado neste período — o plano atual só existe a partir de ${importedDate}.`,
-      });
-      setCopied(false);
+      setReportEmptyMessage(`Nenhum dado neste período — o plano atual só existe a partir de ${importedDate}.`);
+      setReportPreview(null);
       return;
     }
-    const report = buildReport(plan.plan, sessionsForActivePlan, bodyEntries, clippedPeriod);
-    downloadJson(`activve-relatorio-${clippedPeriod.from}_a_${clippedPeriod.to}.json`, report);
-    setExportPreview({ label, markdown: reportToMarkdown(report) });
+    const report = buildReport(
+      plan.plan,
+      sessionsForActivePlan,
+      bodyEntries,
+      clippedPeriod,
+      notesDraft.trim() || undefined,
+    );
+    setReportPreview({ label, report });
+    setReportEmptyMessage(null);
     setCopied(false);
   }
 
@@ -166,7 +162,7 @@ export default function RelatoriosPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-7">
-      <header>
+      <header className="print:hidden">
         <h1 className="text-xl font-medium tracking-tight">Relatórios</h1>
         <p className="mt-0.5 text-sm text-muted">Seu histórico de treino, dia a dia.</p>
       </header>
@@ -182,7 +178,7 @@ export default function RelatoriosPage() {
         </section>
       ) : (
         <>
-          <section className="mt-5 rounded-card border border-line bg-surface p-4">
+          <section className="mt-5 rounded-card border border-line bg-surface p-4 print:hidden">
             <div className="flex items-center justify-between">
               <button
                 type="button"
@@ -252,7 +248,7 @@ export default function RelatoriosPage() {
           </section>
 
           {selected ? (
-            <section className="mt-4 rounded-card border border-line bg-surface p-4">
+            <section className="mt-4 rounded-card border border-line bg-surface p-4 print:hidden">
               <p className="text-[11px] uppercase tracking-wider text-faint">
                 {new Date(`${selected}T12:00:00`).toLocaleDateString("pt-BR", {
                   weekday: "long",
@@ -310,55 +306,75 @@ export default function RelatoriosPage() {
             </section>
           ) : null}
 
-          <section className="mt-4 rounded-card border border-line bg-surface p-4">
-            <p className="text-[11px] uppercase tracking-wider text-faint">Exportar relatório</p>
+          <section className="mt-4 rounded-card border border-line bg-surface p-4 print:hidden">
+            <p className="text-[11px] uppercase tracking-wider text-faint">Relatório de progresso</p>
             <p className="mt-1 text-xs text-muted">
-              Baixa um arquivo pra levar ao seu coach, com o resumo do período.
+              Gera um relatório com progressão de carga, peso e constância — pra você acompanhar e,
+              se quiser, imprimir ou salvar como PDF.
             </p>
-            <div className="mt-3 flex gap-2">
+            <textarea
+              value={notesDraft}
+              onChange={(e) => setNotesDraft(e.target.value)}
+              placeholder="Observações (opcional): ex. senti dor no ombro, viajei uma semana…"
+              rows={2}
+              className="mt-3 w-full resize-none rounded-xl border border-line bg-surface2/40 px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-accent/50"
+            />
+            <div className="mt-2 flex gap-2">
               <button
                 type="button"
                 onClick={() => exportPeriod({ from: weekDates()[0], to: weekDates()[6] }, "Esta semana")}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-line py-2.5 text-sm font-medium text-ink active:bg-surface2"
+                className="flex-1 rounded-xl border border-line py-2.5 text-sm font-medium text-ink active:bg-surface2"
               >
-                <Download size={14} aria-hidden /> Esta semana
+                Esta semana
               </button>
               <button
                 type="button"
                 onClick={() => exportPeriod(monthPeriod(view.y, view.m), "Este mês")}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-line py-2.5 text-sm font-medium text-ink active:bg-surface2"
+                className="flex-1 rounded-xl border border-line py-2.5 text-sm font-medium text-ink active:bg-surface2"
               >
-                <Download size={14} aria-hidden /> Este mês
+                Este mês
               </button>
             </div>
 
-            {exportPreview ? (
-              <div className="mt-4 rounded-xl border border-line bg-surface2/40 p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-wider text-faint">
-                    Resumo · {exportPreview.label}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void navigator.clipboard?.writeText(exportPreview.markdown);
-                      setCopied(true);
-                    }}
-                    className="flex items-center gap-1 text-xs font-medium text-accent"
-                  >
-                    <Copy size={12} aria-hidden /> {copied ? "Copiado" : "Copiar"}
-                  </button>
-                </div>
-                <pre className="mt-2 max-h-56 overflow-y-auto whitespace-pre-wrap text-xs text-muted">
-                  {exportPreview.markdown}
-                </pre>
+            {reportEmptyMessage ? (
+              <p className="mt-3 text-xs text-muted">{reportEmptyMessage}</p>
+            ) : null}
+
+            {reportPreview ? (
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent py-2.5 text-sm font-medium text-on-accent active:bg-accent-press"
+                >
+                  <FileDown size={14} aria-hidden /> Baixar PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(reportToMarkdown(reportPreview.report));
+                    setCopied(true);
+                  }}
+                  aria-label="Copiar resumo em texto pro coach"
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-line px-3 text-xs text-muted active:bg-surface2"
+                >
+                  <Copy size={13} aria-hidden /> {copied ? "Copiado" : "Texto p/ coach"}
+                </button>
               </div>
             ) : null}
           </section>
+
+          {reportPreview ? (
+            <div className="mt-4">
+              <ReportView report={reportPreview.report} label={reportPreview.label} />
+            </div>
+          ) : null}
         </>
       )}
 
-      <BottomNav active="mais" />
+      <div className="print:hidden">
+        <BottomNav active="mais" />
+      </div>
     </main>
   );
 }
