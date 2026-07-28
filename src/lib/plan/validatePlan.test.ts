@@ -167,4 +167,21 @@ describe("hasReadableTraining (planos históricos)", () => {
       expect(hasReadableTraining(value)).toBe(false);
     }
   });
+
+  it("recusa workouts cujos itens não são percorríveis (achado [P2] do review Codex)", () => {
+    // `workouts` ser array não basta: report.ts:108 e o movementName da tela de
+    // relatórios fazem `w.exercises.find(...)`, que estoura nestes casos.
+    const comWorkouts = (workouts: unknown[]) => {
+      const plan = validPlan();
+      (plan.training as { workouts: unknown[] }).workouts = workouts;
+      return plan;
+    };
+    expect(hasReadableTraining(comWorkouts([{ id: "A" }]))).toBe(false); // sem exercises
+    expect(hasReadableTraining(comWorkouts(["A"]))).toBe(false); // item não é objeto
+    expect(hasReadableTraining(comWorkouts([null]))).toBe(false);
+    expect(hasReadableTraining(comWorkouts([{ id: "A", exercises: "nao-e-array" }]))).toBe(false);
+    expect(hasReadableTraining(comWorkouts([{ id: "A", exercises: [null] }]))).toBe(false);
+    // treino sem exercícios (array vazio) é legítimo — o plano de exemplo tem
+    expect(hasReadableTraining(comWorkouts([{ id: "A", exercises: [] }]))).toBe(true);
+  });
 });

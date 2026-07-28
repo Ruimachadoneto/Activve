@@ -87,5 +87,17 @@ export function hasReadableTraining(value: unknown): boolean {
   const training = (value as { training?: unknown }).training;
   if (!training || typeof training !== "object") return false;
   const { workouts, weekSchedule } = training as { workouts?: unknown; weekSchedule?: unknown };
-  return Array.isArray(workouts) && Array.isArray(weekSchedule);
+  if (!Array.isArray(workouts) || !Array.isArray(weekSchedule)) return false;
+
+  // Não basta `workouts` ser array: quem lê o histórico percorre
+  // `workout.exercises.find(...)` (report.ts e o `movementName` da tela de
+  // relatórios), então um item sem `exercises` — ou um exercício nulo dentro dele —
+  // estouraria do mesmo jeito. A guarda cobre exatamente o que é desreferenciado.
+  return workouts.every(
+    (w) =>
+      !!w &&
+      typeof w === "object" &&
+      Array.isArray((w as { exercises?: unknown }).exercises) &&
+      (w as { exercises: unknown[] }).exercises.every((ex) => !!ex && typeof ex === "object"),
+  );
 }
