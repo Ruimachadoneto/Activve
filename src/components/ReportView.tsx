@@ -89,7 +89,11 @@ export function ReportView({ report, label }: { report: ReportFile; label: strin
           <p className="text-[11px] uppercase tracking-wider text-faint">Progressão de carga</p>
           <div className="mt-2 flex flex-col gap-4">
             {training.exercises.map((ex) => (
-              <div key={ex.exerciseId} className="rounded-xl bg-surface2/40 p-3">
+              // `exerciseId` sozinho não é único: o mesmo exercício base pode aparecer
+              // duas vezes (original + variação trocada), cada um como um movimento
+              // separado (fix do review Codex em report.ts) — a chave precisa do nome
+              // do movimento junto pra não colidir.
+              <div key={`${ex.exerciseId}-${ex.name}`} className="rounded-xl bg-surface2/40 p-3">
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="text-sm font-medium text-ink">{ex.name}</p>
                   <span className="shrink-0 text-xs text-muted">{TREND_LABEL[ex.trend]}</span>

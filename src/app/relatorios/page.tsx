@@ -57,6 +57,7 @@ export default function RelatoriosPage() {
   const [bodyEntries, setBodyEntries] = useState<BodyEntry[]>([]);
   const [plans, setPlans] = useState<StoredPlan[]>([]);
   const today = useMemo(() => new Date(), []);
+  const todayStr = isoDate(today);
   const [view, setView] = useState(() => ({ y: today.getFullYear(), m: today.getMonth() }));
   const [selected, setSelected] = useState<string | null>(null);
   const [notesDraft, setNotesDraft] = useState("");
@@ -132,15 +133,23 @@ export default function RelatoriosPage() {
     // "agendados" — senão um plano importado no meio da semana/mês parece que o
     // usuário pulou treinos que nem faziam parte do ciclo ainda (achado do review Codex).
     const importedDate = plan.importedAt.slice(0, 10);
+    // Recorta o fim do período pra HOJE — "esta semana"/"este mês" pode ir até um dia
+    // futuro (ex.: gerar o relatório na segunda conta a semana inteira até domingo);
+    // contar dias que ainda nem chegaram como "agendados e não feitos" faz a constância
+    // parecer pior do que é logo no início do período (achado do review Codex).
     const clippedPeriod: ReportPeriod = {
       from: period.from < importedDate ? importedDate : period.from,
-      to: period.to,
+      to: period.to > todayStr ? todayStr : period.to,
     };
     // Período pedido inteiro anterior ao plano existir (ex.: navegou pro mês passado e
     // clicou "Este mês") — recortar produziria from > to, um período impossível
     // (achado do review Codex). Nada pra exportar; explica em vez de gerar lixo.
     if (clippedPeriod.from > clippedPeriod.to) {
-      setReportEmptyMessage(`Nenhum dado neste período — o plano atual só existe a partir de ${importedDate}.`);
+      const message =
+        period.to < importedDate
+          ? `Nenhum dado neste período — o plano atual só existe a partir de ${importedDate}.`
+          : "Nenhum dado neste período — ele ainda não chegou.";
+      setReportEmptyMessage(message);
       setReportPreview(null);
       return;
     }
@@ -158,7 +167,6 @@ export default function RelatoriosPage() {
 
   const weeks = monthGrid(view.y, view.m);
   const selectedSessions = selected ? (sessionsByDate.get(selected) ?? []) : [];
-  const todayStr = isoDate(today);
 
   return (
     <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-7">

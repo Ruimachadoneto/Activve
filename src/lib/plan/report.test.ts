@@ -21,7 +21,7 @@ const plan = {
             name: "Supino reto",
             primaryMuscles: ["chest"],
             secondaryMuscles: ["triceps"],
-            alternatives: [],
+            alternatives: [{ id: "supino_halteres", name: "Supino com halteres", primaryMuscles: ["chest"] }],
           },
         ],
       },
@@ -117,6 +117,45 @@ describe("buildReport — training.exercises", () => {
     const sessions = [session("2026-06-22", "done", [{ load_kg: 60, reps: 8, done: false }])];
     const r = buildReport(plan, sessions, [], period);
     expect(r.training.exercises).toHaveLength(0);
+  });
+
+  it("não mistura a carga de uma variação trocada com o exercício original", () => {
+    const sessions: WorkoutSession[] = [
+      {
+        sessionId: "pl_test:A:2026-06-22",
+        planId: "pl_test",
+        workoutId: "A",
+        date: "2026-06-22",
+        status: "done",
+        startedAt: "2026-06-22T10:00:00Z",
+        completedAt: "2026-06-22T11:00:00Z",
+        exercises: [{ exerciseId: "supino", sets: [{ done: true, load_kg: 60, reps: 8 }] }],
+      },
+      {
+        sessionId: "pl_test:A:2026-06-25",
+        planId: "pl_test",
+        workoutId: "A",
+        date: "2026-06-25",
+        status: "done",
+        startedAt: "2026-06-25T10:00:00Z",
+        completedAt: "2026-06-25T11:00:00Z",
+        exercises: [
+          {
+            exerciseId: "supino",
+            swappedToId: "supino_halteres",
+            sets: [{ done: true, load_kg: 20, reps: 10 }], // halteres: carga bem menor, movimento diferente
+          },
+        ],
+      },
+    ];
+    const r = buildReport(plan, sessions, [], period);
+    expect(r.training.exercises).toHaveLength(2); // dois movimentos distintos, não um só
+    const supino = r.training.exercises.find((e) => e.name === "Supino reto");
+    const halteres = r.training.exercises.find((e) => e.name === "Supino com halteres");
+    expect(supino?.bestSet.load_kg).toBe(60);
+    expect(supino?.series).toEqual([{ date: "2026-06-22", avgLoad: 60 }]);
+    expect(halteres?.bestSet.load_kg).toBe(20);
+    expect(halteres?.series).toEqual([{ date: "2026-06-25", avgLoad: 20 }]);
   });
 });
 

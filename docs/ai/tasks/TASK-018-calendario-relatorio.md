@@ -209,3 +209,31 @@ npm run typecheck && npm run lint && npm run test && npm run build
     diálogo nativo do SO, fora do alcance da automação de browser). "Texto p/ coach" copia
     corretamente ("Copiado"). Console limpo em todos os passos.
   - Gates: typecheck ✓ · lint ✓ · **129/129** ✓ · build ✓.
+
+- **Review Codex (ciclo 5, 2026-07-27) — 2 achados [P1]/[P2] aceitos e corrigidos (review do
+  relatório visual recém-implementado, não uma correção-de-correção):**
+  - **[P1] variação trocada misturada com o exercício original** — `training.exercises` agrupava só
+    por `exerciseId` base; uma sessão com `swappedToId` (ex.: agachamento → leg press) entrava no
+    MESMO grupo, misturando cargas de movimentos diferentes no mesmo gráfico/`bestSet`/`trend`.
+    → agrupamento agora é por **movimento efetivo** (`exerciseId::swappedToId`), mesmo critério já
+    usado em `previousPerformance` (`session.ts`) pra continuidade — cada variação vira uma entrada
+    separada, com nome resolvido via `exerciseName(plan, exerciseId, swappedToId?)` (busca dentro
+    de `alternatives`, mesma lógica de `movementName` já corrigida na UI do calendário). +1 teste
+    dedicado.
+  - **[P2] período contava dias futuros** — `exportPeriod` só recortava `period.from` (dívida da
+    TASK-018 anterior); "Esta semana"/"Este mês" gerado no início do período ainda incluíam dias
+    QUE NÃO CHEGARAM como "agendados e não feitos", subestimando a constância (ex.: gerar na
+    segunda já mostrava "0 de 4" pra semana inteira). → `period.to` também recortado pra nunca
+    passar de hoje; mensagem de período vazio diferenciada (plano não existia vs. período no
+    futuro).
+  - **Efeito colateral encontrado e corrigido durante a verificação** (não veio do review, achado
+    verificando os 2 acima): `todayStr` ficou duplicado por um instante entre edições (erro de
+    sintaxe transitório, resolvido antes do commit) e `ReportView` usava só `exerciseId` como
+    `key` do `.map()` — agora que o mesmo `exerciseId` base pode aparecer em **duas** entradas
+    (original + variação), a chave colidia (React warning real, não cosmético: risco de
+    duplicar/sumir item na lista). → chave passou a `${exerciseId}-${name}`.
+  - Verificado no browser (aba nova, sem resíduo de Fast Refresh): "Esta semana" gerado numa
+    segunda-feira → período "27 de jul. — 27 de jul." (não a semana inteira); "Este mês" →
+    "Agachamento" (55 kg) e "Leg press" (70 kg) como entradas **separadas** na progressão de carga;
+    console limpo.
+  - Gates: typecheck ✓ · lint ✓ · **130/130** ✓ · build ✓.

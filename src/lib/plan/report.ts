@@ -97,13 +97,20 @@ function inPeriod(date: string, period: ReportPeriod): boolean {
   return date >= period.from && date <= period.to;
 }
 
-/** Nome do exercício no plano vigente (procura em todos os workouts); fallback = id. */
-function exerciseName(plan: PlanFile, exerciseId: string): string {
+/**
+ * Nome do movimento efetivamente executado: se houve troca (`swappedToId`), busca
+ * dentro das `alternatives` do exercício base — ids de variação são escopados ao
+ * exercício, não existem no nível do treino (mesma pegadinha do `recovery.ts`, já
+ * corrigida na UI do calendário — aqui é a mesma lógica pro relatório).
+ */
+function exerciseName(plan: PlanFile, exerciseId: string, swappedToId?: string): string {
   for (const w of plan.training.workouts) {
     const ex = w.exercises.find((e) => e.id === exerciseId);
-    if (ex) return ex.name;
+    if (!ex) continue;
+    if (!swappedToId) return ex.name;
+    return ex.alternatives?.find((a) => a.id === swappedToId)?.name ?? ex.name;
   }
-  return exerciseId;
+  return swappedToId ?? exerciseId;
 }
 
 function weightTrend(deltaKg: number): "up" | "flat" | "down" {
@@ -134,19 +141,29 @@ export function buildReport(
   const activeDays = new Set(sessions.map((s) => s.date)).size;
 
   // ---- training.exercises ----
+  // Agrupado pelo MOVIMENTO efetivo (exercício + variação), não só `exerciseId` — misturar
+  // uma troca de variação (ex.: agachamento → leg press) no mesmo grupo compararia cargas
+  // de movimentos diferentes como se fossem progressão do mesmo (achado do review Codex;
+  // mesmo critério já usado em `previousPerformance`/`session.ts` pra continuidade).
   type Visit = { date: string; sets: { load_kg?: number; reps?: number; rpe?: number }[] };
-  const byExercise = new Map<string, Visit[]>();
+  type Group = { exerciseId: string; swappedToId?: string; visits: Visit[] };
+  const byMovement = new Map<string, Group>();
   for (const s of sessions) {
     for (const ex of s.exercises) {
       const doneSets = ex.sets.filter((x) => x.done);
       if (doneSets.length === 0) continue;
-      const list = byExercise.get(ex.exerciseId) ?? [];
-      list.push({ date: s.date, sets: doneSets });
-      byExercise.set(ex.exerciseId, list);
+      const movementKey = `${ex.exerciseId}::${ex.swappedToId ?? ""}`;
+      const group = byMovement.get(movementKey) ?? {
+        exerciseId: ex.exerciseId,
+        swappedToId: ex.swappedToId,
+        visits: [],
+      };
+      group.visits.push({ date: s.date, sets: doneSets });
+      byMovement.set(movementKey, group);
     }
   }
-  const exercises = [...byExercise.entries()]
-    .map(([exerciseId, visits]) => {
+  const exercises = [...byMovement.values()]
+    .map(({ exerciseId, swappedToId, visits }) => {
       visits.sort((a, b) => a.date.localeCompare(b.date));
       const allSets = visits.flatMap((v) => v.sets);
       const totalSets = allSets.length;
@@ -175,7 +192,7 @@ export function buildReport(
         .filter((p): p is { date: string; avgLoad: number } => p.avgLoad != null);
       return {
         exerciseId,
-        name: exerciseName(plan, exerciseId),
+        name: exerciseName(plan, exerciseId, swappedToId),
         sessions: visits.length,
         totalSets,
         bestSet: { load_kg: bestSet?.load_kg, reps: bestSet?.reps },
