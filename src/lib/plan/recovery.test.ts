@@ -238,6 +238,101 @@ describe("buildExerciseMuscles", () => {
     expect(gm("supino", "machine")).toEqual({ primary: ["chest"], secondary: ["triceps"] });
     expect(gm("agachamento", "machine")).toEqual({ primary: ["quads"], secondary: ["glutes"] });
   });
+
+  // TASK-013: em tempo de execução isto recebe planos HISTÓRICOS do IndexedDB, que
+  // passam só por uma guarda estrutural. Campos de músculo ausentes/torto viravam
+  // `for (const muscle of undefined)` nos consumidores e derrubavam o relatório.
+  describe("planos históricos malformados (defensivo na origem)", () => {
+    const malformado = {
+      training: {
+        workouts: [
+          { exercises: [{ id: "sem_musculo" }] }, // sem primaryMuscles
+          { exercises: [{ id: "alt_torta", primaryMuscles: ["chest"], alternatives: "nao-e-array" }] },
+          { exercises: [{ id: "sec_torto", primaryMuscles: ["quads"], secondaryMuscles: 42 }] },
+          { exercises: "nao-e-array" },
+          {},
+        ],
+      },
+    } as unknown as PlanFile;
+
+    it("não estoura ao construir o lookup", () => {
+      expect(() => buildExerciseMuscles(malformado)).not.toThrow();
+    });
+
+    it("`primary` é sempre iterável, mesmo sem primaryMuscles no plano", () => {
+      const gm = buildExerciseMuscles(malformado);
+      expect(gm("sem_musculo")).toEqual({ primary: [], secondary: undefined });
+      // o consumidor real faz `for (const muscle of muscles.primary)`
+      expect(() => [...(gm("sem_musculo")?.primary ?? [])]).not.toThrow();
+    });
+
+    it("`alternatives` não-array não impede a leitura do exercício base", () => {
+      const gm = buildExerciseMuscles(malformado);
+      expect(gm("alt_torta")).toEqual({ primary: ["chest"], secondary: undefined });
+      expect(gm("alt_torta", "qualquer")).toEqual({ primary: ["chest"], secondary: undefined });
+    });
+
+    it("`secondaryMuscles` não-array vira undefined (e não quebra o `?? []` do consumidor)", () => {
+      const gm = buildExerciseMuscles(malformado);
+      expect(gm("sec_torto")).toEqual({ primary: ["quads"], secondary: undefined });
+    });
+
+    it("plano sem training nenhum devolve lookup vazio em vez de estourar", () => {
+      const vazio = buildExerciseMuscles({} as unknown as PlanFile);
+      expect(vazio("qualquer")).toBeUndefined();
+    });
+
+    it("pula elementos nulos dentro de exercises/alternatives", () => {
+      // Achado do review Codex: array ser array não garante o CONTEÚDO.
+      const comNulos = {
+        training: {
+          workouts: [
+            {
+              exercises: [
+                null,
+                {
+                  id: "supino",
+                  primaryMuscles: ["chest"],
+                  alternatives: [null, { id: "ok", primaryMuscles: ["front_delts"] }],
+                },
+                "nao-e-objeto",
+              ],
+            },
+          ],
+        },
+      } as unknown as PlanFile;
+      expect(() => buildExerciseMuscles(comNulos)).not.toThrow();
+      const gm = buildExerciseMuscles(comNulos);
+      expect(gm("supino")).toEqual({ primary: ["chest"], secondary: undefined });
+      // a variação válida ao lado do null continua resolvendo
+      expect(gm("supino", "ok")).toEqual({ primary: ["front_delts"], secondary: undefined });
+    });
+
+    it("variação com primaryMuscles STRING cai no músculo do pai (não itera letras)", () => {
+      // Achado do review Codex: string tem `.length`, então checar só `.length` deixava
+      // passar `primary: "chest"` — e o consumidor iteraria 'c','h','e','s','t' como
+      // músculos, corrompendo o volume em silêncio (pior que crash).
+      const plan = {
+        training: {
+          workouts: [
+            {
+              exercises: [
+                {
+                  id: "supino",
+                  primaryMuscles: ["chest"],
+                  secondaryMuscles: ["triceps"],
+                  alternatives: [{ id: "torta", primaryMuscles: "chest" }],
+                },
+              ],
+            },
+          ],
+        },
+      } as unknown as PlanFile;
+      const gm = buildExerciseMuscles(plan);
+      expect(gm("supino", "torta")).toEqual({ primary: ["chest"], secondary: ["triceps"] });
+      expect(typeof gm("supino", "torta")?.primary).not.toBe("string");
+    });
+  });
 });
 
 describe("hoursToReady", () => {

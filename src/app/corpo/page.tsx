@@ -7,6 +7,7 @@ import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { WeightChart } from "@/components/WeightChart";
 import { RecoveryMap } from "@/components/RecoveryMap";
+import { PlanErrorState } from "@/components/PlanErrorState";
 import { getBodyLog, saveBodyEntry, getBodyEntry } from "@/lib/storage/bodylog";
 import { getSessionsForPlan } from "@/lib/storage/sessions";
 import {
@@ -39,7 +40,7 @@ function formatDate(iso?: string): string | null {
 }
 
 export default function CorpoPage() {
-  const { loading, plan } = useActivePlan();
+  const { loading, plan, invalid } = useActivePlan();
   const [entries, setEntries] = useState<BodyEntry[]>([]);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [tab, setTab] = useState<Tab>("overview");
@@ -106,6 +107,10 @@ export default function CorpoPage() {
         <p className="text-sm text-muted">Carregando…</p>
       </main>
     );
+  }
+
+  if (invalid) {
+    return <PlanErrorState errors={invalid.errors} />;
   }
 
   if (!plan) {

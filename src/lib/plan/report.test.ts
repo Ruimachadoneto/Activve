@@ -261,6 +261,170 @@ describe("buildReport — histórico entre planos (troca de ciclo no meio do per
     // 25/06 em diante conta: sex(26)=A e sáb(27)=B → 2 agendados.
     expect(r.adherence.workoutsScheduled).toBe(2);
   });
+
+  // TASK-013: planos históricos entram no relatório após só uma guarda estrutural.
+  it("não conta agenda de plano histórico com weekSchedule ilegível", () => {
+    const semAgenda = JSON.parse(JSON.stringify(plan));
+    delete semAgenda.training.weekSchedule;
+    const knownSemAgenda: KnownPlan[] = [
+      { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: semAgenda },
+    ];
+    // Não dá pra afirmar que o dia era de treino sem agenda legível — e inventar
+    // "agendado" faria a constância parecer PIOR do que foi (anti-culpa).
+    const r = buildReport(semAgenda, knownSemAgenda, [], [], period);
+    expect(r.adherence.workoutsScheduled).toBe(0);
+  });
+
+  it("um treino corrompido não cega os outros treinos do mesmo ciclo", () => {
+    // Achado do review Codex: descartar o plano inteiro por um subtree ruim fazia o
+    // ciclo perder TODOS os nomes. Agora o treino ruim é pulado e o resto resolve.
+    const parcial = JSON.parse(JSON.stringify(plan));
+    parcial.training.workouts.unshift({ id: "X", name: "Treino corrompido" }); // sem exercises
+    parcial.training.workouts.push(null);
+    const known: KnownPlan[] = [
+      { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: parcial },
+    ];
+    const sessions: WorkoutSession[] = [
+      {
+        sessionId: "s_parcial",
+        planId: "pl_test",
+        workoutId: "A",
+        date: "2026-06-22",
+        status: "done",
+        startedAt: "2026-06-22T10:00:00Z",
+        completedAt: "2026-06-22T11:00:00Z",
+        exercises: [{ exerciseId: "supino", sets: [{ done: true, load_kg: 60, reps: 8 }] }],
+      },
+    ];
+    expect(() => buildReport(parcial, known, sessions, [], period)).not.toThrow();
+    const r = buildReport(parcial, known, sessions, [], period);
+    // o nome vem do treino BOM, apesar do corrompido estar antes dele na lista
+    expect(r.training.exercises[0].name).toBe("Supino reto");
+    expect(r.training.volumeByMuscle.map((v) => v.muscle)).toContain("chest");
+  });
+
+  it("resolve nome de sessão com swap quando `alternatives` está corrompido", () => {
+    // Achado do review Codex: `alternatives` não-array não tem `.find` — a tela de
+    // relatórios estourava ao abrir/exportar uma sessão com variação trocada.
+    const altTorta = JSON.parse(JSON.stringify(plan));
+    altTorta.training.workouts[0].exercises[0].alternatives = "nao-e-array";
+    // (o caso `alternatives: [null]` está coberto logo abaixo)
+    const known: KnownPlan[] = [
+      { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: altTorta },
+    ];
+    const sessions: WorkoutSession[] = [
+      {
+        sessionId: "s_swap",
+        planId: "pl_test",
+        workoutId: "A",
+        date: "2026-06-22",
+        status: "done",
+        startedAt: "2026-06-22T10:00:00Z",
+        completedAt: "2026-06-22T11:00:00Z",
+        exercises: [
+          {
+            exerciseId: "supino",
+            swappedToId: "supino_halteres",
+            sets: [{ done: true, load_kg: 30, reps: 10 }],
+          },
+        ],
+      },
+    ];
+    expect(() => buildReport(altTorta, known, sessions, [], period)).not.toThrow();
+    const r = buildReport(altTorta, known, sessions, [], period);
+    // sem catálogo de variações legível, cai no nome do exercício base
+    expect(r.training.exercises[0].name).toBe("Supino reto");
+  });
+
+  it("exercício histórico sem `name` cai num id legível, nunca em rótulo vazio", () => {
+    // Achado do review Codex: `{ id: "supino" }` sem name virava rótulo em branco na
+    // UI e furava o contrato `name: string` do ReportFile.
+    const semNome = JSON.parse(JSON.stringify(plan));
+    delete semNome.training.workouts[0].exercises[0].name;
+    const known: KnownPlan[] = [
+      { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: semNome },
+    ];
+    const sessions: WorkoutSession[] = [
+      {
+        sessionId: "s_sem_nome",
+        planId: "pl_test",
+        workoutId: "A",
+        date: "2026-06-22",
+        status: "done",
+        startedAt: "2026-06-22T10:00:00Z",
+        completedAt: "2026-06-22T11:00:00Z",
+        exercises: [{ exerciseId: "supino", sets: [{ done: true, load_kg: 60, reps: 8 }] }],
+      },
+    ];
+    const r = buildReport(semNome, known, sessions, [], period);
+    const nome = r.training.exercises[0].name;
+    expect(typeof nome).toBe("string");
+    expect(nome.trim()).not.toBe("");
+    expect(nome).toBe("supino"); // cai no exerciseId
+  });
+
+  it("resolve swap com elemento nulo dentro de `alternatives`", () => {
+    // Achado do review Codex: `Array.isArray` não basta — `[null]` estourava em `a.id`.
+    const comNull = JSON.parse(JSON.stringify(plan));
+    comNull.training.workouts[0].exercises[0].alternatives = [
+      null,
+      { id: "supino_halteres", name: "Supino com halteres", primaryMuscles: ["chest"] },
+    ];
+    const known: KnownPlan[] = [
+      { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: comNull },
+    ];
+    const sessions: WorkoutSession[] = [
+      {
+        sessionId: "s_null_alt",
+        planId: "pl_test",
+        workoutId: "A",
+        date: "2026-06-22",
+        status: "done",
+        startedAt: "2026-06-22T10:00:00Z",
+        completedAt: "2026-06-22T11:00:00Z",
+        exercises: [
+          {
+            exerciseId: "supino",
+            swappedToId: "supino_halteres",
+            sets: [{ done: true, load_kg: 30, reps: 10 }],
+          },
+        ],
+      },
+    ];
+    expect(() => buildReport(comNull, known, sessions, [], period)).not.toThrow();
+    const r = buildReport(comNull, known, sessions, [], period);
+    // a variação VÁLIDA ao lado do null continua resolvendo o nome
+    expect(r.training.exercises[0].name).toBe("Supino com halteres");
+  });
+
+  it("gera relatório de plano histórico sem primaryMuscles em vez de estourar", () => {
+    const semMusculos = JSON.parse(JSON.stringify(plan));
+    for (const w of semMusculos.training.workouts) {
+      for (const ex of w.exercises) delete ex.primaryMuscles;
+    }
+    const knownSemMusculos: KnownPlan[] = [
+      { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: semMusculos },
+    ];
+    const sessions: WorkoutSession[] = [
+      {
+        sessionId: "s_musc",
+        planId: "pl_test",
+        workoutId: "A",
+        date: "2026-06-22",
+        status: "done",
+        startedAt: "2026-06-22T10:00:00Z",
+        completedAt: "2026-06-22T11:00:00Z",
+        exercises: [{ exerciseId: "supino", sets: [{ done: true, load_kg: 60, reps: 8 }] }],
+      },
+    ];
+    expect(() => buildReport(semMusculos, knownSemMusculos, sessions, [], period)).not.toThrow();
+    const r = buildReport(semMusculos, knownSemMusculos, sessions, [], period);
+    // O primário some do cômputo (não é inventado), mas o que o plano AINDA declara
+    // continua valendo: "supino" mantém `secondaryMuscles: ["triceps"]`.
+    expect(r.training.volumeByMuscle.map((v) => v.muscle)).toEqual(["triceps"]);
+    expect(r.training.volumeByMuscle.some((v) => v.muscle === "chest")).toBe(false);
+    expect(r.adherence.workoutsCompleted).toBe(1);
+  });
 });
 
 describe("buildReport — honestidade do v1 (campos sem dado real ficam neutros)", () => {

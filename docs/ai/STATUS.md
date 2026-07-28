@@ -1,6 +1,7 @@
 # Estado atual do projeto — CHECKPOINT DE RETOMADA
 
-> Atualizado: `2026-07-27` (sessão longa — 4 tasks + pivô de produto; ver `CHECKPOINT DE RETOMADA`
+> Atualizado: `2026-07-28` (TASK-013 implementada e revisada, aguardando só o merge; antes disso,
+> 2026-07-27 — 4 tasks + pivô de produto; ver `CHECKPOINT DE RETOMADA`
 > no final do arquivo pra um resumo denso). Este doc + `CLAUDE.md` + `docs/ai/tasks/*` +
 > `docs/DESIGN_SYSTEM.md` + git history permitem **retomar numa sessão nova sem o histórico do
 > chat**. Leia primeiro — se estiver com pressa, leia só "Onde estamos" + o
@@ -17,9 +18,11 @@ billing na nuvem só numa Fase 2 futura, depois de validar (usuário está valid
 agora). App publicado em produção: `activve.vercel.app` (deploy feito pelo próprio usuário).
 
 ## Onde estamos
-- **Branch atual:** `main` (limpa; TASK-018 mergeada em `98a7703`). Sem branches de feature abertas.
-- **`main`** tem **TASK-001→012, 014→018 mergeadas**. TASK-013 (erro amigável) segue pendente —
-  é a única task do ciclo do mockup original ainda não feita.
+- **Branch atual:** `ai/TASK-013-erro-plano-claude` (TASK-013 implementada, gates verdes,
+  8 ciclos de review Codex com 11 achados [P2] corrigidos, decisão arquitetural tomada pelo
+  usuário; **aguarda só o gate humano de merge**). `main` está limpa em `9032a5c`.
+- **`main`** tem **TASK-001→012, 014→018 mergeadas**. Com a TASK-013 na branch, todas as tasks do
+  ciclo do mockup original estão implementadas.
 - **2026-07-27 — sessão de resposta ao feedback de uso real** (usuário testou o app publicado e
   mapeou 4 pontos): (1) sem relatório/calendário de treino, (2) sem trocar o treino "oficial" do
   dia, (3) timer de descanso divergia em background, (4) sem UI pra reimportar plano. **Os 4 foram
@@ -319,18 +322,48 @@ em `report.ts`/`relatorios/page.tsx`, tem o raciocínio completo de 8 ciclos de 
 - **Dívida de teste (desde TASK-008):** faltam testes de UI/interação pra `/treino`, `RestTimer`,
   `/relatorios` (infra Vitest é node-only; exigiria RTL/jsdom — nunca configurado).
 
+## TASK-013 — Estado de erro amigável p/ plano corrompido (IMPLEMENTADA + REVISADA, branch `ai/TASK-013-erro-plano-claude`, **aguardando só o merge**)
+Contrato: `docs/ai/tasks/TASK-013-erro-plano.md`. Implementada em 2026-07-28.
+- **Problema confirmado no código antes de mexer:** `useActivePlan` devolvia o registro CRU do
+  IndexedDB (`parsePlan` só era usado em `/import`) e não existia **nenhum** error boundary em
+  `src/app`. Plano sem `training`/`diet.meals`/`howTo` derrubava as telas com runtime error.
+- **Implementado:** `validatePlan(json)` extraído de `parsePlan(text)` (fonte única — validação de
+  leitura não pode divergir da de import); `useActivePlan` revalida e expõe `invalid`, mantendo
+  `plan: null` de propósito (tela que não tratar cai no empty state, nunca no crash);
+  `PlanErrorState` (anti-culpa, CTA "Reimportar plano", detalhe técnico truncado em texto — vem de
+  arquivo não confiável); ligado em `/`, `/treino`, `/corpo`, `/mais`, `/relatorios`;
+  `error.tsx` + `global-error.tsx` como backstop (Next 16.2: aceita `unstable_retry` **e** `reset`).
+- **Gates:** typecheck ✓ · lint ✓ · **161/161** ✓ · build ✓ (eram 132 antes da task).
+- **Verificado no browser** (plano real do usuário no IndexedDB, não sintético): as 4 variantes de
+  corrupção da auditoria (sem `training`, sem `diet.meals`, sem `howTo`, `weekSchedule` curto) nas
+  5 rotas → estado amigável, console limpo, 375px sem overflow, CTA de 44px levando a `/import`
+  funcional; boundary testado com `throw` temporário (capturou, "Tentar de novo" presente);
+  **plano válido sem regressão** em todas as telas.
+- ⚠️ **8 ciclos de review Codex, 11 achados [P2] — todos reais, todos corrigidos.** Muito acima do
+  limite de 3 do AGENTS §13; houve **uma parada formal** no ciclo 3 (ciclos 2 e 3 puxavam em
+  direções opostas — apertar × afrouxar a guarda) e o usuário **decidiu a arquitetura** (opção B:
+  proteger na origem da leitura, não filtrando a entrada). Depois da decisão, cada rodada apontou
+  **outro campo** de plano histórico possivelmente malformado (`exercises` → `primaryMuscles` →
+  `alternatives` → elementos nulos → `name`). A correção final fecha a classe **por construção**
+  — resolver nome virou função total, músculos sempre array, agenda guardada — em vez de enumerar
+  campos. Raciocínio completo no contrato da task.
+- **Re-review de confirmação (2026-07-28) — APROVADO, LIMPO:** "I did not identify any actionable
+  regressions… the new validation/error-state flow and the defensive historical-plan handling
+  appear internally consistent and are covered by targeted tests." **TASK-013 chancelada — pendente
+  apenas o gate humano de merge.**
+- **Aprendizado registrado durante a execução:** a primeira versão descartava planos históricos por
+  `validatePlan` completo e **regredia o histórico pra ids crus** — pego pela verificação no
+  browser, não pelos testes. Validação uniforme é errada quando os consumidores têm necessidades
+  diferentes: o plano ATIVO precisa do contrato inteiro (monta agenda/treino/dieta), um plano
+  histórico usado só pra resolver nome precisa apenas ser percorrível.
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
-Os 4 pontos do feedback de uso real estão **todos resolvidos e mergeados**. Não há task em
-andamento — **a próxima ação depende de decisão do usuário**, não é automática. Candidatos, em
-ordem de prioridade sugerida (mas perguntar antes de começar):
-1. **TASK-013 — erro amigável p/ plano corrompido** (única pendência do ciclo do mockup original,
-   nunca implementada). Bug conhecido: plano parcial/corrompido no IndexedDB (sem
-   weekSchedule/howTo/diet.meals) derruba Hoje/Treino com runtime error (tela vermelha) — viola
-   `VISUAL_QUALITY.md` §8 (estados). Ganhou urgência: app está em **produção** agora
-   (`activve.vercel.app`), um plano malformado vindo do coach quebraria o app de verdade pro
-   usuário, não só em teste. Escopo: páginas que leem o plano devem validar/cair num estado de erro
-   amigável em vez de crashar (`parsePlan`/schema no `useActivePlan` + possível ErrorBoundary).
-2. **TASK-019 — PWA (manifest + Service Worker)**: instalação na tela inicial + notificação REAL
+**TASK-013 está IMPLEMENTADA, revisada e verificada** na branch `ai/TASK-013-erro-plano-claude`
+(seção da task acima). A decisão arquitetural pendente foi **tomada pelo usuário (opção B)** e
+implementada. Falta **só o gate humano de merge em `main`** — enquanto isso, produção
+(`activve.vercel.app`) segue sem a proteção. Nada além disso está em andamento. Candidatos
+seguintes:
+1. **TASK-019 — PWA (manifest + Service Worker)**: instalação na tela inicial + notificação REAL
    do timer em background (a TASK-017 corrigiu a contagem não divergir, mas só um Service Worker
    pode notificar com o app minimizado/tela apagada — documentado como fora de escopo da TASK-017).
 3. Seguir testando o app + o coach (`ACTIVVE_HEALTH_SYSTEM.md`) e trazer novo feedback de uso real
@@ -416,10 +449,11 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-016 | Selecionar/fixar treino do dia | MERGEADA | main (`76c7dcb`) |
 | TASK-017 | Timer de descanso ancorado em tempo real | MERGEADA | main (`fb09bbe`) |
 | TASK-018 | Calendário de treinos + relatório visual (PDF) | MERGEADA | main (`98a7703`) |
+| TASK-013 | Estado de erro amigável p/ plano corrompido | IMPLEMENTADA + REVISADA — aguarda só o merge | `ai/TASK-013-erro-plano-claude` |
 
 ---
 
-# CHECKPOINT DE RETOMADA (2026-07-27, fim de sessão)
+# CHECKPOINT DE RETOMADA (2026-07-28, fim de sessão)
 
 > Seção pensada pra responder, sozinha, as 15 perguntas de continuidade do `CLAUDE.md` §2.3 —
 > se a janela de contexto for compactada ou limpa, comece por aqui.
@@ -428,18 +462,24 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 TASK-018 — Calendário de treinos + relatório visual (mergeada em `main` `98a7703`).
 
 **Task atual**
-Nenhuma em andamento. Os 4 pontos do feedback de uso real (2026-07-27) estão todos resolvidos e
-mergeados (TASK-015, 016, 017, 018). Sessão terminou aqui por pedido do usuário — ele pediu pra
-consolidar a documentação antes de continuar, prevendo que a janela de contexto ficaria cheia.
+**TASK-013 — estado de erro amigável p/ plano corrompido: IMPLEMENTADA, REVISADA e verificada,
+NÃO mergeada.** Branch `ai/TASK-013-erro-plano-claude` (11 commits sobre `9032a5c`). O único gate
+que falta é **humano: aprovar o merge** (o usuário aprova cada merge).
+Houve uma parada formal no ciclo 3 do review — ciclos 2 e 3 apontavam em direções opostas sobre
+onde a robustez deve morar (`AGENTS.md` §13) — e o usuário **decidiu a opção B**: proteger na
+ORIGEM da leitura, não filtrando a entrada. Implementada e revisada depois disso.
 
 **Último step concluído**
-Merge da TASK-018 na main + revalidação de gates (132 testes) + push + apagar branch local. Depois
-disso, esta atualização de documentação (STATUS.md).
+Última rodada de review Codex: achado [P2] de que exercício histórico sem `name` virava rótulo em
+branco e furava o contrato `string` do `ReportFile` → resolver nome virou **função total**
+(`label`/`planLabel`: sempre string usável, senão cai no id). Gates revalidados (161/161) + esta
+atualização de documentação.
 
 **Estado atual do código**
-`main` limpa, sem branches de feature abertas. Todos os gates verdes (`typecheck`, `lint`, `test`
-132/132, `build`). App funcional ponta a ponta: importar plano → treinar (Hoje/Treino/Corpo) →
-trocar plano/treino do dia → timer confiável → calendário + relatório visual com PDF.
+`main` limpa em `9032a5c`. Branch da TASK-013 com todos os gates verdes (`typecheck`, `lint`,
+`test` **161/161**, `build`). App funcional ponta a ponta: importar plano → treinar
+(Hoje/Treino/Corpo) → trocar plano/treino do dia → timer confiável → calendário + relatório visual
+com PDF → **e agora plano corrompido cai em estado de erro amigável em vez de crashar**.
 
 **O que funciona (verificado no browser nesta sessão)**
 - Trocar plano via `/mais` sem perder histórico (sessions/bodylog sobrevivem a reimport).
@@ -453,8 +493,10 @@ trocar plano/treino do dia → timer confiável → calendário + relatório vis
   (`window.print()`), histórico cruzando trocas de plano dentro do mesmo período exportado.
 
 **O que não funciona / não existe ainda**
-- Estado de erro amigável pra plano corrompido — ainda crasha (TASK-013, pendente desde o ciclo do
-  mockup original, nunca implementada).
+- Estado de erro amigável pra plano corrompido: **resolvido na branch da TASK-013, ainda não em
+  `main`** — em produção (`activve.vercel.app`) o crash continua até o merge.
+- Relatório exportado perde fidelidade (nomes/volume) em plano histórico cosmeticamente inválido —
+  é o achado [P2] em aberto da TASK-013, não um bug esquecido. Ver contrato da task.
 - Notificação real do timer com o app minimizado/tela apagada — exige Service Worker (PWA), fora
   de escopo da TASK-017 de propósito.
 - App não é instalável (sem `manifest.json`/Service Worker) — TASK-019 candidata.
@@ -507,14 +549,16 @@ UI/interação (RTL/jsdom nunca configurado — infra Vitest atual é node-only)
   dívida técnica acima.
 
 **Próxima ação exata**
-**Perguntar ao usuário** qual dos 4 candidatos da seção "PRÓXIMA AÇÃO EXATA" (no topo do arquivo)
-ele quer priorizar — não presumir. Se ele não responder e for preciso decidir sozinho, a
-recomendação é **TASK-013** (erro amigável), pelo risco de produção já registrado acima.
+1. **Aprovar (ou recusar) o merge** de `ai/TASK-013-erro-plano-claude` em `main` — único gate que
+   falta. Enquanto não mergear, produção (`activve.vercel.app`) segue crashando com plano
+   corrompido. Merge com `--no-ff` + revalidar gates na `main` + apagar a branch.
+2. Só depois, escolher entre TASK-019 (PWA) e Fase 1 do PRODUCT_VISION (dieta/bem-estar).
 
 **Comando recomendado**
 ```bash
-git status && git log --oneline -5
+git log --oneline main..ai/TASK-013-erro-plano-claude
 ```
 
 **Arquivo inicial a ser lido**
-- `docs/ai/STATUS.md` (este arquivo, inteiro) → depois `docs/ai/tasks/TASK-018-calendario-relatorio.md` se for mexer no relatório, ou o contrato da task escolhida.
+- `docs/ai/STATUS.md` (este arquivo, inteiro) → depois `docs/ai/tasks/TASK-013-erro-plano.md`
+  (tem o registro de execução completo e as opções do achado em aberto).

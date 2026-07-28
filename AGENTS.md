@@ -27,7 +27,7 @@ Entregar alterações corretas, verificáveis, pequenas o suficiente para revis�
 - Build: `npm run build`
 - Lint: `npm run lint`
 - Typecheck: `npm run typecheck`
-- Testes unitários: `[A CONFIGURAR — ainda não há runner de testes]`
+- Testes unitários: `npm run test` (Vitest, node-only — sem RTL/jsdom)
 - Testes de integração: `[A CONFIGURAR]`
 - Testes E2E: `[A CONFIGURAR — Playwright candidato]`
 

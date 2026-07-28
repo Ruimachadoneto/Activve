@@ -19,6 +19,7 @@ import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { MuscleArt } from "@/components/MuscleArt";
 import { Logo } from "@/components/Logo";
+import { PlanErrorState } from "@/components/PlanErrorState";
 import { ExerciseThumb } from "@/components/ExerciseMediaCard";
 import { resolveExerciseMedia } from "@/lib/plan/exerciseMedia";
 import { equipmentLabel } from "@/lib/plan/labels";
@@ -37,7 +38,7 @@ import { getDayOverride, clearDayOverride } from "@/lib/storage/overrides";
 import { isoDate } from "@/lib/plan/session";
 
 export default function HojePage() {
-  const { loading, plan } = useActivePlan();
+  const { loading, plan, invalid } = useActivePlan();
   const [doneDates, setDoneDates] = useState<Set<string>>(new Set());
   // Override resolvido junto com o planId a que pertence — `overrideLoading` é DERIVADO
   // (planId atual ≠ planId do último fetch), não um booleano solto que pode ficar
@@ -88,6 +89,10 @@ export default function HojePage() {
         <p className="text-sm text-muted">Carregando…</p>
       </main>
     );
+  }
+
+  if (invalid) {
+    return <PlanErrorState errors={invalid.errors} />;
   }
 
   if (!plan) {

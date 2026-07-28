@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight, Copy, FileDown } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { ReportView } from "@/components/ReportView";
+import { PlanErrorState } from "@/components/PlanErrorState";
+import { hasReadableTraining } from "@/lib/plan/parse";
 import { getAllSessions } from "@/lib/storage/sessions";
 import { getBodyLog } from "@/lib/storage/bodylog";
 import { getAllPlans, type StoredPlan } from "@/lib/storage/plans";
@@ -16,6 +18,14 @@ import { weekDates } from "@/lib/plan/today";
 import type { PlanFile } from "@/lib/plan/schema";
 
 const WEEK_DAYS = ["S", "T", "Q", "Q", "S", "S", "D"] as const;
+
+/**
+ * Rótulo utilizável vindo de um plano HISTÓRICO (que só passou por guarda estrutural —
+ * TASK-013) ou `undefined`. Sem isto, um `name` ausente vira texto em branco na tela.
+ */
+function planLabel(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
 
 function monthLabel(y: number, m: number): string {
   const label = new Date(y, m, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
@@ -52,7 +62,7 @@ function monthPeriod(y: number, m: number): ReportPeriod {
 }
 
 export default function RelatoriosPage() {
-  const { loading, plan } = useActivePlan();
+  const { loading, plan, invalid } = useActivePlan();
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [bodyEntries, setBodyEntries] = useState<BodyEntry[]>([]);
   const [plans, setPlans] = useState<StoredPlan[]>([]);
@@ -74,7 +84,13 @@ export default function RelatoriosPage() {
       if (cancelled) return;
       setSessions(s);
       setBodyEntries(b);
-      setPlans(p);
+      // Planos históricos passam por uma guarda ESTRUTURAL (TASK-013), não pela
+      // validação completa: um registro impossível de percorrer derrubaria o calendário,
+      // mas exigir validade total descartaria planos antigos ainda perfeitamente úteis
+      // pro que esta tela faz com eles (resolver nome de treino/exercício de sessões
+      // passadas) — e o histórico regrediria pra ids crus. Os cálculos profundos que
+      // consomem esta lista se protegem na própria origem; ver `hasReadableTraining`.
+      setPlans(p.filter((record) => hasReadableTraining(record.plan)));
       setDataLoading(false);
     });
     return () => {
@@ -102,6 +118,14 @@ export default function RelatoriosPage() {
   // Todos os planos já importados, com a data de início de cada ciclo — o relatório
   // (buildReport) usa isso pra resolver nome de exercício/agenda de cada sessão pelo
   // plano que valia NAQUELE momento, não só o ativo (histórico cruza trocas de plano).
+  //
+  // Usa a MESMA guarda estrutural da lista acima (TASK-013, decisão final): exigir
+  // validação completa aqui protegia contra crash, mas excluía plano histórico
+  // cosmeticamente inválido do relatório — `planForSession` caía no plano ativo e o
+  // export mostrava nome errado e subcontava volume daquele ciclo. A proteção agora
+  // mora na ORIGEM da leitura profunda (`buildExerciseMuscles` normaliza músculos e
+  // variações; `workoutsScheduled` ignora agenda ilegível), então o relatório pode
+  // aproveitar todo plano percorrível sem risco de estourar.
   const knownPlans = useMemo<KnownPlan[]>(() => {
     const list = plans.map((p) => ({ planId: p.planId, importedAt: p.importedAt, plan: p.plan }));
     if (plan && !list.some((p) => p.planId === plan.planId)) {
@@ -118,17 +142,30 @@ export default function RelatoriosPage() {
   function movementName(planId: string, exerciseId: string, swappedToId?: string): string {
     const p = plansById.get(planId);
     if (!p) return swappedToId ?? exerciseId;
-    for (const w of p.training.workouts) {
-      const ex = w.exercises.find((e) => e.id === exerciseId);
+    for (const w of Array.isArray(p.training?.workouts) ? p.training.workouts : []) {
+      // Um treino corrompido no meio de um plano histórico não pode cegar os OUTROS
+      // treinos do mesmo ciclo — pula só ele (TASK-013 / review Codex).
+      if (!Array.isArray(w?.exercises)) continue;
+      const ex = w.exercises.find((e) => e?.id === exerciseId);
       if (!ex) continue;
-      if (!swappedToId) return ex.name;
-      return ex.alternatives?.find((a) => a.id === swappedToId)?.name ?? ex.name;
+      // Nome ausente/torto num plano histórico viraria rótulo em BRANCO na tela —
+      // resolver nome é função total, sempre cai num id legível (review Codex).
+      const base = planLabel(ex?.name) ?? swappedToId ?? exerciseId;
+      if (!swappedToId) return base;
+      // `alternatives` não-array (plano histórico corrompido) não tem `.find` — cai no
+      // nome do exercício base em vez de estourar (TASK-013 / review Codex).
+      if (!Array.isArray(ex.alternatives)) return base;
+      // `a?.id`: elemento nulo dentro de `alternatives` não pode derrubar a busca.
+      return planLabel(ex.alternatives.find((a) => a?.id === swappedToId)?.name) ?? base;
     }
     return swappedToId ?? exerciseId;
   }
 
   function workoutName(planId: string, workoutId: string): string {
-    return plansById.get(planId)?.training.workouts.find((w) => w.id === workoutId)?.name ?? workoutId;
+    const workouts = plansById.get(planId)?.training?.workouts;
+    if (!Array.isArray(workouts)) return workoutId;
+    // `w?.id`: elemento nulo num plano corrompido não pode derrubar a busca.
+    return planLabel(workouts.find((w) => w?.id === workoutId)?.name) ?? workoutId;
   }
 
   function exportPeriod(period: ReportPeriod, label: string) {
@@ -169,6 +206,10 @@ export default function RelatoriosPage() {
 
   const weeks = monthGrid(view.y, view.m);
   const selectedSessions = selected ? (sessionsByDate.get(selected) ?? []) : [];
+
+  if (invalid) {
+    return <PlanErrorState errors={invalid.errors} />;
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-7">

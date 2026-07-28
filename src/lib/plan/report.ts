@@ -104,13 +104,33 @@ function inPeriod(date: string, period: ReportPeriod): boolean {
  * corrigida na UI do calendário — aqui é a mesma lógica pro relatório).
  */
 function exerciseName(plan: PlanFile, exerciseId: string, swappedToId?: string): string {
-  for (const w of plan.training.workouts) {
-    const ex = w.exercises.find((e) => e.id === exerciseId);
+  for (const w of Array.isArray(plan.training?.workouts) ? plan.training.workouts : []) {
+    // Um treino corrompido no meio de um plano histórico não pode cegar os OUTROS
+    // treinos do mesmo ciclo — pula só ele (TASK-013 / review Codex).
+    if (!Array.isArray(w?.exercises)) continue;
+    const ex = w.exercises.find((e) => e?.id === exerciseId);
     if (!ex) continue;
-    if (!swappedToId) return ex.name;
-    return ex.alternatives?.find((a) => a.id === swappedToId)?.name ?? ex.name;
+    const base = label(ex?.name) ?? swappedToId ?? exerciseId;
+    if (!swappedToId) return base;
+    // `alternatives` não-array (plano histórico corrompido) não tem `.find` — cai no
+    // nome do exercício base em vez de estourar (TASK-013 / review Codex).
+    if (!Array.isArray(ex.alternatives)) return base;
+    // `a?.id`: elemento nulo dentro de `alternatives` não pode derrubar a busca.
+    return label(ex.alternatives.find((a) => a?.id === swappedToId)?.name) ?? base;
   }
   return swappedToId ?? exerciseId;
+}
+
+/**
+ * Rótulo utilizável ou `undefined` — o chamador decide o fallback.
+ *
+ * Um plano HISTÓRICO só passou por guarda estrutural (TASK-013): qualquer campo pode
+ * faltar ou vir com o tipo errado. Sem isto, `ex.name` ausente virava rótulo em branco
+ * na UI e furava o contrato `string` do `ReportFile` (achado do review Codex). A regra
+ * geral desta camada: **resolver nome é função total** — nunca devolve algo inútil.
+ */
+function label(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
 }
 
 /** Um plano já importado, com a data em que o ciclo começou — pra resolver qual
@@ -177,7 +197,13 @@ export function buildReport(
     if (earliestKnown != null && date < earliestKnown) return false;
     const p = planForDate(knownPlans, date, activePlan);
     const idx = (new Date(`${date}T12:00:00`).getDay() + 6) % 7; // 0 = segunda
-    return p.training.weekSchedule[idx] !== "rest";
+    // Plano histórico pode ter passado só pela guarda estrutural (TASK-013), que não
+    // exige `weekSchedule`. Sem agenda legível não dá pra afirmar que o dia era de
+    // treino — e inventar "agendado" faria a constância parecer PIOR do que foi, o que
+    // viola o princípio anti-culpa. Na dúvida, o dia não conta.
+    const schedule = p.training?.weekSchedule;
+    if (!Array.isArray(schedule)) return false;
+    return schedule[idx] !== "rest";
   }).length;
   const workoutsCompleted = sessions.filter((s) => s.status === "done").length;
   const workoutsPartial = sessions.filter((s) => s.status === "in_progress").length;
