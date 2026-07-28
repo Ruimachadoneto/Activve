@@ -19,6 +19,14 @@ import type { PlanFile } from "@/lib/plan/schema";
 
 const WEEK_DAYS = ["S", "T", "Q", "Q", "S", "S", "D"] as const;
 
+/**
+ * Rótulo utilizável vindo de um plano HISTÓRICO (que só passou por guarda estrutural —
+ * TASK-013) ou `undefined`. Sem isto, um `name` ausente vira texto em branco na tela.
+ */
+function planLabel(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
 function monthLabel(y: number, m: number): string {
   const label = new Date(y, m, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   return label.charAt(0).toUpperCase() + label.slice(1);
@@ -140,12 +148,15 @@ export default function RelatoriosPage() {
       if (!Array.isArray(w?.exercises)) continue;
       const ex = w.exercises.find((e) => e?.id === exerciseId);
       if (!ex) continue;
-      if (!swappedToId) return ex.name;
+      // Nome ausente/torto num plano histórico viraria rótulo em BRANCO na tela —
+      // resolver nome é função total, sempre cai num id legível (review Codex).
+      const base = planLabel(ex?.name) ?? swappedToId ?? exerciseId;
+      if (!swappedToId) return base;
       // `alternatives` não-array (plano histórico corrompido) não tem `.find` — cai no
       // nome do exercício base em vez de estourar (TASK-013 / review Codex).
-      if (!Array.isArray(ex.alternatives)) return ex.name;
+      if (!Array.isArray(ex.alternatives)) return base;
       // `a?.id`: elemento nulo dentro de `alternatives` não pode derrubar a busca.
-      return ex.alternatives.find((a) => a?.id === swappedToId)?.name ?? ex.name;
+      return planLabel(ex.alternatives.find((a) => a?.id === swappedToId)?.name) ?? base;
     }
     return swappedToId ?? exerciseId;
   }
@@ -154,7 +165,7 @@ export default function RelatoriosPage() {
     const workouts = plansById.get(planId)?.training?.workouts;
     if (!Array.isArray(workouts)) return workoutId;
     // `w?.id`: elemento nulo num plano corrompido não pode derrubar a busca.
-    return workouts.find((w) => w?.id === workoutId)?.name ?? workoutId;
+    return planLabel(workouts.find((w) => w?.id === workoutId)?.name) ?? workoutId;
   }
 
   function exportPeriod(period: ReportPeriod, label: string) {

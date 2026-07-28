@@ -110,14 +110,27 @@ function exerciseName(plan: PlanFile, exerciseId: string, swappedToId?: string):
     if (!Array.isArray(w?.exercises)) continue;
     const ex = w.exercises.find((e) => e?.id === exerciseId);
     if (!ex) continue;
-    if (!swappedToId) return ex.name;
+    const base = label(ex?.name) ?? swappedToId ?? exerciseId;
+    if (!swappedToId) return base;
     // `alternatives` não-array (plano histórico corrompido) não tem `.find` — cai no
     // nome do exercício base em vez de estourar (TASK-013 / review Codex).
-    if (!Array.isArray(ex.alternatives)) return ex.name;
+    if (!Array.isArray(ex.alternatives)) return base;
     // `a?.id`: elemento nulo dentro de `alternatives` não pode derrubar a busca.
-    return ex.alternatives.find((a) => a?.id === swappedToId)?.name ?? ex.name;
+    return label(ex.alternatives.find((a) => a?.id === swappedToId)?.name) ?? base;
   }
   return swappedToId ?? exerciseId;
+}
+
+/**
+ * Rótulo utilizável ou `undefined` — o chamador decide o fallback.
+ *
+ * Um plano HISTÓRICO só passou por guarda estrutural (TASK-013): qualquer campo pode
+ * faltar ou vir com o tipo errado. Sem isto, `ex.name` ausente virava rótulo em branco
+ * na UI e furava o contrato `string` do `ReportFile` (achado do review Codex). A regra
+ * geral desta camada: **resolver nome é função total** — nunca devolve algo inútil.
+ */
+function label(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
 }
 
 /** Um plano já importado, com a data em que o ciclo começou — pra resolver qual

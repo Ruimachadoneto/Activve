@@ -336,6 +336,33 @@ describe("buildReport — histórico entre planos (troca de ciclo no meio do per
     expect(r.training.exercises[0].name).toBe("Supino reto");
   });
 
+  it("exercício histórico sem `name` cai num id legível, nunca em rótulo vazio", () => {
+    // Achado do review Codex: `{ id: "supino" }` sem name virava rótulo em branco na
+    // UI e furava o contrato `name: string` do ReportFile.
+    const semNome = JSON.parse(JSON.stringify(plan));
+    delete semNome.training.workouts[0].exercises[0].name;
+    const known: KnownPlan[] = [
+      { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: semNome },
+    ];
+    const sessions: WorkoutSession[] = [
+      {
+        sessionId: "s_sem_nome",
+        planId: "pl_test",
+        workoutId: "A",
+        date: "2026-06-22",
+        status: "done",
+        startedAt: "2026-06-22T10:00:00Z",
+        completedAt: "2026-06-22T11:00:00Z",
+        exercises: [{ exerciseId: "supino", sets: [{ done: true, load_kg: 60, reps: 8 }] }],
+      },
+    ];
+    const r = buildReport(semNome, known, sessions, [], period);
+    const nome = r.training.exercises[0].name;
+    expect(typeof nome).toBe("string");
+    expect(nome.trim()).not.toBe("");
+    expect(nome).toBe("supino"); // cai no exerciseId
+  });
+
   it("resolve swap com elemento nulo dentro de `alternatives`", () => {
     // Achado do review Codex: `Array.isArray` não basta — `[null]` estourava em `a.id`.
     const comNull = JSON.parse(JSON.stringify(plan));
