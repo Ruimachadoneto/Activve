@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, RefreshCw, ShieldCheck } from "lucide-react";
+import { CalendarDays, ChevronRight, RefreshCw, ShieldCheck } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { goalLabel } from "@/lib/plan/labels";
@@ -52,6 +52,22 @@ export default function MaisPage() {
             nada.
           </p>
         </section>
+      ) : null}
+
+      {loading ? null : plan ? (
+        <Link
+          href="/relatorios"
+          className="mt-3 flex items-center gap-3 rounded-card border border-line bg-surface p-4 transition-colors hover:bg-surface2"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface2 text-accent">
+            <CalendarDays size={17} aria-hidden />
+          </span>
+          <span className="flex-1">
+            <span className="block text-sm font-medium">Relatórios de treino</span>
+            <span className="block text-xs text-muted">Calendário, detalhes por dia e export</span>
+          </span>
+          <ChevronRight size={16} aria-hidden className="shrink-0 text-faint" />
+        </Link>
       ) : (
         <section className="mt-5 rounded-card border border-line bg-surface p-5 text-center">
           <p className="text-sm text-muted">Nenhum plano importado ainda.</p>

@@ -17,9 +17,16 @@ export type StoredPlan = {
  */
 export async function saveImportedPlan(plan: PlanFile): Promise<StoredPlan> {
   const db = await getDB();
+  const planId = plan.meta.planId;
+  const existing = (await db.get(STORE_PLANS, planId)) as StoredPlan | undefined;
   const record: StoredPlan = {
-    planId: plan.meta.planId,
-    importedAt: new Date().toISOString(),
+    planId,
+    // Reimportar o MESMO planId (ex.: coach corrige o plano no ciclo atual) preserva
+    // a data ORIGINAL — ela marca quando o ciclo começou, não quando o registro foi
+    // escrito por último. Sem isso, o export de relatório (TASK-018) recortaria o
+    // período pelo novo timestamp e cortaria sessões válidas registradas antes da
+    // correção (achado do review Codex).
+    importedAt: existing?.importedAt ?? new Date().toISOString(),
     plan,
   };
   const tx = db.transaction([STORE_PLANS, STORE_KV], "readwrite");
@@ -42,4 +49,13 @@ export async function getActivePlan(): Promise<StoredPlan | null> {
   if (!activeId) return null;
   const record = (await db.get(STORE_PLANS, activeId)) as StoredPlan | undefined;
   return record ?? null;
+}
+
+/**
+ * Todos os planos já importados (não só o ativo) — usado pra resolver nome de
+ * exercício/treino de sessões de ciclos anteriores no calendário/relatório (TASK-018).
+ */
+export async function getAllPlans(): Promise<StoredPlan[]> {
+  const db = await getDB();
+  return (await db.getAll(STORE_PLANS)) as StoredPlan[];
 }
