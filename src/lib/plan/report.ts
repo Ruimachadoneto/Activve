@@ -114,7 +114,8 @@ function exerciseName(plan: PlanFile, exerciseId: string, swappedToId?: string):
     // `alternatives` não-array (plano histórico corrompido) não tem `.find` — cai no
     // nome do exercício base em vez de estourar (TASK-013 / review Codex).
     if (!Array.isArray(ex.alternatives)) return ex.name;
-    return ex.alternatives.find((a) => a.id === swappedToId)?.name ?? ex.name;
+    // `a?.id`: elemento nulo dentro de `alternatives` não pode derrubar a busca.
+    return ex.alternatives.find((a) => a?.id === swappedToId)?.name ?? ex.name;
   }
   return swappedToId ?? exerciseId;
 }

@@ -308,6 +308,7 @@ describe("buildReport — histórico entre planos (troca de ciclo no meio do per
     // relatórios estourava ao abrir/exportar uma sessão com variação trocada.
     const altTorta = JSON.parse(JSON.stringify(plan));
     altTorta.training.workouts[0].exercises[0].alternatives = "nao-e-array";
+    // (o caso `alternatives: [null]` está coberto logo abaixo)
     const known: KnownPlan[] = [
       { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: altTorta },
     ];
@@ -333,6 +334,40 @@ describe("buildReport — histórico entre planos (troca de ciclo no meio do per
     const r = buildReport(altTorta, known, sessions, [], period);
     // sem catálogo de variações legível, cai no nome do exercício base
     expect(r.training.exercises[0].name).toBe("Supino reto");
+  });
+
+  it("resolve swap com elemento nulo dentro de `alternatives`", () => {
+    // Achado do review Codex: `Array.isArray` não basta — `[null]` estourava em `a.id`.
+    const comNull = JSON.parse(JSON.stringify(plan));
+    comNull.training.workouts[0].exercises[0].alternatives = [
+      null,
+      { id: "supino_halteres", name: "Supino com halteres", primaryMuscles: ["chest"] },
+    ];
+    const known: KnownPlan[] = [
+      { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: comNull },
+    ];
+    const sessions: WorkoutSession[] = [
+      {
+        sessionId: "s_null_alt",
+        planId: "pl_test",
+        workoutId: "A",
+        date: "2026-06-22",
+        status: "done",
+        startedAt: "2026-06-22T10:00:00Z",
+        completedAt: "2026-06-22T11:00:00Z",
+        exercises: [
+          {
+            exerciseId: "supino",
+            swappedToId: "supino_halteres",
+            sets: [{ done: true, load_kg: 30, reps: 10 }],
+          },
+        ],
+      },
+    ];
+    expect(() => buildReport(comNull, known, sessions, [], period)).not.toThrow();
+    const r = buildReport(comNull, known, sessions, [], period);
+    // a variação VÁLIDA ao lado do null continua resolvendo o nome
+    expect(r.training.exercises[0].name).toBe("Supino com halteres");
   });
 
   it("gera relatório de plano histórico sem primaryMuscles em vez de estourar", () => {

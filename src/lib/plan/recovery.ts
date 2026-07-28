@@ -139,12 +139,16 @@ export function buildExerciseMuscles(plan: PlanFile): GetMuscles {
   const workouts = Array.isArray(plan.training?.workouts) ? plan.training.workouts : [];
   for (const workout of workouts) {
     for (const ex of Array.isArray(workout?.exercises) ? workout.exercises : []) {
+      // Elemento nulo/não-objeto no array: pula. Array ser array não garante o
+      // conteúdo (achado do review Codex).
+      if (!ex || typeof ex !== "object") continue;
       const base: ExerciseMuscles = {
         primary: Array.isArray(ex.primaryMuscles) ? ex.primaryMuscles : [],
         secondary: Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles : undefined,
       };
       const alts = new Map<string, ExerciseMuscles>();
       for (const alt of Array.isArray(ex.alternatives) ? ex.alternatives : []) {
+        if (!alt || typeof alt !== "object") continue; // idem: elemento pode ser nulo
         // A alternativa só sobrescreve os PRIMÁRIOS (o schema não expressa secundários
         // nela); herda sempre os secundários do pai — senão um swap subestima a fadiga.
         // Herda de `base` (já normalizado), não dos campos crus do exercício — senão a

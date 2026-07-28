@@ -282,6 +282,32 @@ describe("buildExerciseMuscles", () => {
       expect(vazio("qualquer")).toBeUndefined();
     });
 
+    it("pula elementos nulos dentro de exercises/alternatives", () => {
+      // Achado do review Codex: array ser array não garante o CONTEÚDO.
+      const comNulos = {
+        training: {
+          workouts: [
+            {
+              exercises: [
+                null,
+                {
+                  id: "supino",
+                  primaryMuscles: ["chest"],
+                  alternatives: [null, { id: "ok", primaryMuscles: ["front_delts"] }],
+                },
+                "nao-e-objeto",
+              ],
+            },
+          ],
+        },
+      } as unknown as PlanFile;
+      expect(() => buildExerciseMuscles(comNulos)).not.toThrow();
+      const gm = buildExerciseMuscles(comNulos);
+      expect(gm("supino")).toEqual({ primary: ["chest"], secondary: undefined });
+      // a variação válida ao lado do null continua resolvendo
+      expect(gm("supino", "ok")).toEqual({ primary: ["front_delts"], secondary: undefined });
+    });
+
     it("variação com primaryMuscles STRING cai no músculo do pai (não itera letras)", () => {
       // Achado do review Codex: string tem `.length`, então checar só `.length` deixava
       // passar `primary: "chest"` — e o consumidor iteraria 'c','h','e','s','t' como
