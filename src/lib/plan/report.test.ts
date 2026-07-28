@@ -145,6 +145,17 @@ describe("buildReport — body", () => {
     const waist = r.body.measures.find((m) => m.key === "waist");
     expect(waist?.delta_cm).toBe(-2);
   });
+
+  it("lápide (null) apagando uma medida no período vira 'sem valor', não o número antigo", () => {
+    const withTombstone: BodyEntry[] = [
+      { date: "2026-06-22", measures: { waist: 90 }, recordedAt: "" },
+      { date: "2026-06-27", measures: { waist: null }, recordedAt: "" }, // apagada
+    ];
+    const r = buildReport(plan, [], withTombstone, period);
+    const waist = r.body.measures.find((m) => m.key === "waist");
+    expect(waist?.latest_cm).toBeUndefined();
+    expect(waist?.delta_cm).toBeUndefined();
+  });
 });
 
 describe("buildReport — honestidade do v1 (campos sem dado real ficam neutros)", () => {

@@ -117,3 +117,17 @@ npm run typecheck && npm run lint && npm run test && npm run build
     base. Verificado no browser: trocado "Agachamento" → "Leg press" em `/treino`, o detalhe do dia
     em `/relatorios` agora mostra "Leg press" corretamente (antes mostraria o id bruto).
   - Gates: typecheck ✓ · lint ✓ · **128/128** ✓ · build ✓.
+- **Review Codex (ciclo 2, 2026-07-27) — 2 achados aceitos e corrigidos:**
+  - **[P1] Período do export não recortava pela vida do plano** — filtrar as sessões pelo `planId`
+    ativo (fix do ciclo 1) não bastava: o `period` continuava indo até o início do mês/semana
+    pedido, então dias **antes do plano existir** contavam como "agendados" pelo `weekSchedule` do
+    plano novo, inflando a sensação de treino pulado. → `exportPeriod` recorta `period.from` pra
+    nunca ser anterior a `plan.importedAt`. Verificado no browser: plano importado hoje (27/07),
+    "Este mês" → período exportado vira **"2026-07-27 a 2026-07-31"** (não mais o mês inteiro),
+    "3 agendados"/"5 dias" batendo com a janela real de vida do plano.
+  - **[P2] Lápide de medida ignorada no relatório** — `report.ts` filtrava fora os toques com
+    `null` (lápide — medida apagada, ver `body.ts`) antes de pegar `latest_cm`, então apagar uma
+    medida dentro do período fazia o relatório mostrar o **valor antigo** como se ainda fosse
+    atual. → `latest_cm`/`start_cm` agora consideram o toque mais recente (número OU lápide);
+    lápide vira "sem valor" (`undefined`), nunca o número anterior. +1 teste.
+  - Gates: typecheck ✓ · lint ✓ · **129/129** ✓ · build ✓.

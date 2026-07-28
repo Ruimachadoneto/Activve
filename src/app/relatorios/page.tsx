@@ -131,8 +131,16 @@ export default function RelatoriosPage() {
     // sessões de ciclos anteriores dentro do mesmo período simplesmente não entram —
     // continuam visíveis no calendário (que não tem esse escopo), só não no export.
     const sessionsForActivePlan = sessions.filter((s) => s.planId === plan.planId);
-    const report = buildReport(plan.plan, sessionsForActivePlan, bodyEntries, period);
-    downloadJson(`activve-relatorio-${period.from}_a_${period.to}.json`, report);
+    // Recorta o início do período pra não contar dias ANTES do plano existir como
+    // "agendados" — senão um plano importado no meio da semana/mês parece que o
+    // usuário pulou treinos que nem faziam parte do ciclo ainda (achado do review Codex).
+    const importedDate = plan.importedAt.slice(0, 10);
+    const clippedPeriod: ReportPeriod = {
+      from: period.from < importedDate ? importedDate : period.from,
+      to: period.to,
+    };
+    const report = buildReport(plan.plan, sessionsForActivePlan, bodyEntries, clippedPeriod);
+    downloadJson(`activve-relatorio-${clippedPeriod.from}_a_${clippedPeriod.to}.json`, report);
     setExportPreview({ label, markdown: reportToMarkdown(report) });
     setCopied(false);
   }

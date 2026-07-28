@@ -208,13 +208,17 @@ export function buildReport(
   const weightPts = weightSeries(bodyInPeriod);
   const weightStart = weightPts[0]?.weight;
   const weightLatest = weightPts[weightPts.length - 1]?.weight;
+  // `measures[key]` pode ser `null` — uma LÁPIDE (a medida foi apagada nesse dia, ver
+  // body.ts). Ignorar lápides faria o relatório mostrar o valor antigo como "atual"
+  // mesmo depois do usuário apagar (achado do review Codex) — por isso o toque mais
+  // recente (número OU lápide) decide `latest_cm`/`start_cm`, não só o último número.
   const measures = ["waist", "chest", "thigh", "arm"].map((key) => {
-    const pts = bodyInPeriod
-      .filter((e) => typeof e.measures?.[key] === "number")
-      .map((e) => ({ date: e.date, value: e.measures![key] as number }))
+    const touches = bodyInPeriod
+      .filter((e) => e.measures?.[key] !== undefined)
+      .map((e) => ({ date: e.date, value: e.measures![key] }))
       .sort((a, b) => a.date.localeCompare(b.date));
-    const start_cm = pts[0]?.value;
-    const latest_cm = pts[pts.length - 1]?.value;
+    const start_cm = touches[0]?.value ?? undefined;
+    const latest_cm = touches[touches.length - 1]?.value ?? undefined;
     return {
       key,
       start_cm,
