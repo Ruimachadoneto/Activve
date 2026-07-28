@@ -279,3 +279,14 @@ npm run typecheck && npm run lint && npm run test && npm run build
   fazer o que documenta. +1 teste (período começando antes do único plano conhecido: sem o fix
   contaria 4 dias agendados incluindo dias pré-app; com o fix, só 2).
   - Gates: typecheck ✓ · lint ✓ · **132/132** ✓ · build ✓.
+
+- **Review Codex (ciclo 8, 2026-07-27) — 1 achado [P2], registrado como dívida técnica (decisão do
+  usuário: mergear como está, impacto baixo):** `planForDate`/`earliestKnown` comparam só a
+  DATA (`importedAt.slice(0,10)`), não o timestamp completo — se um plano novo for importado no
+  MEIO do dia (mesmo dia calendário do plano anterior), o dia inteiro cai pro plano novo em vez de
+  reconhecer a fronteira por horário. Como `workoutsScheduled` já opera em granularidade de DIA
+  (não hora — `weekSchedule` é um padrão de 7 dias, não tem conceito de "meio dia"), isso afeta no
+  máximo 1 dia de fronteira, num cenário raro (trocar de plano no mesmo dia que já usou o
+  anterior). Não corrigido — ver `STATUS.md` §Dívida Técnica.
+- **Estado**: CONCLUÍDO — 8 ciclos de review Codex (7 correções aplicadas, 1 registrado como dívida
+  técnica por decisão do usuário) — pendente gate de merge.
