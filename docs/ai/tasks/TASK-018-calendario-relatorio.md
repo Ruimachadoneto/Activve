@@ -131,3 +131,20 @@ npm run typecheck && npm run lint && npm run test && npm run build
     atual. → `latest_cm`/`start_cm` agora consideram o toque mais recente (número OU lápide);
     lápide vira "sem valor" (`undefined`), nunca o número anterior. +1 teste.
   - Gates: typecheck ✓ · lint ✓ · **129/129** ✓ · build ✓.
+- **Review Codex (ciclo 3, 2026-07-27) — 3 achados [P2] aceitos e corrigidos (3º ciclo, dentro do
+  limite normal do AGENTS §13):**
+  - **`reportId` podia colidir** — dependia só de `period.from/to`; exportar a mesma semana/mês
+    duas vezes gerava o mesmo id, violando "id único" do `REPORT_SCHEMA.md`. → inclui
+    `now.getTime()` (base36) no id.
+  - **Período podia inverter (`from > to`)** — recortar só `period.from` pela data de importação
+    não bastava: visualizar um mês **inteiro anterior** ao plano (ex.: navegou pro mês passado e
+    clicou "Este mês") produzia um período impossível, exportando um JSON sem sentido. → guarda
+    antes de construir o relatório: se `from > to` após o recorte, mostra uma mensagem explicativa
+    em vez de gerar/baixar dado inválido. Verificado no browser: navegado pra junho (antes do plano
+    de julho existir), "Este mês" → "Nenhum dado neste período — o plano atual só existe a partir
+    de 2026-07-27." (sem download disparado).
+  - **Página ficava interativa antes do IndexedDB responder** — `sessions`/`bodyEntries`/`plans`
+    carregam à parte do `plan` (`useActivePlan`); clicar exportar antes de resolver geraria
+    relatório vazio silenciosamente. → novo `dataLoading`, gate de "Carregando…" combinado com o
+    `loading` do plano.
+  - Gates: typecheck ✓ · lint ✓ · **129/129** ✓ · build ✓.

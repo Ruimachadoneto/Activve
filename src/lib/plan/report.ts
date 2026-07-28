@@ -234,7 +234,9 @@ export function buildReport(
   return {
     schemaVersion: "1.0",
     meta: {
-      reportId: `rp_${period.from}_${period.to}`,
+      // Inclui `now` (epoch base36) — `REPORT_SCHEMA.md` exige id ÚNICO; só período colidiria
+      // se o usuário exportasse a mesma semana/mês duas vezes (achado do review Codex).
+      reportId: `rp_${period.from}_${period.to}_${now.getTime().toString(36)}`,
       generatedAt: now.toISOString(),
       app: "activve@0.1.0",
       locale: "pt-BR",

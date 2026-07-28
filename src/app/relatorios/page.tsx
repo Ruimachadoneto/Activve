@@ -70,6 +70,9 @@ export default function RelatoriosPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [exportPreview, setExportPreview] = useState<{ label: string; markdown: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  // Sem isso, o calendário mostra nenhum dia marcado e o export pode gerar um
+  // relatório vazio se clicado antes do IndexedDB responder (achado do review Codex).
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +81,7 @@ export default function RelatoriosPage() {
       setSessions(s);
       setBodyEntries(b);
       setPlans(p);
+      setDataLoading(false);
     });
     return () => {
       cancelled = true;
@@ -139,6 +143,17 @@ export default function RelatoriosPage() {
       from: period.from < importedDate ? importedDate : period.from,
       to: period.to,
     };
+    // Período pedido inteiro anterior ao plano existir (ex.: navegou pro mês passado e
+    // clicou "Este mês") — recortar produziria from > to, um período impossível
+    // (achado do review Codex). Nada pra exportar; explica em vez de gerar lixo.
+    if (clippedPeriod.from > clippedPeriod.to) {
+      setExportPreview({
+        label,
+        markdown: `Nenhum dado neste período — o plano atual só existe a partir de ${importedDate}.`,
+      });
+      setCopied(false);
+      return;
+    }
     const report = buildReport(plan.plan, sessionsForActivePlan, bodyEntries, clippedPeriod);
     downloadJson(`activve-relatorio-${clippedPeriod.from}_a_${clippedPeriod.to}.json`, report);
     setExportPreview({ label, markdown: reportToMarkdown(report) });
@@ -156,7 +171,7 @@ export default function RelatoriosPage() {
         <p className="mt-0.5 text-sm text-muted">Seu histórico de treino, dia a dia.</p>
       </header>
 
-      {loading ? (
+      {loading || dataLoading ? (
         <p className="mt-6 text-sm text-muted">Carregando…</p>
       ) : !plan ? (
         <section className="mt-5 rounded-card border border-line bg-surface p-5 text-center">
