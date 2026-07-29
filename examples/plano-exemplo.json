@@ -347,15 +347,19 @@
             "unit": "g",
             "kcal": 300,
             "alternatives": [
-              "150 g de batata doce",
-              "1 pão francês"
+              "180 g de tilápia",
+              "150 g de patinho moído"
             ]
           },
           {
             "food": "Arroz",
             "qty": 150,
             "unit": "g",
-            "kcal": 195
+            "kcal": 195,
+            "alternatives": [
+              "150 g de batata doce",
+              "150 g de macarrão integral"
+            ]
           },
           {
             "food": "Feijão",
