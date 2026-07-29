@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
@@ -34,12 +34,31 @@ import {
   WEEK_DAYS,
 } from "@/lib/plan/today";
 import { getSessionsForPlan } from "@/lib/storage/sessions";
+import type { WorkoutSession } from "@/lib/plan/session";
+import { ReadinessHero } from "@/components/ReadinessHero";
+import {
+  buildExerciseMuscles,
+  computeRecovery,
+  stimuliFromSessions,
+  todayReadiness,
+} from "@/lib/plan/recovery";
 import { getDayOverride, clearDayOverride } from "@/lib/storage/overrides";
 import { isoDate } from "@/lib/plan/session";
 
 export default function HojePage() {
   const { loading, plan, invalid } = useActivePlan();
-  const [doneDates, setDoneDates] = useState<Set<string>>(new Set());
+  /*
+   * Sessões guardadas JUNTO com o planId de origem (mesmo padrão do `overrideFetch`
+   * abaixo, e pelo mesmo motivo). Ao trocar de plano, a lista antiga continuava em estado
+   * até o novo fetch resolver, e a prontidão era calculada com o histórico do plano
+   * ANTERIOR — inclusive fazendo `temHistorico` ser verdadeiro num plano recém-importado
+   * que ainda não tem sessão nenhuma, exatamente o caso que a regra de honestidade quer
+   * evitar (achado do review Codex).
+   */
+  const [sessionsFetch, setSessionsFetch] = useState<{
+    planId: string | null;
+    list: WorkoutSession[];
+  }>({ planId: null, list: [] });
   // Override resolvido junto com o planId a que pertence — `overrideLoading` é DERIVADO
   // (planId atual ≠ planId do último fetch), não um booleano solto que pode ficar
   // obsoleto por 1 render quando o planId muda de null pro id real (mesmo achado do
@@ -47,21 +66,75 @@ export default function HojePage() {
   const [overrideFetch, setOverrideFetch] = useState<{ planId: string | null; value: string | null }>(
     { planId: null, value: null },
   );
+  /*
+   * Relógio da prontidão: a recuperação é função do TEMPO, então o `now` precisa avançar
+   * com a tela aberta — senão o número congela até o usuário navegar ou recarregar
+   * (mesmo achado que a TASK-009 teve no `/corpo`, que já resolve assim). Reusar o padrão
+   * de lá mantém as duas telas concordando sobre o estado do corpo.
+   */
+  const [now, setNow] = useState(() => Date.now());
+
   const planId = plan?.planId ?? null;
   const overrideLoading = overrideFetch.planId !== planId;
   const override = overrideLoading ? null : overrideFetch.value;
+  // Estado DERIVADO: enquanto o fetch não corresponder ao plano atual, a lista é vazia —
+  // nunca a do plano anterior. Memoizado porque o `[]` literal criaria um array novo a
+  // cada render e invalidaria os memos abaixo sem necessidade.
+  const sessions = useMemo(
+    () => (sessionsFetch.planId === planId ? sessionsFetch.list : []),
+    [sessionsFetch, planId],
+  );
+  const doneDates = useMemo(
+    () => new Set(sessions.filter((s) => s.status === "done").map((s) => s.date)),
+    [sessions],
+  );
 
   // Dias da semana com treino concluído (lê as sessões do período ativo).
   useEffect(() => {
     if (!plan) return;
     let cancelled = false;
-    getSessionsForPlan(plan.planId).then((sessions) => {
+    // Mesma fonte que a tela Corpo usa (`getSessionsForPlan`): as duas telas precisam
+    // concordar sobre o estado do corpo — um número aqui e um mapa lá discordando seria
+    // pior que a limitação conhecida do ADR-002 (sessões de ciclos anteriores ficam de
+    // fora do mapa quando o plano troca).
+    getSessionsForPlan(plan.planId).then((lista) => {
       if (cancelled) return;
-      const done = new Set(sessions.filter((s) => s.status === "done").map((s) => s.date));
-      setDoneDates(() => done);
+      setSessionsFetch({ planId: plan.planId, list: lista });
     });
     return () => {
       cancelled = true;
+    };
+  }, [plan]);
+
+  useEffect(() => {
+    /*
+     * Guarda de requisição obsoleta. Sem ela, trocar de plano com um refresh em voo fazia
+     * o `then` gravar as sessões do plano ANTIGO; como `sessions` é derivado comparando o
+     * planId, o resultado era uma lista vazia — a tela perdia os checks da semana e
+     * escondia o herói até o próximo tick (achado do review Codex). O efeito depende de
+     * `plan`, então trocar de plano roda a limpeza e invalida o fetch anterior.
+     */
+    let cancelled = false;
+    const refresh = () => {
+      setNow(Date.now());
+      if (plan) {
+        getSessionsForPlan(plan.planId).then((lista) => {
+          if (cancelled) return;
+          setSessionsFetch({ planId: plan.planId, list: lista });
+        });
+      }
+    };
+    const id = window.setInterval(() => setNow(Date.now()), 5 * 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refresh);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refresh);
     };
   }, [plan]);
 
@@ -127,6 +200,24 @@ export default function HojePage() {
   const minutes = todayWorkout
     ? (p.profile.sessionMinutes ?? estimateWorkoutMinutes(todayWorkout))
     : null;
+
+  /*
+   * Prontidão do dia (DESIGN_SYSTEM §9). Só existe com treino hoje E com pelo menos uma
+   * sessão concluída: sem histórico, todo músculo é "descansado" e o número daria 100% —
+   * verdadeiro no sentido literal, mas seria um número de aparência científica sobre um
+   * corpo do qual não medimos nada. Sem dado, não se exibe número.
+   */
+  const temHistorico = sessions.some((s) => s.status === "done");
+  const readiness =
+    todayWorkout && temHistorico
+      ? todayReadiness(
+          todayWorkout.exercises.map((ex) => ({
+            primary: ex.primaryMuscles,
+            secondary: ex.secondaryMuscles,
+          })),
+          computeRecovery(stimuliFromSessions(sessions, buildExerciseMuscles(p), now), now),
+        )
+      : null;
   // Só equipamentos CONHECIDOS: `equipment` omitido é desconhecido, não "livre" —
   // afirmar "Livre" pro usuário seria converter incerteza em promessa.
   const equipmentList = todayWorkout
@@ -188,6 +279,13 @@ export default function HojePage() {
           </button>
         </div>
       ) : null}
+
+      {/*
+        Resposta antes da complexidade: o herói responde "como está meu corpo pra isso hoje?"
+        acima do card do treino. É o ÚNICO E3 (foco) da tela — o card do treino segue em E1,
+        senão dois blocos disputariam a atenção (DESIGN_SYSTEM §5).
+      */}
+      {readiness ? <ReadinessHero readiness={readiness} /> : null}
 
       {today.kind === "workout" ? (
         <>

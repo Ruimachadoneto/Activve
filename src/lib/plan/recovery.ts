@@ -254,3 +254,71 @@ export const RECOVERY_LABEL_PT: Record<RecoveryState, string> = {
   ready: "Pronto",
   rested: "Descansado",
 };
+
+/**
+ * Prontidão do corpo para o treino de HOJE (TASK-022 / DESIGN_SYSTEM §9).
+ *
+ * `pct` = quanto dos músculos que o treino de hoje exige já está recuperado, ponderado
+ * (primário 1, secundário 0,5 — os mesmos pesos com que o estímulo foi contabilizado).
+ * `limiting` = os músculos que mais seguram, para a UI explicar o número em vez de só
+ * exibi-lo.
+ *
+ * **O que este número NÃO é** (regras de honestidade, não negociáveis):
+ * - Não é score de saúde/prontidão fisiológica. O Activve não tem HRV, sono nem frequência
+ *   cardíaca; rotular como algo maior que "músculo recuperado" seria inventar ciência.
+ * - Não é nota do usuário. Número baixo significa "hoje pede leveza", nunca "você falhou".
+ * - Sem músculos exigidos (dia de descanso, treino vazio) devolve `null` — quem chama
+ *   mostra o estado apropriado em vez de um número fabricado.
+ */
+export type TodayReadiness = {
+  /** 0–100. */
+  pct: number;
+  /** Músculos ainda não recuperados, do mais fatigado para o menos. */
+  limiting: Muscle[];
+};
+
+export function todayReadiness(
+  exercises: ExerciseMuscles[],
+  recovery: Record<Muscle, MuscleRecovery>,
+): TodayReadiness | null {
+  // Um músculo que é primário num exercício e secundário noutro conta como primário:
+  // o peso é do papel mais exigente que ele cumpre no treino.
+  const weights = new Map<Muscle, number>();
+  for (const ex of exercises) {
+    for (const m of ex?.primary ?? []) {
+      weights.set(m, Math.max(weights.get(m) ?? 0, PRIMARY_WEIGHT));
+    }
+    for (const m of ex?.secondary ?? []) {
+      weights.set(m, Math.max(weights.get(m) ?? 0, SECONDARY_WEIGHT));
+    }
+  }
+  if (weights.size === 0) return null;
+
+  let somaPonderada = 0;
+  let pesoTotal = 0;
+  const pendentes: { muscle: Muscle; fraction: number }[] = [];
+  for (const [muscle, weight] of weights) {
+    // `fraction` passa de 1 quando o músculo está recuperado há muito tempo — saturar
+    // evita que um músculo "extra descansado" compense outro ainda em recuperação.
+    const fraction = Math.min(1, recovery[muscle]?.fraction ?? 1);
+    somaPonderada += fraction * weight;
+    pesoTotal += weight;
+    if (fraction < 1) pendentes.push({ muscle, fraction });
+  }
+
+  return {
+    pct: Math.round((somaPonderada / pesoTotal) * 100),
+    limiting: pendentes.sort((a, b) => a.fraction - b.fraction).map((p) => p.muscle),
+  };
+}
+
+/**
+ * Leitura qualitativa do número. Anti-culpa: fala do corpo e do que fazer hoje, nunca do
+ * desempenho de quem treina. `tone` mapeia na semântica de cor do design system §2.1.
+ */
+export function readinessLabel(pct: number): { text: string; tone: RecoveryState } {
+  if (pct >= 85) return { text: "Pronto pra treinar pesado", tone: "ready" };
+  if (pct >= 60) return { text: "Bom pra treinar", tone: "ready" };
+  if (pct >= 35) return { text: "Dá pra treinar com calma", tone: "recovering" };
+  return { text: "Corpo ainda se recuperando", tone: "worked" };
+}
