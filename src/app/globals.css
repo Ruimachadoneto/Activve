@@ -52,9 +52,41 @@
 }
 
 body {
-  background: var(--color-bg);
+  /*
+   * Atmosfera "Vivid" (direção v3, 2026-07-29 — o usuário liberou os limites de
+   * sobriedade da política para o upgrade): dois campos de luz muito suaves sobre o navy,
+   * um teal no topo (a cor do agir) e um azul profundo embaixo. Fixos, para a luz não
+   * "rolar" com o conteúdo — o efeito é ambiente, não decoração que compete.
+   */
+  background:
+    radial-gradient(70% 45% at 18% -8%, rgb(47 212 182 / 0.09), transparent 62%),
+    radial-gradient(55% 40% at 92% 108%, rgb(64 120 255 / 0.07), transparent 60%),
+    var(--color-bg);
+  background-attachment: fixed;
   color: var(--color-ink);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/*
+ * Superfície com relevo: gradiente sutil de cima pra baixo + fio de luz na borda
+ * superior. É o que separa "retângulo chapado" de "material com espessura" — aplicado
+ * via classe porque nem todo card merece relevo (hierarquia continua valendo).
+ */
+.card-lift {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-surface2) 60%, var(--color-surface)) 0%,
+    var(--color-surface) 55%
+  );
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+}
+
+/* Nome/valor de marca em gradiente do acento — o momento de assinatura da saudação. */
+.text-grad-accent {
+  background: linear-gradient(92deg, var(--color-accent) 10%, #8ff2df 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* Drift sutil (Ken Burns) na foto do exercício — dá vida sem virar animação chamativa. */
@@ -127,6 +159,38 @@ body {
   }
 }
 
+/*
+ * Recorde pessoal (registro B): o selo entra com overshoot e um anel de luz se expande
+ * e dissipa. É O momento de celebração do app — por isso ganha o --ease-overshoot,
+ * exclusivo de conquista.
+ */
+@keyframes pr-badge {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pr-badge {
+  animation: pr-badge var(--dur-base) var(--ease-overshoot) both;
+}
+@keyframes pr-ring {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+.pr-ring {
+  animation: pr-ring 700ms var(--ease-out-soft) both;
+}
+
 /* Desenho da linha do gráfico, da esquerda para a direita (dataviz §7). */
 @keyframes draw-line {
   from {
@@ -148,7 +212,14 @@ body {
  */
 .elev-focus {
   border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
-  --elev-halo: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 8%, transparent);
+  /*
+   * v3: além do fio interno, o E3 ganha um brilho ambiente — o card principal da tela
+   * agora EMITE luz em vez de só ter borda. Continua valendo: máximo 1 E3 por tela,
+   * senão dois blocos brilhando viram feira.
+   */
+  --elev-halo:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 10%, transparent),
+    0 0 48px -14px color-mix(in srgb, var(--color-accent) 55%, transparent);
   box-shadow: var(--elev-halo, 0 0 transparent), var(--elev-drop, 0 0 transparent);
 }
 
@@ -167,13 +238,20 @@ body {
  */
 
 /*
- * Escada de entrada: filhos aparecem em sequência curta. Índice via `--i` inline.
- * Teto de 8 para o atraso não virar espera (§6: movimento nunca atrasa a ação).
+ * Escada de entrada: filhos aparecem em sequência curta, sem configuração por filho
+ * (nth-child resolve o índice). Teto no 8º para o atraso não virar espera (§6: movimento
+ * nunca atrasa a ação).
  */
 .stagger > * {
   animation: rise var(--dur-base) var(--ease-out-soft) both;
-  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
 }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
+.stagger > *:nth-child(6) { animation-delay: 200ms; }
+.stagger > *:nth-child(7) { animation-delay: 240ms; }
+.stagger > *:nth-child(n + 8) { animation-delay: 280ms; }
 
 /*
  * Acessibilidade: a UI precisa funcionar 100% sem depender de animação
@@ -181,8 +259,14 @@ body {
  */
 @media (prefers-reduced-motion: reduce) {
   .draw-line,
-  .stagger > * {
+  .stagger > *,
+  .pr-badge,
+  .pr-ring {
     animation: none;
+  }
+  /* O anel é só movimento — sem animação ele não deve nem aparecer. */
+  .pr-ring {
+    opacity: 0;
   }
   .draw-line {
     stroke-dasharray: none;

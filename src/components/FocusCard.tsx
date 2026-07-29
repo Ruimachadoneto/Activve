@@ -56,7 +56,7 @@ export function FocusCard({
   });
 
   return (
-    <section className="mt-3 rounded-card border border-line bg-surface p-4">
+    <section className="card-lift mt-3 rounded-card border border-line p-4">
       <div className="flex items-center gap-2">
         <Target size={14} aria-hidden className="text-accent" />
         <p className="text-[11px] uppercase tracking-wider text-faint">Foco do dia</p>

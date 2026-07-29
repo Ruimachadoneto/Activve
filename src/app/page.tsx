@@ -233,7 +233,7 @@ export default function HojePage() {
   const badge = today.kind === "workout" ? workoutBadge(today.workoutId) : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-6">
+    <main className="stagger mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-6">
       <header className="flex items-center justify-between">
         <span className="flex h-10 w-10 items-center justify-center rounded-full border border-accent/40 text-sm font-medium text-accent">
           A
@@ -249,7 +249,7 @@ export default function HojePage() {
           {greeting()}
           {p.profile.name ? (
             <>
-              , <span className="text-accent">{p.profile.name}.</span>
+              , <span className="text-grad-accent">{p.profile.name}.</span>
             </>
           ) : (
             "."
@@ -295,7 +295,7 @@ export default function HojePage() {
 
       {today.kind === "workout" ? (
         <>
-          <section className="relative mt-5 overflow-hidden rounded-card border border-line bg-surface p-5">
+          <section className="card-lift relative mt-5 overflow-hidden rounded-card border border-line p-5">
             <div className="relative z-10 max-w-[62%]">
               <div className="flex items-center gap-2">
                 {badge ? (

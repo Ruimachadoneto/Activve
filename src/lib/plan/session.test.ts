@@ -6,6 +6,7 @@ import {
   sessionIdFor,
   clampRpe,
   previousPerformance,
+  bestPreviousLoad,
   isoDate,
   type WorkoutSession,
 } from "./session";
@@ -185,3 +186,55 @@ describe("previousPerformance", () => {
 // guard de tipo: garante que WorkoutSession está exportado e bem formado
 const _typecheck: WorkoutSession = createSession("p", workout);
 void _typecheck;
+
+describe("bestPreviousLoad", () => {
+  const sess = (id: string, status: "done" | "in_progress", sets: { load?: number; done?: boolean }[], swap?: string): WorkoutSession => ({
+    sessionId: id,
+    planId: "p",
+    workoutId: "A",
+    date: "2026-07-20",
+    status,
+    startedAt: "2026-07-20T10:00:00Z",
+    completedAt: status === "done" ? "2026-07-20T11:00:00Z" : undefined,
+    exercises: [{
+      exerciseId: "supino",
+      ...(swap ? { swappedToId: swap } : {}),
+      sets: sets.map((x) => ({ done: x.done ?? true, load_kg: x.load })),
+    }],
+  });
+
+  it("devolve a maior carga entre todas as sessões concluídas", () => {
+    const historico = [
+      sess("s1", "done", [{ load: 55 }, { load: 60 }]),
+      sess("s2", "done", [{ load: 57.5 }]),
+    ];
+    expect(bestPreviousLoad(historico, "supino", "atual")).toBe(60);
+  });
+
+  it("sem histórico devolve null — primeiro treino nunca celebra", () => {
+    expect(bestPreviousLoad([], "supino", "atual")).toBeNull();
+  });
+
+  it("ignora a sessão atual, sessões em andamento e séries não feitas", () => {
+    const historico = [
+      sess("atual", "done", [{ load: 100 }]), // a própria sessão não é recorde anterior
+      sess("s1", "in_progress", [{ load: 90 }]), // em andamento não conta
+      sess("s2", "done", [{ load: 80, done: false }, { load: 50 }]), // não feita não conta
+    ];
+    expect(bestPreviousLoad(historico, "supino", "atual")).toBe(50);
+  });
+
+  it("variação NÃO cruza com o movimento base (regra do movimento efetivo)", () => {
+    const historico = [
+      sess("s1", "done", [{ load: 55 }]), // supino base
+      sess("s2", "done", [{ load: 70 }], "halteres"), // variação
+    ];
+    expect(bestPreviousLoad(historico, "supino", "atual")).toBe(55);
+    expect(bestPreviousLoad(historico, "supino", "atual", "halteres")).toBe(70);
+  });
+
+  it("séries sem carga registrada não quebram nem contam", () => {
+    const historico = [sess("s1", "done", [{}, { load: 42 }])];
+    expect(bestPreviousLoad(historico, "supino", "atual")).toBe(42);
+  });
+});

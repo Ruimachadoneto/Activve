@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Minus,
   Plus,
+  Trophy,
 } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { getTodayWorkout } from "@/lib/plan/today";
@@ -27,6 +28,7 @@ import {
   completeSession,
   clampRpe,
   previousPerformance,
+  bestPreviousLoad,
   RPE_MIN,
   RPE_MAX,
   isoDate,
@@ -47,6 +49,8 @@ export default function TreinoPage() {
   const [restToken, setRestToken] = useState(0);
   const [restOpen, setRestOpen] = useState(false);
   const [allSetsOpen, setAllSetsOpen] = useState(false);
+  /** Recorde pessoal recém-batido — controla o selo de celebração (some sozinho). */
+  const [prCelebration, setPrCelebration] = useState<{ load: number; token: number } | null>(null);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
   // Override resolvido junto com o planId a que ele pertence: `overrideLoading` é
   // DERIVADO comparando o planId atual com o planId do último fetch resolvido — não é
@@ -228,8 +232,42 @@ export default function TreinoPage() {
 
   function concluirSerie() {
     if (activeSet === -1) return;
+    /*
+     * Recorde pessoal (TASK-025): celebra ANTES de abrir o descanso, comparando a carga
+     * desta série com a maior já registrada para o MESMO movimento em sessões concluídas.
+     * Sem histórico não celebra — no primeiro treino toda carga seria "recorde", e
+     * celebração barata deixa de ser celebração. Honesto: só dado registrado pelo usuário.
+     */
+    const cargaAtual = activeLog?.load_kg;
+    const recordeAnterior = bestPreviousLoad(
+      history,
+      ex.id,
+      session?.sessionId ?? "",
+      log?.swappedToId ?? ex.id,
+    );
+    const bateuRecorde =
+      cargaAtual != null && recordeAnterior != null && cargaAtual > recordeAnterior;
+    if (bateuRecorde) {
+      setPrCelebration((prev) => ({ load: cargaAtual, token: (prev?.token ?? 0) + 1 }));
+      // Padrão tátil próprio do recorde — mais marcante que o do fim do descanso.
+      try {
+        navigator.vibrate?.([40, 60, 40]);
+      } catch {
+        /* vibração é opcional */
+      }
+      window.setTimeout(() => setPrCelebration(null), 2800);
+    }
     patchSet(ex.id, activeSet, { done: true });
-    startRest();
+    /*
+     * O recorde merece seu compasso: sem o atraso, o overlay de descanso (E4) abria POR
+     * CIMA do selo no mesmo frame e a celebração nunca era vista — pego na verificação
+     * no browser, não em teste. 1,6s de selo em cena, depois o descanso.
+     */
+    if (bateuRecorde) {
+      window.setTimeout(startRest, 1600);
+    } else {
+      startRest();
+    }
   }
 
   function toggleSetDone(i: number, currentDone: boolean) {
@@ -247,7 +285,27 @@ export default function TreinoPage() {
   const allDone = progress.allDone;
 
   return (
-    <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-8 pt-6">
+    <main className="relative mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-8 pt-6">
+      {/*
+        Palco (registro B / direção v3): a foto do exercício atual, desfocada e escurecida,
+        vira a atmosfera do topo — a tela muda de clima a cada exercício sem competir com o
+        conteúdo. O blur pesado resolve o fundo branco das fotos do free-exercise-db: o que
+        sobra é um campo de cor, não uma imagem. `aria-hidden` porque é só ambiente.
+      */}
+      {media ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[340px] overflow-hidden" aria-hidden>
+          {/* eslint-disable-next-line @next/next/no-img-element -- host externo já usado pelos cards */}
+          <img
+            src={media.imageUrls[0]}
+            alt=""
+            className="h-full w-full scale-125 object-cover opacity-[0.16] blur-2xl saturate-150"
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: "linear-gradient(180deg, rgb(10 20 34 / 0.2) 0%, var(--color-bg) 92%)" }}
+          />
+        </div>
+      ) : null}
       <header>
         <div className="flex items-center justify-between gap-2">
           <Link href="/" aria-label="Voltar" className="text-muted">
@@ -342,7 +400,27 @@ export default function TreinoPage() {
       <ExerciseMediaCard media={media} videoUrl={videoHref(mov)} alt={`Demonstração: ${mov.name}`} />
 
       {/* Série atual em foco (mockup: SÉRIE X DE N + steppers grandes) */}
-      <section className="mt-4 rounded-card border border-line bg-surface p-4">
+      <section className="card-lift relative mt-4 rounded-card border border-line p-4">
+        {prCelebration ? (
+          <div
+            key={prCelebration.token}
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+            role="status"
+            aria-live="polite"
+          >
+            <span
+              className="pr-ring absolute h-32 w-32 rounded-full"
+              style={{ boxShadow: "0 0 0 2px var(--color-recovering), 0 0 60px 8px color-mix(in srgb, var(--color-recovering) 45%, transparent)" }}
+              aria-hidden
+            />
+            <span className="pr-badge elev-float flex items-center gap-2 rounded-full border border-recovering/50 bg-surface2 px-4 py-2">
+              <Trophy size={16} aria-hidden className="text-recovering" />
+              <span className="text-sm font-medium">
+                Recorde pessoal · {prCelebration.load.toLocaleString("pt-BR")} kg
+              </span>
+            </span>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between">
           <span className="rounded-md bg-surface2 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted">
             {activeSet === -1 ? "Séries concluídas" : `Série ${activeSet + 1} de ${log?.sets.length ?? ex.sets}`}

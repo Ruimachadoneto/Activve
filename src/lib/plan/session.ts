@@ -150,3 +150,32 @@ export function previousPerformance(
   if (!set) return null;
   return { load_kg: set.load_kg, reps: set.reps, date: last.date };
 }
+
+/**
+ * Maior carga já registrada para um movimento em sessões CONCLUÍDAS anteriores —
+ * `null` se nunca houve. É a régua do "recorde pessoal" (TASK-025): a celebração só
+ * dispara quando existe um recorde anterior a bater. Primeiro treino não celebra —
+ * sem histórico, toda carga seria "recorde", e celebração barata deixa de ser celebração.
+ *
+ * Compara o MOVIMENTO efetivo (variação conta): 60 kg no supino com halteres não é
+ * recorde sobre 55 kg na barra — são movimentos diferentes (mesma regra do "Última vez").
+ */
+export function bestPreviousLoad(
+  sessions: WorkoutSession[],
+  exerciseId: string,
+  excludeSessionId: string,
+  movementId: string = exerciseId,
+): number | null {
+  let best: number | null = null;
+  for (const s of sessions) {
+    if (s.status !== "done" || s.sessionId === excludeSessionId) continue;
+    for (const e of s.exercises) {
+      if (e.exerciseId !== exerciseId || (e.swappedToId ?? e.exerciseId) !== movementId) continue;
+      for (const set of e.sets) {
+        if (!set.done || typeof set.load_kg !== "number") continue;
+        if (best === null || set.load_kg > best) best = set.load_kg;
+      }
+    }
+  }
+  return best;
+}
