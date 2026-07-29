@@ -35,11 +35,18 @@ export function FocusCard({
   recovery,
 }: {
   focus?: string;
-  limiting: Muscle[];
-  recovery: Record<Muscle, MuscleRecovery>;
+  /*
+   * Ausentes quando NÃO há histórico de treino. Nesse caso o card mostra só o foco do
+   * plano e cala sobre recuperação — dizer "tudo recuperado" sem uma única sessão
+   * registrada seria uma afirmação sobre um corpo do qual nada foi medido, exatamente o
+   * que a regra de honestidade (§9) proíbe no número-herói (achado do review Codex).
+   */
+  limiting?: Muscle[];
+  recovery?: Record<Muscle, MuscleRecovery>;
 }) {
-  const emRecuperacao = limiting.slice(0, 2).map((muscle) => {
-    const r = recovery[muscle];
+  const temDadosDeRecuperacao = !!recovery && !!limiting;
+  const emRecuperacao = (limiting ?? []).slice(0, 2).map((muscle) => {
+    const r = recovery?.[muscle];
     const horas = r ? hoursToReady(r) : null;
     return {
       muscle,
@@ -57,7 +64,7 @@ export function FocusCard({
 
       {focus ? <p className="mt-2 text-[17px] leading-snug">{focus}</p> : null}
 
-      {emRecuperacao.length > 0 ? (
+      {!temDadosDeRecuperacao ? null : emRecuperacao.length > 0 ? (
         <ul className={focus ? "mt-3 space-y-1.5" : "mt-2 space-y-1.5"}>
           {emRecuperacao.map(({ muscle, estado, detalhe }) => (
             <li key={muscle} className="flex items-center gap-2 text-xs text-muted">

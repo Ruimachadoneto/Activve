@@ -273,7 +273,13 @@ export default function HojePage() {
         traduzir o número do herói para este treino.
       */}
       {today.kind === "workout" && (today.focus || readiness) ? (
-        <FocusCard focus={today.focus} limiting={readiness?.limiting ?? []} recovery={recovery} />
+        <FocusCard
+          focus={today.focus}
+          // Sem `readiness` não há histórico — o card cala sobre recuperação em vez de
+          // afirmar "tudo recuperado" sobre um corpo do qual nada foi medido.
+          limiting={readiness?.limiting}
+          recovery={readiness ? recovery : undefined}
+        />
       ) : null}
 
       {today.kind === "workout" ? (
