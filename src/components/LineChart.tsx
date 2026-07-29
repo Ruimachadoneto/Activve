@@ -31,6 +31,17 @@ function formatValue(v: number, unit?: string): string {
   return unit ? `${n} ${unit}` : n;
 }
 
+/**
+ * Tick do eixo: arredondar sempre para inteiro colapsa faixas curtas — uma série de
+ * 80,2 a 80,4 kg mostraria "80" nos dois extremos, e o eixo contradiria a variação que a
+ * linha desenha (achado do review Codex). Ganha uma casa decimal quando os inteiros
+ * empatariam.
+ */
+export function formatTick(v: number, min: number, max: number): string {
+  const collapses = Math.round(min) === Math.round(max);
+  return collapses ? v.toFixed(1).replace(".", ",") : String(Math.round(v));
+}
+
 function formatDate(iso: string): string {
   const [, m, d] = iso.split("-");
   return d && m ? `${d}/${m}` : iso;
@@ -68,6 +79,11 @@ export function LineChart({
 
   const geom = useMemo(() => {
     const values = series.map((s) => s.value);
+    // A meta entra na ESCALA (senão a linha de meta sairia do quadro), mas NUNCA nos
+    // extremos exibidos: rotular o eixo com a meta faria o gráfico afirmar um peso que o
+    // usuário nunca teve. Medido e desejado são coisas diferentes (achado do review Codex).
+    const dataMin = Math.min(...values);
+    const dataMax = Math.max(...values);
     const withTarget = target !== undefined ? [...values, target] : values;
     const rawMin = Math.min(...withTarget);
     const rawMax = Math.max(...withTarget);
@@ -82,7 +98,7 @@ export function LineChart({
         ? (PAD_L + (W - PAD_R)) / 2
         : PAD_L + (i / (series.length - 1)) * (W - PAD_L - PAD_R);
     const y = (v: number) => PAD_T + (1 - (v - min) / (max - min)) * (plotBottom - PAD_T);
-    return { min, max, rawMin, rawMax, x, y };
+    return { min, max, dataMin, dataMax, x, y };
   }, [series, target, plotBottom]);
 
   if (series.length === 0) {
@@ -106,7 +122,7 @@ export function LineChart({
     );
   }
 
-  const { x, y, rawMin, rawMax } = geom;
+  const { x, y, dataMin, dataMax } = geom;
   const linePoints = series.map((s, i) => `${x(i)},${y(s.value)}`).join(" ");
   const areaPoints = `${PAD_L},${plotBottom} ${linePoints} ${x(series.length - 1)},${plotBottom}`;
   const last = series[series.length - 1];
@@ -133,7 +149,7 @@ export function LineChart({
         viewBox={`0 0 ${W} ${H}`}
         className="w-full touch-none select-none"
         role="img"
-        aria-label={`${label}. De ${formatValue(rawMin, unit)} a ${formatValue(rawMax, unit)}.`}
+        aria-label={`${label}. De ${formatValue(dataMin, unit)} a ${formatValue(dataMax, unit)}.`}
         onPointerDown={handlePointer}
         onPointerMove={(e) => e.buttons !== 0 && handlePointer(e)}
         onPointerLeave={() => setActive(null)}
@@ -143,11 +159,11 @@ export function LineChart({
         <line x1={PAD_L} y1={PAD_T} x2={PAD_L} y2={plotBottom} stroke="var(--color-line)" strokeWidth="1" />
 
         {/* Ticks do eixo Y: só extremos, com `tabular-nums` (aqui números SE ALINHAM). */}
-        <text x={PAD_L - 5} y={PAD_T + 4} textAnchor="end" fill="var(--color-faint)" fontSize="10" style={{ fontVariantNumeric: "tabular-nums" }}>
-          {Math.round(rawMax)}
+        <text x={PAD_L - 5} y={y(dataMax) + 3} textAnchor="end" fill="var(--color-faint)" fontSize="10" style={{ fontVariantNumeric: "tabular-nums" }}>
+          {formatTick(dataMax, dataMin, dataMax)}
         </text>
-        <text x={PAD_L - 5} y={plotBottom} textAnchor="end" fill="var(--color-faint)" fontSize="10" style={{ fontVariantNumeric: "tabular-nums" }}>
-          {Math.round(rawMin)}
+        <text x={PAD_L - 5} y={y(dataMin) + 3} textAnchor="end" fill="var(--color-faint)" fontSize="10" style={{ fontVariantNumeric: "tabular-nums" }}>
+          {formatTick(dataMin, dataMin, dataMax)}
         </text>
 
         {/* Meta: tracejada porque É um limiar (a exceção legítima ao "nunca tracejar"). */}
