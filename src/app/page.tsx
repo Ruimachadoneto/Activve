@@ -66,6 +66,14 @@ export default function HojePage() {
   const [overrideFetch, setOverrideFetch] = useState<{ planId: string | null; value: string | null }>(
     { planId: null, value: null },
   );
+  /*
+   * Relógio da prontidão: a recuperação é função do TEMPO, então o `now` precisa avançar
+   * com a tela aberta — senão o número congela até o usuário navegar ou recarregar
+   * (mesmo achado que a TASK-009 teve no `/corpo`, que já resolve assim). Reusar o padrão
+   * de lá mantém as duas telas concordando sobre o estado do corpo.
+   */
+  const [now, setNow] = useState(() => Date.now());
+
   const planId = plan?.planId ?? null;
   const overrideLoading = overrideFetch.planId !== planId;
   const override = overrideLoading ? null : overrideFetch.value;
@@ -95,6 +103,28 @@ export default function HojePage() {
     });
     return () => {
       cancelled = true;
+    };
+  }, [plan]);
+
+  useEffect(() => {
+    const refresh = () => {
+      setNow(Date.now());
+      if (plan) {
+        getSessionsForPlan(plan.planId).then((lista) =>
+          setSessionsFetch({ planId: plan.planId, list: lista }),
+        );
+      }
+    };
+    const id = window.setInterval(() => setNow(Date.now()), 5 * 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refresh);
     };
   }, [plan]);
 
@@ -175,7 +205,7 @@ export default function HojePage() {
             primary: ex.primaryMuscles,
             secondary: ex.secondaryMuscles,
           })),
-          computeRecovery(stimuliFromSessions(sessions, buildExerciseMuscles(p))),
+          computeRecovery(stimuliFromSessions(sessions, buildExerciseMuscles(p), now), now),
         )
       : null;
   // Só equipamentos CONHECIDOS: `equipment` omitido é desconhecido, não "livre" —
