@@ -1,23 +1,36 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { muscleLabel } from "@/lib/plan/labels";
 import { readinessLabel, recoveryColorVar, type TodayReadiness } from "@/lib/plan/recovery";
 
 const SEGMENTOS = 12;
 
+const MQ_REDUZIDO = "(prefers-reduced-motion: reduce)";
+
 /**
- * Conta de 0 até `alvo` na entrada. Respeita `prefers-reduced-motion` indo direto ao
- * valor final — a leitura do número nunca pode depender da animação (VISUAL_QUALITY §14).
+ * Lê `prefers-reduced-motion` do jeito canônico do React para valor externo: sem
+ * `setState` dentro de efeito (proibido pelo lint do projeto, e a lição da TASK-010 foi
+ * reestruturar em vez de contornar), sem risco de mismatch de hidratação (há um snapshot
+ * de servidor), e reagindo se o usuário mudar a preferência com o app aberto.
  */
-function movimentoReduzido(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+function useMovimentoReduzido(): boolean {
+  return useSyncExternalStore(
+    (aoMudar) => {
+      const mq = window.matchMedia(MQ_REDUZIDO);
+      mq.addEventListener("change", aoMudar);
+      return () => mq.removeEventListener("change", aoMudar);
+    },
+    () => window.matchMedia(MQ_REDUZIDO).matches,
+    () => false,
   );
 }
 
-function useContagem(alvo: number, duracaoMs = 600): number {
+/**
+ * Conta de 0 até `alvo` na entrada. Com movimento reduzido vai direto ao valor final — a
+ * leitura do número nunca pode depender da animação (VISUAL_QUALITY §14).
+ */
+function useContagem(alvo: number, semMovimento: boolean, duracaoMs = 600): number {
   /*
    * Começa em 0 quando vai animar. Iniciar em `alvo` pintava o valor final no primeiro
    * frame e o primeiro `requestAnimationFrame` o derrubava para perto de zero — o número
@@ -25,11 +38,11 @@ function useContagem(alvo: number, duracaoMs = 600): number {
    * Codex). A decisão é tomada no inicializador, não no efeito, justamente para não haver
    * um frame com o valor errado.
    */
-  const [valor, setValor] = useState(() => (movimentoReduzido() ? alvo : 0));
+  const [valor, setValor] = useState(() => (semMovimento ? alvo : 0));
   const jaAnimou = useRef(false);
 
   useEffect(() => {
-    if (movimentoReduzido() || jaAnimou.current) {
+    if (semMovimento || jaAnimou.current) {
       setValor(alvo);
       return;
     }
@@ -44,7 +57,7 @@ function useContagem(alvo: number, duracaoMs = 600): number {
     };
     raf = requestAnimationFrame(passo);
     return () => cancelAnimationFrame(raf);
-  }, [alvo, duracaoMs]);
+  }, [alvo, duracaoMs, semMovimento]);
 
   return valor;
 }
@@ -61,7 +74,13 @@ export function ReadinessHero({ readiness }: { readiness: TodayReadiness }) {
   const { pct, limiting } = readiness;
   const { text, tone } = readinessLabel(pct);
   const cor = `var(${recoveryColorVar(tone)})`;
-  const exibido = useContagem(pct);
+  /*
+   * A media query do CSS não alcança estilo inline: sem isto, com movimento reduzido o
+   * número ia direto ao valor final mas os 12 segmentos ainda animavam por várias centenas
+   * de ms (achado do review Codex).
+   */
+  const semMovimento = useMovimentoReduzido();
+  const exibido = useContagem(pct, semMovimento);
   const preenchidos = Math.round((pct / 100) * SEGMENTOS);
 
   return (
@@ -94,8 +113,8 @@ export function ReadinessHero({ readiness }: { readiness: TodayReadiness }) {
             className="h-1.5 flex-1 rounded-full transition-colors"
             style={{
               backgroundColor: i < preenchidos ? cor : "var(--color-surface2)",
-              transitionDuration: "var(--dur-base)",
-              transitionDelay: `${i * 25}ms`,
+              transitionDuration: semMovimento ? "0ms" : "var(--dur-base)",
+              transitionDelay: semMovimento ? "0ms" : `${i * 25}ms`,
             }}
           />
         ))}
