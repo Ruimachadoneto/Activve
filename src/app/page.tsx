@@ -2,26 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Bell,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  Dumbbell,
-  Clock,
-  Gauge,
-  Play,
-  Target,
-  User,
-  Utensils,
-} from "lucide-react";
+import { Bell, Check, Dumbbell, Clock, Gauge, Play, Utensils } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { MuscleArt } from "@/components/MuscleArt";
 import { Logo } from "@/components/Logo";
 import { PlanErrorState } from "@/components/PlanErrorState";
-import { ExerciseThumb } from "@/components/ExerciseMediaCard";
-import { resolveExerciseMedia } from "@/lib/plan/exerciseMedia";
 import { equipmentLabel } from "@/lib/plan/labels";
 import {
   estimateWorkoutMinutes,
@@ -36,6 +22,7 @@ import {
 import { getSessionsForPlan } from "@/lib/storage/sessions";
 import type { WorkoutSession } from "@/lib/plan/session";
 import { ReadinessHero } from "@/components/ReadinessHero";
+import { FocusCard } from "@/components/FocusCard";
 import {
   buildExerciseMuscles,
   computeRecovery,
@@ -208,6 +195,8 @@ export default function HojePage() {
    * corpo do qual não medimos nada. Sem dado, não se exibe número.
    */
   const temHistorico = sessions.some((s) => s.status === "done");
+  // Um cálculo só, dois consumidores: o número-herói e o Foco do dia, que explica o número.
+  const recovery = computeRecovery(stimuliFromSessions(sessions, buildExerciseMuscles(p), now), now);
   const readiness =
     todayWorkout && temHistorico
       ? todayReadiness(
@@ -215,7 +204,7 @@ export default function HojePage() {
             primary: ex.primaryMuscles,
             secondary: ex.secondaryMuscles,
           })),
-          computeRecovery(stimuliFromSessions(sessions, buildExerciseMuscles(p), now), now),
+          recovery,
         )
       : null;
   // Só equipamentos CONHECIDOS: `equipment` omitido é desconhecido, não "livre" —
@@ -258,15 +247,6 @@ export default function HojePage() {
         <p className="mt-1 text-sm text-muted">Foco agora, resultados sempre.</p>
       </div>
 
-      <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3.5 py-2.5">
-        <CheckCircle2 size={16} aria-hidden className="shrink-0 text-accent" />
-        <span className="shrink-0 text-sm">Plano importado</span>
-        {/* split é texto livre do plano — precisa poder encolher/truncar em 375px */}
-        <span className="ml-auto min-w-0 truncate text-right text-xs text-muted">
-          {p.training.split} · {trainingDays}x por semana
-        </span>
-      </div>
-
       {override ? (
         <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-accent/30 bg-accent/5 px-3.5 py-2.5">
           <span className="text-xs text-ink">Você trocou o treino de hoje.</span>
@@ -286,6 +266,21 @@ export default function HojePage() {
         senão dois blocos disputariam a atenção (DESIGN_SYSTEM §5).
       */}
       {readiness ? <ReadinessHero readiness={readiness} /> : null}
+
+      {/*
+        Foco do dia ENTRE o herói e o treino (pedido do usuário): antes ele vinha depois do
+        card do treino, repetindo o que já estava logo acima. Aqui ele tem função própria —
+        traduzir o número do herói para este treino.
+      */}
+      {today.kind === "workout" && (today.focus || readiness) ? (
+        <FocusCard
+          focus={today.focus}
+          // Sem `readiness` não há histórico — o card cala sobre recuperação em vez de
+          // afirmar "tudo recuperado" sobre um corpo do qual nada foi medido.
+          limiting={readiness?.limiting}
+          recovery={readiness ? recovery : undefined}
+        />
+      ) : null}
 
       {today.kind === "workout" ? (
         <>
@@ -321,56 +316,21 @@ export default function HojePage() {
               >
                 <Play size={15} aria-hidden /> Começar treino
               </Link>
-            </div>
-            <MuscleArt muscles={today.muscles} label={firstMuscleLabel(today.focus)} />
-          </section>
-
-          {today.focus ? (
-            <section className="mt-4 flex items-center gap-3 rounded-card border border-line bg-surface p-4">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface2 text-accent">
-                <Target size={17} aria-hidden />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[11px] uppercase tracking-wider text-faint">
-                  Foco do dia
-                </span>
-                <span className="mt-0.5 block text-sm">{today.focus}</span>
-              </span>
-            </section>
-          ) : null}
-
-          {todayWorkout && todayWorkout.exercises.length > 0 ? (
-            <section className="mt-4 rounded-card border border-line bg-surface p-4">
-              <p className="px-1 text-[11px] uppercase tracking-wider text-faint">Exercícios</p>
-              <div className="mt-2 flex flex-col">
-                {todayWorkout.exercises.map((ex, i) => (
-                  <Link
-                    key={ex.id}
-                    href="/treino"
-                    className={`flex items-center gap-3 rounded-xl px-1 py-2.5 active:bg-surface2 ${
-                      i > 0 ? "border-t border-line/60" : ""
-                    }`}
-                  >
-                    <span className="w-4 text-center text-xs tabular-nums text-faint">{i + 1}</span>
-                    <ExerciseThumb media={resolveExerciseMedia(ex.name, ex.howTo.mediaId)} className="h-10 w-10 shrink-0" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm">{ex.name}</span>
-                      <span className="block text-xs text-muted">
-                        {ex.sets} séries · {ex.reps}
-                      </span>
-                    </span>
-                    <ChevronRight size={16} aria-hidden className="shrink-0 text-faint" />
-                  </Link>
-                ))}
-              </div>
+              {/*
+                Único sobrevivente da lista de exercícios removida: "o que preciso levar
+                hoje" não está agregado em nenhuma outra tela (o /treino mostra o
+                equipamento exercício a exercício, não a soma).
+              */}
               {equipmentList.length > 0 ? (
-                <p className="mt-2 flex items-start gap-1.5 px-1 text-xs leading-relaxed text-faint">
+                <p className="mt-4 flex items-start gap-1.5 text-xs leading-relaxed text-faint">
                   <Check size={13} aria-hidden className="mt-0.5 shrink-0 text-accent" />
                   <span className="min-w-0">Equipamentos: {equipmentList.join(", ")}</span>
                 </p>
               ) : null}
-            </section>
-          ) : null}
+            </div>
+            <MuscleArt muscles={today.muscles} label={firstMuscleLabel(today.focus)} />
+          </section>
+
         </>
       ) : (
         <section className="mt-5 rounded-card border border-line bg-surface p-5">
@@ -423,20 +383,6 @@ export default function HojePage() {
           />
         </div>
       </section>
-
-      <Link
-        href="/corpo"
-        className="mt-4 flex items-center gap-3 rounded-card border border-line bg-surface p-4"
-      >
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface2 text-accent">
-          <User size={18} aria-hidden />
-        </span>
-        <span className="flex-1">
-          <span className="block text-sm font-medium">Corpo</span>
-          <span className="block text-xs text-muted">Acompanhe sua evolução</span>
-        </span>
-        <ChevronRight size={18} className="text-faint" aria-hidden />
-      </Link>
 
       <div className="mt-3 flex items-center gap-3 rounded-card border border-line bg-surface p-4">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface2 text-accent">

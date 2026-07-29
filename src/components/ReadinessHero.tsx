@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { muscleLabel } from "@/lib/plan/labels";
 import { readinessLabel, recoveryColorVar, type TodayReadiness } from "@/lib/plan/recovery";
 
 const SEGMENTOS = 12;
@@ -71,7 +70,7 @@ function useContagem(alvo: number, semMovimento: boolean, duracaoMs = 600): numb
  * existe. Nunca é score de saúde nem nota do usuário.
  */
 export function ReadinessHero({ readiness }: { readiness: TodayReadiness }) {
-  const { pct, limiting } = readiness;
+  const { pct } = readiness;
   const { text, tone } = readinessLabel(pct);
   const cor = `var(${recoveryColorVar(tone)})`;
   /*
@@ -120,24 +119,12 @@ export function ReadinessHero({ readiness }: { readiness: TodayReadiness }) {
         ))}
       </div>
 
-      {limiting.length > 0 ? (
-        <p className="mt-3 text-xs leading-relaxed text-muted">
-          {/*
-            Sentence case: `MUSCLE_LABEL` vem capitalizado (serve de rótulo solto no mapa),
-            mas no meio de uma frase só o primeiro nome abre em maiúscula.
-          */}
-          {limiting
-            .slice(0, 2)
-            .map(muscleLabel)
-            .map((nome, i) => (i === 0 ? nome : nome.toLocaleLowerCase("pt-BR")))
-            .join(" e ")}{" "}
-          {limiting.length === 1 ? "ainda está" : "ainda estão"} se recuperando.
-        </p>
-      ) : (
-        <p className="mt-3 text-xs leading-relaxed text-muted">
-          Tudo que o treino de hoje pede está recuperado.
-        </p>
-      )}
+      {/*
+        Os músculos NÃO são nomeados aqui de propósito. O card "Foco do dia", logo abaixo,
+        já os lista com o dado que falta ("pronto em ~2 dias"). Repetir os mesmos nomes em
+        dois blocos consecutivos era exatamente a duplicação que esta rodada veio remover —
+        o herói responde "quanto", o Foco responde "o quê e quando".
+      */}
     </section>
   );
 }
