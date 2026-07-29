@@ -38,19 +38,31 @@ describe("formatTick", () => {
     }
   });
 
-  it("nenhum rótulo cai fora da faixa medida", () => {
+  it("faixa pouco acima de 1 unidade também mantém decimal", () => {
+    // Achado do ciclo 3: a regra "faixa < 1" deixava 70,1→71,1 arredondar para 70/71,
+    // rótulos fora do medido.
+    expect(formatTick(70.1, 70.1, 71.1)).toBe("70,1");
+    expect(formatTick(71.1, 70.1, 71.1)).toBe("71,1");
+    expect(formatTick(62.6, 62.6, 63.6)).toBe("62,6");
+  });
+
+  it("INVARIANTE: nenhum rótulo cai fora da faixa medida, em nenhuma faixa", () => {
     const casos: [number, number][] = [
       [62.4, 62.6],
       [80.2, 80.4],
       [78, 85],
       [99.6, 100.4],
+      [70.1, 71.1],
+      [62.6, 63.6],
+      [49.9, 52.3],
+      [0.4, 9.6],
+      [120, 121],
     ];
     for (const [min, max] of casos) {
       for (const v of [min, max]) {
         const n = Number(formatTick(v, min, max).replace(",", "."));
-        expect(n).toBeGreaterThanOrEqual(Math.floor(min));
-        expect(n).toBeLessThanOrEqual(Math.ceil(max));
-        expect(Math.abs(n - v)).toBeLessThanOrEqual(0.5);
+        expect(n).toBeGreaterThanOrEqual(min);
+        expect(n).toBeLessThanOrEqual(max);
       }
     }
   });
@@ -59,8 +71,10 @@ describe("formatTick", () => {
     expect(formatTick(80.4, 80.2, 80.4)).not.toContain(".");
   });
 
-  it("faixa de valor único não quebra", () => {
+  it("faixa de valor único não quebra nem inventa precisão", () => {
     expect(() => formatTick(80, 80, 80)).not.toThrow();
-    expect(formatTick(80, 80, 80)).toBe("80,0");
+    // "80,0" sugeriria uma medição com precisão decimal que não houve.
+    expect(formatTick(80, 80, 80)).toBe("80");
+    expect(formatTick(80.5, 80.5, 80.5)).toBe("80,5");
   });
 });

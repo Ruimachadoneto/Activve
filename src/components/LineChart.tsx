@@ -38,11 +38,17 @@ function formatValue(v: number, unit?: string): string {
  * empatariam.
  */
 export function formatTick(v: number, min: number, max: number): string {
-  // Faixa menor que 1 unidade: arredondar SEMPRE mente. Ou colapsa (80,2–80,4 → "80" nos
-  // dois extremos) ou estoura para fora dos valores observados quando cruza o meio
-  // (62,4–62,6 → "62" e "63", exagerando a variação). Nos dois casos o eixo contradiz a
-  // linha (achados do review Codex, ciclos 1 e 2).
-  return max - min < 1 ? v.toFixed(1).replace(".", ",") : String(Math.round(v));
+  /*
+   * Invariante: **o rótulo do eixo nunca mostra um valor que não foi medido.**
+   *
+   * Três ciclos de review bateram aqui porque eu vinha tentando adivinhar QUANDO
+   * arredondar (empate de inteiros; depois faixa < 1). Toda regra por faixa é um proxy, e
+   * proxy sempre deixa um caso de fora — 62,4→62,6 furava a primeira, 70,1→71,1 furava a
+   * segunda. A regra correta não olha a faixa: **só arredonda quando arredondar não
+   * altera nada**, isto é, quando os extremos já são inteiros.
+   */
+  const extremosInteiros = Number.isInteger(min) && Number.isInteger(max);
+  return extremosInteiros ? String(v) : v.toFixed(1).replace(".", ",");
 }
 
 function formatDate(iso: string): string {
