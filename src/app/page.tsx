@@ -107,12 +107,21 @@ export default function HojePage() {
   }, [plan]);
 
   useEffect(() => {
+    /*
+     * Guarda de requisição obsoleta. Sem ela, trocar de plano com um refresh em voo fazia
+     * o `then` gravar as sessões do plano ANTIGO; como `sessions` é derivado comparando o
+     * planId, o resultado era uma lista vazia — a tela perdia os checks da semana e
+     * escondia o herói até o próximo tick (achado do review Codex). O efeito depende de
+     * `plan`, então trocar de plano roda a limpeza e invalida o fetch anterior.
+     */
+    let cancelled = false;
     const refresh = () => {
       setNow(Date.now());
       if (plan) {
-        getSessionsForPlan(plan.planId).then((lista) =>
-          setSessionsFetch({ planId: plan.planId, list: lista }),
-        );
+        getSessionsForPlan(plan.planId).then((lista) => {
+          if (cancelled) return;
+          setSessionsFetch({ planId: plan.planId, list: lista });
+        });
       }
     };
     const id = window.setInterval(() => setNow(Date.now()), 5 * 60 * 1000);
@@ -122,6 +131,7 @@ export default function HojePage() {
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", refresh);
     return () => {
+      cancelled = true;
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", refresh);
