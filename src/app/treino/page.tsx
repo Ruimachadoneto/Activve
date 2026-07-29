@@ -64,6 +64,18 @@ export default function TreinoPage() {
     },
     [],
   );
+  /*
+   * Trocar de exercício dentro do compasso do recorde cancela o descanso pendente: o
+   * overlay leria `ex.rest_s` do exercício NOVO e abriria com a duração errada para a
+   * série que acabou de ser feita (achado do review Codex). Quem navegou já decidiu
+   * seguir — descanso automático depois disso seria intromissão, não ajuda.
+   */
+  useEffect(() => {
+    if (restDelayRef.current != null) {
+      window.clearTimeout(restDelayRef.current);
+      restDelayRef.current = null;
+    }
+  }, [current, selected]);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
   // Override resolvido junto com o planId a que ele pertence: `overrideLoading` é
   // DERIVADO comparando o planId atual com o planId do último fetch resolvido — não é
@@ -258,8 +270,25 @@ export default function TreinoPage() {
       session?.sessionId ?? "",
       log?.swappedToId ?? ex.id,
     );
-    const bateuRecorde =
-      cargaAtual != null && recordeAnterior != null && cargaAtual > recordeAnterior;
+    /*
+     * A régua inclui o que JÁ foi feito NESTA sessão: se o recorde antigo era 45 e a
+     * série 1 de hoje fez 50, a série 2 com 47 não é recorde — mas 52 é (recorde de
+     * novo, celebração de novo, legítima). `bestPreviousLoad` ignora a sessão atual de
+     * propósito (é "recorde ANTERIOR"); o complemento vem das séries já concluídas do
+     * exercício em tela (achado do review Codex).
+     */
+    const recordeDaSessao = (log?.sets ?? []).reduce<number | null>(
+      (best, s) =>
+        s.done && typeof s.load_kg === "number" && (best === null || s.load_kg > best)
+          ? s.load_kg
+          : best,
+      null,
+    );
+    const regua =
+      recordeAnterior != null && recordeDaSessao != null
+        ? Math.max(recordeAnterior, recordeDaSessao)
+        : (recordeAnterior ?? null); // sem recorde ANTERIOR não há o que bater (1º treino)
+    const bateuRecorde = cargaAtual != null && regua != null && cargaAtual > regua;
     if (bateuRecorde) {
       setPrCelebration((prev) => ({ load: cargaAtual, token: (prev?.token ?? 0) + 1 }));
       // Padrão tátil próprio do recorde — mais marcante que o do fim do descanso.
