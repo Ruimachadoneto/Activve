@@ -135,6 +135,26 @@ diet
 - **1.x:** adições retrocompatíveis (campos opcionais novos). App 1.x ignora campos que não conhece.
 - **2.0+:** mudança que quebra. App exige gerador/atualização compatível e oferece migração quando possível.
 - **Changelog:** `1.1` (2026-07-03) — adiciona `howTo.tips`, `howTo.quickTip` e define a semântica de `howTo.mediaId` (ADR-005).
+- **Changelog:** `1.2` (2026-07-29) — adiciona `diet.meals[].why` e `diet.meals[].items[].alternatives[]` (ADR-006). Retrocompatível: planos 1.0/1.1 seguem válidos, os campos são opcionais.
+
+### 3.6.3 Campos 1.2 da dieta (opcionais, retrocompatíveis)
+
+O lado do treino já tinha **variações** (`exercise.alternatives`) e o **porquê** (`howTo.tips`,
+`howTo.quickTip`). O lado da dieta não tinha nenhum dos dois — e a tela de Alimentação existe
+justamente para consulta, não para rastreio.
+
+| Campo | Tipo | Para quê |
+|---|---|---|
+| `diet.meals[].why` | `string` (≤400) | Por que esta refeição é assim. Entender a razão é o que permite improvisar sem sair do plano. |
+| `diet.meals[].items[].alternatives[]` | `string[]` | Trocas equivalentes para aquele alimento ("150 g de tilápia", "2 ovos + 1 clara"). Texto livre: a equivalência é decisão do coach, não conta do app. |
+
+**Por que texto livre e não estrutura:** uma troca alimentar carrega contexto (porção, preparo,
+restrição) que uma estrutura rígida perderia — e o consumidor é humano lendo, não cálculo.
+
+**Decisão de produto associada:** o app **não rastreia refeição**. Marcar "feito" obriga registro
+diário e prende o usuário a uma refeição específica quando existem várias equivalentes — atrito
+que vira abandono. Estes campos existem para que a dieta seja **consultável e adaptável**, não
+para virar checklist.
 
 ## 7. Exemplo mínimo válido (`schemaVersion 1.0`)
 ```json

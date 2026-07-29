@@ -138,8 +138,21 @@ export const mealSchema = z.object({
       qty: z.number().optional(),
       unit: z.string().optional(),
       kcal: z.number().int().optional(),
+      /**
+       * Trocas equivalentes para este alimento (schema 1.2; opcional). Texto livre porque
+       * a equivalência é decisão do coach, não conta do app: "150 g de tilápia",
+       * "2 ovos + 1 clara". Prender o usuário a UM alimento é motivo de abandono — o
+       * exercício já tinha `alternatives`, a refeição não tinha.
+       */
+      alternatives: z.array(z.string().min(1)).optional(),
     }),
   ),
+  /**
+   * Por que esta refeição é assim (schema 1.2; opcional). O equivalente alimentar de
+   * `howTo.tips` do exercício: entender a razão é o que permite improvisar sem sair do
+   * plano.
+   */
+  why: z.string().max(400).optional(),
   notes: z.string().max(300).optional(),
 });
 

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.1",
+  "schemaVersion": "1.2",
   "meta": {
     "planId": "pl_exemplo_2026_06",
     "generatedAt": "2026-06-22T18:00:00Z",
@@ -314,7 +314,11 @@
             "food": "Ovos mexidos",
             "qty": 3,
             "unit": "un",
-            "kcal": 240
+            "kcal": 240,
+            "alternatives": [
+              "2 ovos + 1 clara",
+              "1 scoop de whey com água"
+            ]
           },
           {
             "food": "Pão integral",
@@ -329,7 +333,8 @@
             "kcal": 120
           }
         ],
-        "notes": "Café sem açúcar."
+        "notes": "Café sem açúcar.",
+        "why": "Proteína logo cedo segura a fome até o almoço e protege a massa magra no déficit."
       },
       {
         "id": "almoco",
@@ -340,13 +345,21 @@
             "food": "Frango grelhado",
             "qty": 180,
             "unit": "g",
-            "kcal": 300
+            "kcal": 300,
+            "alternatives": [
+              "180 g de tilápia",
+              "150 g de patinho moído"
+            ]
           },
           {
             "food": "Arroz",
             "qty": 150,
             "unit": "g",
-            "kcal": 195
+            "kcal": 195,
+            "alternatives": [
+              "150 g de batata doce",
+              "150 g de macarrão integral"
+            ]
           },
           {
             "food": "Feijão",
@@ -360,7 +373,8 @@
             "unit": "un",
             "kcal": 60
           }
-        ]
+        ],
+        "why": "Carboidrato concentrado perto do treino é o que sustenta a última série."
       },
       {
         "id": "pos_treino",
