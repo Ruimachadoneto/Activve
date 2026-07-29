@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { dietProgress, mealKcal } from "./diet";
+import { mealKcal, plannedKcal } from "./diet";
 import type { PlanFile } from "./schema";
 
 type Meal = PlanFile["diet"]["meals"][number];
@@ -32,44 +32,23 @@ describe("mealKcal", () => {
   });
 });
 
-describe("dietProgress", () => {
+describe("plannedKcal", () => {
   const meals = [meal("cafe", [300]), meal("almoco", [700]), meal("jantar", [500])];
 
-  it("conta as refeições feitas", () => {
-    expect(dietProgress(meals, ["cafe", "jantar"]).done).toBe(2);
-    expect(dietProgress(meals, []).done).toBe(0);
-    expect(dietProgress(meals, []).total).toBe(3);
-  });
-
-  it("soma calorias só das refeições feitas", () => {
-    const p = dietProgress(meals, ["cafe", "jantar"]);
-    expect(p.kcalDone).toBe(800);
-    expect(p.kcalPlanned).toBe(1500);
-  });
-
-  it("ignora ids que não existem mais no plano (ciclo anterior)", () => {
-    const p = dietProgress(meals, ["cafe", "lanche_do_plano_antigo"]);
-    expect(p.done).toBe(1);
-    expect(p.kcalDone).toBe(300);
+  it("soma as calorias planejadas do dia", () => {
+    expect(plannedKcal(meals)).toBe(1500);
   });
 
   it("plano sem kcal devolve null em vez de zero", () => {
-    const semKcal = [meal("a", [undefined]), meal("b", [undefined])];
-    const p = dietProgress(semKcal, ["a"]);
-    expect(p.done).toBe(1);
-    expect(p.kcalDone).toBeNull();
-    expect(p.kcalPlanned).toBeNull();
+    expect(plannedKcal([meal("a", [undefined]), meal("b", [undefined])])).toBeNull();
   });
 
-  it("plano com kcal parcial ainda reporta o que sabe", () => {
-    const parcial = [meal("a", [300]), meal("b", [undefined])];
-    const p = dietProgress(parcial, ["a", "b"]);
-    expect(p.done).toBe(2);
-    expect(p.kcalDone).toBe(300);
+  it("soma o que sabe quando o plano traz kcal parcial", () => {
+    expect(plannedKcal([meal("a", [300]), meal("b", [undefined])])).toBe(300);
   });
 
   it("lista vazia ou inválida não quebra", () => {
-    expect(dietProgress([], []).total).toBe(0);
-    expect(dietProgress(undefined as unknown as Meal[], []).total).toBe(0);
+    expect(plannedKcal([])).toBeNull();
+    expect(plannedKcal(undefined as unknown as Meal[])).toBeNull();
   });
 });

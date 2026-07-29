@@ -16,40 +16,16 @@ export function mealKcal(meal: Meal): number | null {
   return comKcal.reduce((soma, i) => soma + (i.kcal as number), 0);
 }
 
-export type DietProgress = {
-  /** Refeições marcadas como feitas hoje. */
-  done: number;
-  /** Refeições previstas no plano. */
-  total: number;
-  /** Calorias das refeições já feitas — `null` se o plano não traz kcal. */
-  kcalDone: number | null;
-  /** Calorias previstas para o dia inteiro — `null` se o plano não traz kcal. */
-  kcalPlanned: number | null;
-};
-
 /**
- * Progresso do dia. `doneIds` que não existem mais no plano são ignorados: um ciclo novo
- * traz refeições próprias, e uma marcação órfã não pode inflar a contagem.
+ * Calorias planejadas para o dia inteiro — `null` quando o plano não traz kcal.
+ *
+ * Não existe "consumido": o app **não rastreia** refeição (decisão de produto do usuário —
+ * marcar cria atrito diário e prende a uma refeição específica quando existem várias
+ * equivalentes, virando motivo de abandono). Esta é uma tela de consulta.
  */
-export function dietProgress(meals: Meal[], doneIds: string[]): DietProgress {
+export function plannedKcal(meals: Meal[]): number | null {
   const lista = Array.isArray(meals) ? meals : [];
-  const feitos = new Set(doneIds);
-  const kcalPorRefeicao = lista.map(mealKcal);
-  const temKcal = kcalPorRefeicao.some((k) => k !== null);
-
-  let done = 0;
-  let kcalDone = 0;
-  lista.forEach((meal, i) => {
-    if (!feitos.has(meal.id)) return;
-    done += 1;
-    kcalDone += kcalPorRefeicao[i] ?? 0;
-  });
-
-  return {
-    done,
-    total: lista.length,
-    kcalDone: temKcal ? kcalDone : null,
-    // `reduce<number>` explícito: sem isso o acumulador herda `number | null` do array.
-    kcalPlanned: temKcal ? kcalPorRefeicao.reduce<number>((s, k) => s + (k ?? 0), 0) : null,
-  };
+  const porRefeicao = lista.map(mealKcal);
+  if (!porRefeicao.some((k) => k !== null)) return null;
+  return porRefeicao.reduce<number>((soma, k) => soma + (k ?? 0), 0);
 }

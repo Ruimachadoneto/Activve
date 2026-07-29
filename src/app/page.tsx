@@ -30,7 +30,6 @@ import {
   todayReadiness,
 } from "@/lib/plan/recovery";
 import { getDayOverride, clearDayOverride } from "@/lib/storage/overrides";
-import { getMealsDone } from "@/lib/storage/meals";
 import { isoDate } from "@/lib/plan/session";
 
 export default function HojePage() {
@@ -61,15 +60,8 @@ export default function HojePage() {
    * de lá mantém as duas telas concordando sobre o estado do corpo.
    */
   const [now, setNow] = useState(() => Date.now());
-  const [mealsDoneFetch, setMealsDoneFetch] = useState<{
-    planId: string | null;
-    ids: string[];
-    date: string | null;
-  }>({ planId: null, ids: [], date: null });
 
   const planId = plan?.planId ?? null;
-  // Data corrente derivada do relógio da tela — vira sozinha à meia-noite.
-  const hojeStr = isoDate(new Date(now));
   const overrideLoading = overrideFetch.planId !== planId;
   const override = overrideLoading ? null : overrideFetch.value;
   // Estado DERIVADO: enquanto o fetch não corresponder ao plano atual, a lista é vazia —
@@ -133,23 +125,6 @@ export default function HojePage() {
     };
   }, [plan]);
 
-  /*
-   * Refeições marcadas hoje — só para o resumo do card; a tela de alimentação é a dona.
-   * Depende de `hojeStr` (derivado do relógio que já tica nesta tela) e não de `isoDate()`
-   * direto: com a aba aberta na virada do dia, o treino passava para o dia novo enquanto o
-   * card de alimentação seguia mostrando a contagem de ontem (achado do review Codex).
-   */
-  useEffect(() => {
-    if (!planId) return;
-    let cancelled = false;
-    getMealsDone(planId, hojeStr).then((ids) => {
-      if (!cancelled) setMealsDoneFetch({ planId, ids, date: hojeStr });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [planId, hojeStr]);
-
   // Treino trocado pelo usuário para hoje (TASK-016), se houver.
   useEffect(() => {
     let cancelled = false;
@@ -204,11 +179,6 @@ export default function HojePage() {
   const doneThisWeek = week.filter((d) => doneDates.has(d)).length;
   const trainingDays = p.training.weekSchedule.filter((d) => d !== "rest").length;
   const mealsCount = p.diet.meals.length;
-  // Escopado ao plano: marcações do ciclo anterior não podem contar no card de hoje.
-  const mealsDone =
-    mealsDoneFetch.planId === plan.planId && mealsDoneFetch.date === hojeStr
-      ? p.diet.meals.filter((m) => mealsDoneFetch.ids.includes(m.id)).length
-      : 0;
 
   const todayWorkout =
     today.kind === "workout"
@@ -430,9 +400,7 @@ export default function HojePage() {
           <span className="flex-1">
             <span className="block text-sm font-medium">Alimentação</span>
             <span className="block text-xs text-muted">
-              {mealsDone > 0
-                ? `${mealsDone} de ${mealsCount} refeições hoje`
-                : `${mealsCount} refeições no plano de hoje`}
+              {mealsCount} {mealsCount === 1 ? "refeição" : "refeições"} · trocas e porquês
             </span>
           </span>
           <ChevronRight size={16} aria-hidden className="shrink-0 text-faint" />
