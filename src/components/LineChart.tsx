@@ -179,7 +179,14 @@ export function LineChart({
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full touch-none select-none"
+        /*
+         * `touch-pan-y`, não `touch-none`: o app é mobile-first e o gráfico ocupa boa
+         * parte da tela em /corpo e /relatorios. Com `touch-none` o navegador entregava
+         * TODO gesto ao scrub e a página travava ao rolar com o dedo sobre o gráfico.
+         * `pan-y` devolve a rolagem vertical ao navegador e mantém o gesto horizontal —
+         * que é a direção do scrub (achado do review Codex).
+         */
+        className="w-full touch-pan-y select-none"
         role="img"
         aria-label={`${label}. De ${formatValue(dataMin, unit)} a ${formatValue(dataMax, unit)}.`}
         onPointerDown={handlePointer}
@@ -191,6 +198,14 @@ export function LineChart({
          */
         onPointerMove={handlePointer}
         onPointerLeave={() => setActive(null)}
+        /*
+         * No toque, levantar o dedo dispara `pointerup` mas normalmente NÃO
+         * `pointerleave` — sem isto o gráfico ficava preso no estado "inspecionando" até
+         * o usuário tocar noutro lugar. Só para toque: no mouse, limpar no clique faria o
+         * tooltip sumir de quem só clicou sem mover.
+         */
+        onPointerUp={(e) => e.pointerType === "touch" && setActive(null)}
+        onPointerCancel={() => setActive(null)}
       >
         {/* Eixos: hairline sólido, recessivo. Nunca tracejado — tracejado lê como limiar. */}
         <line x1={PAD_L} y1={plotBottom} x2={W - PAD_R} y2={plotBottom} stroke="var(--color-line)" strokeWidth="1" />
