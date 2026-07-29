@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { readinessLabel, recoveryColorVar, type TodayReadiness } from "@/lib/plan/recovery";
 
-const SEGMENTOS = 12;
-
 const MQ_REDUZIDO = "(prefers-reduced-motion: reduce)";
 
 /**
@@ -80,49 +78,67 @@ export function ReadinessHero({ readiness }: { readiness: TodayReadiness }) {
    */
   const semMovimento = useMovimentoReduzido();
   const exibido = useContagem(pct, semMovimento);
-  const preenchidos = Math.round((pct / 100) * SEGMENTOS);
+
+  /*
+   * Gauge em arco (direção v3): meio-círculo de raio 82 no viewBox 200×110.
+   * Comprimento do arco = π·82 ≈ 257,6 — o preenchimento anima por stroke-dashoffset,
+   * que é composited (não dispara layout). Com movimento reduzido, sem transição:
+   * o valor já nasce no lugar.
+   */
+  const ARCO = Math.PI * 82;
+  const offset = ARCO * (1 - pct / 100);
 
   return (
     <section
-      className="mt-5 rounded-card border border-line bg-surface p-5 elev-focus"
+      className="card-lift elev-focus mt-5 rounded-card border border-line p-5"
       aria-label={`Prontidão muscular para o treino de hoje: ${pct} por cento. ${text}.`}
     >
-      <p className="text-[11px] uppercase tracking-wider text-faint">Prontidão para hoje</p>
+      <p className="text-center text-[11px] uppercase tracking-wider text-faint">
+        Prontidão para hoje
+      </p>
 
-      <div className="mt-2 flex items-end justify-between gap-3">
-        <div className="flex items-baseline gap-1">
-          {/* Numerais proporcionais: `tabular-nums` deixaria o número grande frouxo (§3.2). */}
-          <span className="text-[52px] font-medium leading-none tracking-tight" aria-hidden>
-            {exibido}
-          </span>
-          <span className="text-lg text-muted" aria-hidden>
-            %
-          </span>
-        </div>
-        <span className="mb-1 max-w-[52%] text-right text-sm leading-snug" style={{ color: cor }}>
-          {text}
-        </span>
-      </div>
-
-      {/* Barra segmentada: lê como instrumento, não como barra de progresso de tarefa. */}
-      <div className="mt-4 flex gap-1" aria-hidden>
-        {Array.from({ length: SEGMENTOS }, (_, i) => (
-          <span
-            key={i}
-            className="h-1.5 flex-1 rounded-full transition-colors"
+      <div className="relative mx-auto mt-3 w-full max-w-[240px]" aria-hidden>
+        <svg viewBox="0 0 200 110" className="w-full">
+          {/* Trilha */}
+          <path
+            d="M 18 100 A 82 82 0 0 1 182 100"
+            fill="none"
+            stroke="var(--color-surface2)"
+            strokeWidth="10"
+            strokeLinecap="round"
+          />
+          {/* Preenchimento — a cor É a leitura (semântica §2.1), com brilho próprio */}
+          <path
+            d="M 18 100 A 82 82 0 0 1 182 100"
+            fill="none"
+            stroke={cor}
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray={ARCO}
+            strokeDashoffset={semMovimento ? offset : ARCO * (1 - exibido / 100)}
             style={{
-              backgroundColor: i < preenchidos ? cor : "var(--color-surface2)",
-              transitionDuration: semMovimento ? "0ms" : "var(--dur-base)",
-              transitionDelay: semMovimento ? "0ms" : `${i * 25}ms`,
+              filter: `drop-shadow(0 0 6px ${cor})`,
+              transition: semMovimento ? "none" : "stroke-dashoffset 120ms linear",
             }}
           />
-        ))}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-0.5">
+          <div className="flex items-baseline gap-0.5">
+            {/* Numerais proporcionais: `tabular-nums` deixaria o número grande frouxo (§3.2). */}
+            <span className="text-[56px] font-medium leading-none tracking-tight">{exibido}</span>
+            <span className="text-lg text-muted">%</span>
+          </div>
+        </div>
       </div>
+
+      <p className="mt-2 text-center text-sm leading-snug" style={{ color: cor }}>
+        {text}
+      </p>
 
       {/*
         Os músculos NÃO são nomeados aqui de propósito. O card "Foco do dia", logo abaixo,
         já os lista com o dado que falta ("pronto em ~2 dias"). Repetir os mesmos nomes em
-        dois blocos consecutivos era exatamente a duplicação que esta rodada veio remover —
+        dois blocos consecutivos era exatamente a duplicação que a TASK-023 removeu —
         o herói responde "quanto", o Foco responde "o quê e quando".
       */}
     </section>

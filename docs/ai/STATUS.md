@@ -428,6 +428,25 @@ Contrato: `docs/ai/tasks/TASK-021-dataviz.md`.
   como candidatos a refino: o cinza é neutro de propósito, e a paleta já tem gate visual aprovado.
 - Gates no merge: typecheck ✓ · lint ✓ · **172/172** ✓ · build ✓.
 
+### TASK-025 — Super upgrade "Vivid", Fase 1 (branch `ai/TASK-025-vivid-claude`, aguardando gate visual + merge)
+Contrato: `docs/ai/tasks/TASK-025-vivid.md`. **Direção v3 registrada no `DESIGN_SYSTEM.md` §0.1**:
+o usuário liberou explicitamente os limites de sobriedade da política ("não precisa se limitar ao
+padrão exigido na documentação") — liberou-se estética, não integridade (honestidade, anti-culpa,
+plan-file e acessibilidade continuam).
+- **Entregue:** atmosfera de luz global; `.card-lift`; nome em gradiente; brilho ambiente no E3;
+  nav em pílula flutuante com blur (espaçador interno, nenhuma tela mudou); herói vira **gauge em
+  arco** com brilho semântico; Modo Treino com **foto desfocada como palco**; **recorde pessoal**
+  (`bestPreviousLoad` puro, +5 testes) com selo + anel + vibração e compasso de 1,6s antes do
+  descanso.
+- **3 ciclos de review Codex (limite §13), 7 achados: 6 corrigidos, 1 recusado com evidência**
+  (o `calc` do nav: largura computada 350px provou que o Tailwind v4 normaliza; adotada a sintaxe
+  canônica mesmo assim). Correções notáveis: régua do recorde inclui a própria sessão (50 hoje →
+  47 não celebra, 52 celebra); navegação cancela compasso e selo via helper `navegar()` nos
+  handlers; histórico recarrega na troca de sessão; safe-area no espaçador do nav.
+- Gates: typecheck ✓ · lint ✓ · **200/200** ✓ · build ✓. Verificações no browser em cada ciclo.
+- **Fases seguintes (não iniciadas):** tela de conclusão de treino celebrada; Corpo/Relatórios no
+  tratamento v3; registro C editorial.
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
 branch apagada. ⚠️ **`main` está à frente de `origin` e o push NÃO foi feito** — o push dispara o

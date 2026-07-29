@@ -34,6 +34,25 @@ diferentes, o registro foi aplicado errado — o que muda é densidade e protago
 
 ---
 
+## 0.1 Direção v3 "Vivid" (2026-07-29 — decisão do usuário)
+
+O usuário liberou explicitamente os limites de sobriedade da política visual ("não precisa se
+limitar ao padrão exigido na documentação") para um upgrade de imersividade. A partir daqui:
+
+**Liberado, com propósito:**
+- Atmosfera de luz no canvas (radial-gradients fixos, teal + azul profundo, ≤9% de opacidade).
+- Relevo em cards (`.card-lift`: gradiente sutil + fio de luz superior).
+- Brilho ambiente no E3 (`.elev-focus` agora emite luz) e no gauge (drop-shadow da cor semântica).
+- Gradiente de texto no momento de assinatura (`.text-grad-accent` — nome na saudação).
+- Nav flutuante com blur (`BottomNav` em pílula fixa).
+- Palco no Modo Treino: foto do exercício desfocada como atmosfera do topo.
+- Entrada coreografada (`.stagger` por nth-child).
+
+**Continua NÃO negociável (o usuário liberou estética, não integridade):**
+- Honestidade de dados (§9; sem número fabricado, kcal parcial marcada, etc.).
+- Anti-culpa, arquitetura plan-file (app não prescreve), acessibilidade (reduced-motion,
+  contraste, aria) e o teto de 1 E3 por tela — brilho em tudo é brilho em nada.
+
 ## 1. Marca
 - **Nome:** Activve. Logo: "A" estilizado (pico/seta) + wordmark.
 - **Tagline:** "Seu plano. Seu ritmo. Resultados consistentes."
