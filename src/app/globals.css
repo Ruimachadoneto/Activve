@@ -23,10 +23,32 @@
   --radius-card: 16px;
 
   --font-sans: var(--font-geist-sans);
+
+  /*
+   * Movimento (DESIGN_SYSTEM v2 §6). Nomes no namespace `--ease-*`/`--animate-*` viram
+   * utilitários do Tailwind v4 (`ease-out-soft`, `animate-rise`, …).
+   * Regra 80/20: ~80% das interações invisíveis e fluidas; só as de alto valor celebram.
+   */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snap: cubic-bezier(0.3, 0, 0.2, 1);
+  /* Overshoot é EXCLUSIVO de celebração (série/treino concluído, recorde, músculo pronto). */
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --animate-rise: rise var(--dur-base) var(--ease-out-soft) both;
+  --animate-pop: pop var(--dur-base) var(--ease-overshoot) both;
+
+  /* Elevação E4 — único nível com sombra (elemento que de fato flutua). Ver §5. */
+  --shadow-float: 0 12px 32px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.3);
 }
 
 :root {
   color-scheme: dark;
+
+  /* Durações — usadas em CSS próprio e via `duration-[var(--dur-fast)]`. */
+  --dur-instant: 90ms;
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-slow: 420ms;
 }
 
 body {
@@ -66,6 +88,113 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   @keyframes recovery-rise {
+    from,
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/*
+ * ─── Sistema visual v2 (DESIGN_SYSTEM.md) ────────────────────────────────────
+ * Primitivas que o Tailwind não expressa sozinho. Elevação E1/E2 continuam sendo
+ * combinação de classes existentes (`bg-surface`/`bg-surface2` + `border-line`) —
+ * não abstrair o que já é idiomático no projeto.
+ */
+
+/* Entrada de elemento: sobe e aparece. Base de quase todo movimento do app. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Celebração — os ~20%. Só para conquista real (série/treino concluído, recorde). */
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Desenho da linha do gráfico, da esquerda para a direita (dataviz §7). */
+@keyframes draw-line {
+  from {
+    stroke-dashoffset: var(--draw-length, 1000);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.draw-line {
+  stroke-dasharray: var(--draw-length, 1000);
+  animation: draw-line var(--dur-slow) var(--ease-out-soft) both;
+}
+
+/*
+ * E3 — foco. MÁXIMO 1 POR TELA (§5): é o card principal, não um enfeite.
+ * O halo é uma borda interna suave, não `box-shadow` decorativo — a §6 da política
+ * proíbe sombra decorativa; aqui ela delimita hierarquia.
+ */
+.elev-focus {
+  border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  --elev-halo: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 8%, transparent);
+  box-shadow: var(--elev-halo, 0 0 transparent), var(--elev-drop, 0 0 transparent);
+}
+
+/* E4 — flutuante (bottom sheet, overlay). Único nível com sombra projetada. */
+.elev-float {
+  --elev-drop: var(--shadow-float);
+  box-shadow: var(--elev-halo, 0 0 transparent), var(--elev-drop, 0 0 transparent);
+}
+
+/*
+ * As duas escrevem a MESMA lista composta a partir de `--elev-halo`/`--elev-drop`, em vez de
+ * cada uma declarar seu `box-shadow`. Sem isso, aplicar as duas no mesmo elemento fazia a
+ * segunda regra apagar a primeira **em silêncio** — o pior tipo de falha numa fundação, porque
+ * o componente parece certo no código e sai errado na tela (achado do review Codex).
+ * O caso legítimo existe: um bottom sheet (E4) que é também o foco da tela (E3).
+ */
+
+/*
+ * Escada de entrada: filhos aparecem em sequência curta. Índice via `--i` inline.
+ * Teto de 8 para o atraso não virar espera (§6: movimento nunca atrasa a ação).
+ */
+.stagger > * {
+  animation: rise var(--dur-base) var(--ease-out-soft) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+
+/*
+ * Acessibilidade: a UI precisa funcionar 100% sem depender de animação
+ * (VISUAL_QUALITY §14). Tudo degrada para "já no lugar".
+ */
+@media (prefers-reduced-motion: reduce) {
+  .draw-line,
+  .stagger > * {
+    animation: none;
+  }
+  .draw-line {
+    stroke-dasharray: none;
+  }
+  @keyframes rise {
+    from,
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes pop {
     from,
     to {
       opacity: 1;
