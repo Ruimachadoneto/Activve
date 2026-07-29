@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   BookOpen,
@@ -51,6 +51,19 @@ export default function TreinoPage() {
   const [allSetsOpen, setAllSetsOpen] = useState(false);
   /** Recorde pessoal recém-batido — controla o selo de celebração (some sozinho). */
   const [prCelebration, setPrCelebration] = useState<{ load: number; token: number } | null>(null);
+  /*
+   * O descanso adiado pelo compasso do recorde. Guardado em ref para poder ser CANCELADO:
+   * se a série do recorde era a última e o usuário toca "Concluir treino" dentro do
+   * compasso, o timeout pendente abriria o overlay de descanso por cima do treino já
+   * encerrado (achado do review Codex).
+   */
+  const restDelayRef = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (restDelayRef.current != null) window.clearTimeout(restDelayRef.current);
+    },
+    [],
+  );
   const [history, setHistory] = useState<WorkoutSession[]>([]);
   // Override resolvido junto com o planId a que ele pertence: `overrideLoading` é
   // DERIVADO comparando o planId atual com o planId do último fetch resolvido — não é
@@ -264,7 +277,10 @@ export default function TreinoPage() {
      * no browser, não em teste. 1,6s de selo em cena, depois o descanso.
      */
     if (bateuRecorde) {
-      window.setTimeout(startRest, 1600);
+      restDelayRef.current = window.setTimeout(() => {
+        restDelayRef.current = null;
+        startRest();
+      }, 1600);
     } else {
       startRest();
     }
@@ -277,6 +293,11 @@ export default function TreinoPage() {
 
   function concluirTreino() {
     if (!session) return;
+    // Treino encerrado cancela qualquer descanso pendente do compasso do recorde.
+    if (restDelayRef.current != null) {
+      window.clearTimeout(restDelayRef.current);
+      restDelayRef.current = null;
+    }
     const next = completeSession(session);
     setStored(next);
     void saveSession(next);
