@@ -84,7 +84,7 @@ se precisar de mais de 3 séries, o gráfico está errado.
 
 | Papel | Tamanho/peso | Onde |
 |---|---|---|
-| **Métrica-herói** | 44–56 / 500, `tabular-nums`, `line-height: 1` | Número-herói (A), carga no treino (B) |
+| **Métrica-herói** | 44–56 / 500, numerais **proporcionais**, `line-height: 1` | Número-herói (A), carga no treino (B) |
 | Display | 30–34 / 500 | Título editorial (C) |
 | H1 | 22–26 / 500 | Título de tela |
 | H2 | 18 / 500 | Título de seção |
@@ -92,10 +92,18 @@ se precisar de mais de 3 séries, o gráfico está errado.
 | Caption | 12–13 / 400 | Apoio |
 | Eyebrow/micro | 10–11 / 400, uppercase, tracking `0.06em` | Rótulo de seção |
 
-### 3.2 Regra dos numerais (nova, obrigatória)
-**Todo número que representa medida usa `font-variant-numeric: tabular-nums`.** Carga, reps, peso,
-volume, contagem, tempo, percentual. Sem isso os dígitos "dançam" ao atualizar — é uma das causas
-mais baratas de aparência amadora, e hoje o app não usa em lugar nenhum.
+### 3.2 Regra dos numerais (corrigida em 2026-07-28)
+
+`tabular-nums` **só onde números se alinham verticalmente**: ticks de eixo, colunas de tabela,
+listas de séries, cronômetro (evita o texto "pular" a cada segundo).
+
+**Não usar em número grande e isolado** — número-herói, valor de card de métrica, carga em
+destaque. Dígitos de largura fixa dão a todo algarismo a largura do `0`, e em tamanho display isso
+faz um `121` parecer frouxo e mal espaçado. Ali valem os numerais proporcionais da fonte.
+
+> Correção honesta: a v2 deste documento dizia "todo número que representa medida usa
+> `tabular-nums`". Estava errado, e a regra certa é a acima. Pego ao aplicar o guia de dataviz na
+> TASK-021, antes de o erro se espalhar pelas telas.
 
 ---
 
@@ -160,6 +168,8 @@ Diagnóstico registrado no benchmark: `preserveAspectRatio="none"` distorce tra�
 eixo, sem rótulo, sem número legível; ponto em toda amostra; sem estado vazio.
 
 **Regras obrigatórias para todo gráfico do Activve:**
+0. **Um gráfico, um componente.** Todo gráfico de linha do app é `LineChart` — não duplicar SVG
+   por tela (foi o que permitiu os mesmos defeitos existirem em dois lugares por meses).
 1. **Nunca** `preserveAspectRatio="none"`. Escala uniforme, sempre.
 2. **Todo gráfico mostra pelo menos um número legível** — valor atual em destaque, e min/máx no eixo.
 3. **Eixo de referência discreto** (hairline) + rótulo do período. O usuário precisa saber "de
