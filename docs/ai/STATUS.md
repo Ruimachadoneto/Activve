@@ -392,8 +392,8 @@ dataviz**.
 
 | ID | Task | Depende de | Entrega |
 |---|---|---|---|
-| TASK-020 | Fundação do sistema v2 (tokens de elevação/movimento, tabular-nums, utilitários) | — | Base que as demais consomem |
-| TASK-021 | Dataviz v2 (`WeightChart`, `ReportLineChart` conforme §7) | 020 | Maior salto de percepção; resolve a queixa mais concreta |
+| TASK-020 | ✅ **MERGEADA** (`main`) — fundação do sistema v2 | — | Base que as demais consomem |
+| TASK-021 | ✅ **MERGEADA** (`main`) — dataviz v2 (`LineChart` único) | 020 | Maior salto de percepção; resolveu a queixa mais concreta |
 | TASK-022 | Hoje v3 — registro A (número-herói de prontidão + elevação) | 020, 021 | Tela de entrada vira "instrumento" |
 | TASK-023 | Centro de avisos (substitui o sino morto) | 020 | Feature nova, local-first |
 | TASK-024 | Modo Treino — registro B (imersivo + celebração de recorde) | 020 | O momento "uau" |
@@ -403,13 +403,42 @@ dataviz**.
 Cada task segue o fluxo do projeto: contrato → gates → verificação no browser → review Codex →
 **gate visual + aprovação humana de merge** (o usuário aprova cada merge).
 
+### TASK-021 — Dataviz v2 (MERGEADA em `main`, 2026-07-29)
+Contrato: `docs/ai/tasks/TASK-021-dataviz.md`.
+- **Causa raiz do "gráfico feio"**: os dois SVGs usavam `preserveAspectRatio="none"` — escala
+  não-uniforme distorcia a espessura do traço e virava os pontos em elipses. Somado a: nenhum
+  número legível, `<circle>` em toda amostra, sem eixo, sem interação, sem estado vazio.
+- **`src/components/LineChart.tsx`** é agora o ÚNICO gráfico de linha do app; `WeightChart` e
+  `ReportLineChart` são cascas finas. Regra registrada no `DESIGN_SYSTEM` §7.0.
+- **6 ciclos de review Codex, 9 achados [P2]**, todos reais. Os mais graves eram de **veracidade**:
+  (a) a META entrava nos extremos do eixo, então o gráfico exibia 78 kg como se fosse um peso
+  medido; (b) precisão fixa (`toFixed(1)`) mostrava 61,25 como "61,3", fora da faixa medida;
+  (c) o `aria-label` divergia do eixo visível — leitor de tela ouvia número diferente do exibido.
+  Também 2 regressões de mobile que EU introduzi com o scrub (`touch-none` travava a rolagem;
+  estado preso ao soltar o dedo) e sobreposição de rótulos em série plana.
+- **Lição transversal** (a mesma da TASK-013): toda regra "por faixa" era um **proxy** do
+  invariante real. A versão que fechou a classe não adivinha quando arredondar — usa a menor
+  precisão que representa o valor **exatamente**, e só cai em arredondamento para *dentro* da
+  faixa quando nem 2 casas bastam. `formatTick` coberto por teste de invariante em 13 faixas.
+- **Correção de documentação**: o `DESIGN_SYSTEM` v2 mandava `tabular-nums` em toda métrica.
+  Errado — largura fixa faz `121` parecer frouxo em display. Corrigido: só onde números se
+  alinham verticalmente (eixos, tabelas, cronômetro).
+- **Paleta validada por script** (não no olho): CVD, visão normal e contraste PASSAM
+  (pior par ΔE 12.3 deutan). Os 2 FAILs — banda de luminosidade e croma do cinza `rested` — ficam
+  como candidatos a refino: o cinza é neutro de propósito, e a paleta já tem gate visual aprovado.
+- Gates no merge: typecheck ✓ · lint ✓ · **172/172** ✓ · build ✓.
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
 branch apagada. ⚠️ **`main` está à frente de `origin` e o push NÃO foi feito** — o push dispara o
 deploy do Vercel, e isso é decisão do usuário.
 
-**Trabalho atual: UPGRADE VISUAL v2** (seção acima). Benchmark e direção aprovados;
-executando o roadmap TASK-020 → 026. Candidatos que seguem depois dele:
+**Trabalho atual: UPGRADE VISUAL v2** (seção acima). Benchmark e direção aprovados.
+**TASK-020 e TASK-021 mergeadas; `main` empurrada para `origin` (deploy do Vercel disparado).**
+Próxima do roadmap: **TASK-022 — Hoje v3 (registro A)**, com o número-herói de prontidão muscular
+derivado do `recovery.ts` (regras de honestidade na §9 do design system). Depois: 023 centro de
+avisos, 024 Modo Treino imersivo, 025 Corpo/Relatórios, 026 registro editorial.
+Candidatos que seguem depois do upgrade:
 1. **TASK-019 — PWA (manifest + Service Worker)**: instalação na tela inicial + notificação REAL
    do timer em background (a TASK-017 corrigiu a contagem não divergir, mas só um Service Worker
    pode notificar com o app minimizado/tela apagada — documentado como fora de escopo da TASK-017).
