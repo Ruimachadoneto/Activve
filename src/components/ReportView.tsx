@@ -56,7 +56,7 @@ export function ReportView({ report, label }: { report: ReportFile; label: strin
           <p className="text-[11px] uppercase tracking-wider text-faint">Peso</p>
           {weightChartSeries.length >= 2 ? (
             <div className="mt-2">
-              <ReportLineChart series={weightChartSeries} label="Peso ao longo do período" />
+              <ReportLineChart series={weightChartSeries} label="Peso ao longo do período" unit="kg" />
             </div>
           ) : null}
           <p className="mt-1.5 text-sm text-ink">
@@ -103,6 +103,7 @@ export function ReportView({ report, label }: { report: ReportFile; label: strin
                     <ReportLineChart
                       series={ex.series.map((p) => ({ date: p.date, value: p.avgLoad }))}
                       label={`Progressão de carga — ${ex.name}`}
+                      unit="kg"
                     />
                   </div>
                 ) : null}
