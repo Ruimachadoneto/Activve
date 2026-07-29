@@ -64,18 +64,22 @@ export default function TreinoPage() {
     },
     [],
   );
+
   /*
-   * Trocar de exercício dentro do compasso do recorde cancela o descanso pendente: o
-   * overlay leria `ex.rest_s` do exercício NOVO e abriria com a duração errada para a
-   * série que acabou de ser feita (achado do review Codex). Quem navegou já decidiu
-   * seguir — descanso automático depois disso seria intromissão, não ajuda.
+   * Navegar (trocar exercício ou treino) dentro do compasso do recorde cancela o
+   * descanso pendente E o selo: o overlay leria `ex.rest_s` do exercício NOVO (duração
+   * errada) e o selo celebraria em cima do card errado (achados do review Codex). Vive
+   * nos HANDLERS, não num efeito — o lint do projeto proíbe setState em efeito, e a
+   * lição da TASK-010 é reestruturar, não contornar.
    */
-  useEffect(() => {
+  function navegar(mudar: () => void) {
     if (restDelayRef.current != null) {
       window.clearTimeout(restDelayRef.current);
       restDelayRef.current = null;
     }
-  }, [current, selected]);
+    setPrCelebration(null);
+    mudar();
+  }
   const [history, setHistory] = useState<WorkoutSession[]>([]);
   // Override resolvido junto com o planId a que ele pertence: `overrideLoading` é
   // DERIVADO comparando o planId atual com o planId do último fetch resolvido — não é
@@ -133,6 +137,12 @@ export default function TreinoPage() {
   // Histórico para o "Última vez" (memória de progressão). É GLOBAL, não por plano:
   // a continuidade do produto é por exercise.id entre planos/períodos (ADR-002), então
   // importar um plano novo não pode zerar a memória de carga.
+  /*
+   * Recarrega quando a SESSÃO atual muda, não só na montagem: com a aba aberta na virada
+   * da meia-noite, a sessão de ontem (concluída depois da montagem) não estava no
+   * `history` e a régua do recorde ficava defasada — uma carga abaixo do melhor real
+   * ainda celebraria (achado do review Codex).
+   */
   useEffect(() => {
     let cancelled = false;
     getAllSessions().then((list) => {
@@ -141,7 +151,7 @@ export default function TreinoPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [stored?.sessionId]);
 
   const session = stored && draft && stored.sessionId === draft.sessionId ? stored : draft;
 
@@ -218,8 +228,11 @@ export default function TreinoPage() {
     // `selected` venceria o recálculo do treino oficial (activeId = selected ?? today.workoutId) —
     // sem isso, a tela ficava presa no treino trocado se o usuário tinha clicado a pill dele
     // (achado do review Codex ciclo 3).
-    setSelected(null);
-    setCurrent(0);
+    // Reverter o treino do dia também é navegação — cancela compasso e selo pendentes.
+    navegar(() => {
+      setSelected(null);
+      setCurrent(0);
+    });
   }
 
   function patchSet(
@@ -329,7 +342,7 @@ export default function TreinoPage() {
     }
     const next = completeSession(session);
     setStored(next);
-    void saveSession(next);
+    void saveSession(next).then(() => getAllSessions().then(setHistory));
   }
 
   const allDone = progress.allDone;
@@ -391,10 +404,12 @@ export default function TreinoPage() {
             <button
               key={w.id}
               type="button"
-              onClick={() => {
-                setSelected(w.id);
-                setCurrent(0);
-              }}
+              onClick={() =>
+                navegar(() => {
+                  setSelected(w.id);
+                  setCurrent(0);
+                })
+              }
               className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
                 w.id === workout.id ? "border-accent text-accent" : "border-line text-faint"
               }`}
@@ -637,7 +652,7 @@ export default function TreinoPage() {
       {nextEx && nextMov ? (
         <button
           type="button"
-          onClick={() => setCurrent((c) => Math.min(total - 1, c + 1))}
+          onClick={() => navegar(() => setCurrent((c) => Math.min(total - 1, c + 1)))}
           className="mt-4 flex w-full items-center gap-3 rounded-card border border-line bg-surface p-3 text-left active:bg-surface2"
         >
           <ExerciseThumb media={nextMedia} className="h-12 w-12 shrink-0" />
@@ -717,7 +732,7 @@ export default function TreinoPage() {
       <div className="mt-5 flex items-center justify-between text-sm">
         <button
           type="button"
-          onClick={() => setCurrent((c) => Math.max(0, c - 1))}
+          onClick={() => navegar(() => setCurrent((c) => Math.max(0, c - 1)))}
           disabled={idx === 0}
           className="flex items-center gap-1 text-muted disabled:opacity-30"
         >
@@ -735,7 +750,7 @@ export default function TreinoPage() {
         ) : (
           <button
             type="button"
-            onClick={() => setCurrent((c) => Math.min(total - 1, c + 1))}
+            onClick={() => navegar(() => setCurrent((c) => Math.min(total - 1, c + 1)))}
             className="flex items-center gap-1 text-muted"
           >
             Próximo <ChevronRight size={16} aria-hidden />
