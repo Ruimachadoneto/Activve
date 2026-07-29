@@ -56,6 +56,15 @@ export function hasDietContent(diet: Diet | undefined): boolean {
   return (
     (diet.meals?.length ?? 0) > 0 ||
     (diet.shoppingList?.length ?? 0) > 0 ||
-    (diet.prep?.length ?? 0) > 0
+    (diet.prep?.length ?? 0) > 0 ||
+    // Metas diárias sozinhas já são dieta — e são a forma mais comum de prescrição:
+    // muito coach define kcal/macros sem detalhar refeição a refeição.
+    diet.dailyKcal != null ||
+    diet.macros != null
   );
+}
+
+/** Há meta diária (kcal ou macros) para exibir, independente de haver refeições? */
+export function hasDietTargets(diet: Diet | undefined): boolean {
+  return !!diet && (diet.dailyKcal != null || diet.macros != null);
 }

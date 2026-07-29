@@ -9,7 +9,7 @@ import { MuscleArt } from "@/components/MuscleArt";
 import { Logo } from "@/components/Logo";
 import { PlanErrorState } from "@/components/PlanErrorState";
 import { equipmentLabel } from "@/lib/plan/labels";
-import { hasDietContent } from "@/lib/plan/diet";
+import { hasDietContent, hasDietTargets } from "@/lib/plan/diet";
 import {
   estimateWorkoutMinutes,
   experienceLabel,
@@ -180,8 +180,16 @@ export default function HojePage() {
   const doneThisWeek = week.filter((d) => doneDates.has(d)).length;
   const trainingDays = p.training.weekSchedule.filter((d) => d !== "rest").length;
   const mealsCount = p.diet.meals.length;
-  // Plano só com lista de compras/preparo também tem o que mostrar (review Codex).
+  // Plano só com metas, ou só com compras/preparo, também tem o que mostrar (review Codex).
   const temDieta = hasDietContent(p.diet);
+  // O subtítulo descreve o que a tela REALMENTE tem — prometer "lista de compras" num
+  // plano que só traz metas seria mandar o usuário para uma tela diferente da anunciada.
+  const resumoDieta =
+    mealsCount > 0
+      ? `${mealsCount} ${mealsCount === 1 ? "refeição" : "refeições"} · trocas e porquês`
+      : hasDietTargets(p.diet)
+        ? "Metas de calorias e macros"
+        : "Lista de compras e preparo";
 
   const todayWorkout =
     today.kind === "workout"
@@ -402,11 +410,7 @@ export default function HojePage() {
           </span>
           <span className="flex-1">
             <span className="block text-sm font-medium">Alimentação</span>
-            <span className="block text-xs text-muted">
-              {mealsCount > 0
-                ? `${mealsCount} ${mealsCount === 1 ? "refeição" : "refeições"} · trocas e porquês`
-                : "Lista de compras e preparo"}
-            </span>
+            <span className="block text-xs text-muted">{resumoDieta}</span>
           </span>
           <ChevronRight size={16} aria-hidden className="shrink-0 text-faint" />
         </Link>

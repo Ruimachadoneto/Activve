@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hasDietContent, mealKcal, plannedKcal } from "./diet";
+import { hasDietContent, hasDietTargets, mealKcal, plannedKcal } from "./diet";
 import type { PlanFile } from "./schema";
 
 type Meal = PlanFile["diet"]["meals"][number];
@@ -74,9 +74,28 @@ describe("hasDietContent", () => {
     expect(hasDietContent({ meals: [meal("cafe", [300])] } as never)).toBe(true);
   });
 
+  it("reconhece plano só com metas diárias", () => {
+    // Forma MAIS COMUM de prescrição: coach define kcal/macros sem detalhar refeição a
+    // refeição. Tratar isso como "sem dieta" escondia o plano inteiro (review Codex).
+    expect(hasDietContent({ meals: [], dailyKcal: 2100 } as never)).toBe(true);
+    expect(
+      hasDietContent({ meals: [], macros: { protein_g: 165, carbs_g: 210, fat_g: 60 } } as never),
+    ).toBe(true);
+  });
+
   it("dieta realmente vazia é vazia", () => {
     expect(hasDietContent({ meals: [] } as never)).toBe(false);
     expect(hasDietContent({ meals: [], shoppingList: [], prep: [] } as never)).toBe(false);
     expect(hasDietContent(undefined)).toBe(false);
+  });
+});
+
+describe("hasDietTargets", () => {
+  it("só considera meta diária, não refeições nem compras", () => {
+    expect(hasDietTargets({ meals: [], dailyKcal: 2100 } as never)).toBe(true);
+    expect(hasDietTargets({ meals: [], macros: { protein_g: 1, carbs_g: 1, fat_g: 1 } } as never)).toBe(true);
+    expect(hasDietTargets({ meals: [meal("cafe", [300])] } as never)).toBe(false);
+    expect(hasDietTargets({ meals: [], shoppingList: ["Ovos"] } as never)).toBe(false);
+    expect(hasDietTargets(undefined)).toBe(false);
   });
 });

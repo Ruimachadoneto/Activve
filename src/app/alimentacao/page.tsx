@@ -4,7 +4,13 @@ import { Info, Repeat2, ShoppingBasket, Utensils } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { PlanErrorState } from "@/components/PlanErrorState";
-import { hasDietContent, mealKcal, plannedKcal, type KcalCount } from "@/lib/plan/diet";
+import {
+  hasDietContent,
+  hasDietTargets,
+  mealKcal,
+  plannedKcal,
+  type KcalCount,
+} from "@/lib/plan/diet";
 
 function formatKcal(n: number): string {
   return n.toLocaleString("pt-BR");
@@ -78,11 +84,17 @@ export default function AlimentacaoPage() {
         </section>
       ) : null}
 
-      {meals.length > 0 ? (
-        <>
-          {/* Resumo do dia: números do PLANO, não do que foi consumido — nada é rastreado. */}
-          <section className="mt-5 rounded-card border border-line bg-surface p-5">
-            <p className="text-[11px] uppercase tracking-wider text-faint">O dia no plano</p>
+      {/*
+        Resumo do dia: números do PLANO, não do que foi consumido — nada é rastreado.
+        Existe também para plano SÓ com metas diárias (sem refeição detalhada), que é a
+        forma mais comum de prescrição — gatilhar tudo em `meals` escondia esses planos
+        (achado do review Codex).
+      */}
+      {meals.length > 0 || hasDietTargets(diet) ? (
+        <section className="mt-5 rounded-card border border-line bg-surface p-5">
+          <p className="text-[11px] uppercase tracking-wider text-faint">O dia no plano</p>
+
+          {meals.length > 0 ? (
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-[42px] font-medium leading-none tracking-tight">
                 {meals.length}
@@ -94,99 +106,108 @@ export default function AlimentacaoPage() {
                 <span className="ml-auto text-sm text-muted">{formatContagem(kcalDia)}</span>
               ) : null}
             </div>
+          ) : diet.dailyKcal != null ? (
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-[42px] font-medium leading-none tracking-tight">
+                {formatKcal(diet.dailyKcal)}
+              </span>
+              <span className="text-sm text-muted">kcal por dia</span>
+            </div>
+          ) : null}
 
-            {/*
-              Divergência entre a soma das refeições e a meta do plano é mostrada, não
-              escondida — os dois números vêm do coach e podem discordar de propósito
-              (margem de ajuste), mas quem decide o que fazer com isso é o usuário.
-            */}
-            {diet.dailyKcal != null ? (
-              <p className="mt-2 text-xs text-muted">
-                Meta do plano: {formatKcal(diet.dailyKcal)} kcal por dia
-                {kcalDia && (kcalDia.partial || kcalDia.kcal !== diet.dailyKcal)
-                  ? ` · as refeições somam ${formatContagem(kcalDia)}`
-                  : ""}
-              </p>
-            ) : null}
+          {/*
+            Divergência entre a soma das refeições e a meta do plano é mostrada, não
+            escondida — os dois números vêm do coach e podem discordar de propósito
+            (margem de ajuste), mas quem decide o que fazer com isso é o usuário.
+          */}
+          {diet.dailyKcal != null && meals.length > 0 ? (
+            <p className="mt-2 text-xs text-muted">
+              Meta do plano: {formatKcal(diet.dailyKcal)} kcal por dia
+              {kcalDia && (kcalDia.partial || kcalDia.kcal !== diet.dailyKcal)
+                ? ` · as refeições somam ${formatContagem(kcalDia)}`
+                : ""}
+            </p>
+          ) : null}
 
-            {diet.macros ? (
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {[
-                  { rotulo: "Proteínas", valor: diet.macros.protein_g },
-                  { rotulo: "Carboidratos", valor: diet.macros.carbs_g },
-                  { rotulo: "Gorduras", valor: diet.macros.fat_g },
-                ].map(({ rotulo, valor }) => (
-                  <div key={rotulo} className="rounded-xl bg-surface2 p-3 text-center">
-                    <p className="text-[15px] tabular-nums">{valor} g</p>
-                    <p className="mt-0.5 text-[10px] uppercase tracking-wider text-faint">
-                      {rotulo}
-                    </p>
+          {diet.macros ? (
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {[
+                { rotulo: "Proteínas", valor: diet.macros.protein_g },
+                { rotulo: "Carboidratos", valor: diet.macros.carbs_g },
+                { rotulo: "Gorduras", valor: diet.macros.fat_g },
+              ].map(({ rotulo, valor }) => (
+                <div key={rotulo} className="rounded-xl bg-surface2 p-3 text-center">
+                  <p className="text-[15px] tabular-nums">{valor} g</p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-wider text-faint">
+                    {rotulo}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {meals.length > 0 ? (
+        <section className="mt-5">
+          <p className="px-1 text-[11px] uppercase tracking-wider text-faint">Refeições</p>
+          <ul className="mt-2 flex flex-col gap-2">
+            {meals.map((meal, i) => {
+              const kcal = mealKcal(meal);
+              return (
+                <li key={`${meal.id}-${i}`} className="rounded-card border border-line bg-surface p-4">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-[17px] leading-snug">{meal.name}</p>
+                    <span className="shrink-0 text-xs tabular-nums text-faint">
+                      {meal.time ? meal.time : null}
+                      {meal.time && kcal ? " · " : ""}
+                      {kcal ? formatContagem(kcal) : null}
+                    </span>
                   </div>
-                ))}
-              </div>
-            ) : null}
-          </section>
 
-          <section className="mt-5">
-            <p className="px-1 text-[11px] uppercase tracking-wider text-faint">Refeições</p>
-            <ul className="mt-2 flex flex-col gap-2">
-              {meals.map((meal, i) => {
-                const kcal = mealKcal(meal);
-                return (
-                  <li key={`${meal.id}-${i}`} className="rounded-card border border-line bg-surface p-4">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-[17px] leading-snug">{meal.name}</p>
-                      <span className="shrink-0 text-xs tabular-nums text-faint">
-                        {meal.time ? meal.time : null}
-                        {meal.time && kcal ? " · " : ""}
-                        {kcal ? formatContagem(kcal) : null}
-                      </span>
-                    </div>
-
-                    {meal.items.length > 0 ? (
-                      <ul className="mt-3 flex flex-col gap-2">
-                        {meal.items.map((item, j) => (
-                          <li key={`${meal.id}-${i}-${j}`}>
-                            <p className="text-sm">
-                              {item.qty != null ? (
-                                <span className="tabular-nums text-ink">
-                                  {item.qty}
-                                  {item.unit ? ` ${item.unit}` : ""}{" "}
-                                </span>
-                              ) : null}
-                              <span className="text-ink">{item.food}</span>
-                            </p>
-                            {/* Variações: o que faz o plano caber na vida real. */}
-                            {item.alternatives && item.alternatives.length > 0 ? (
-                              <p className="mt-1 flex items-start gap-1.5 text-xs leading-relaxed text-muted">
-                                <Repeat2 size={13} aria-hidden className="mt-0.5 shrink-0 text-accent" />
-                                <span>
-                                  <span className="text-faint">ou </span>
-                                  {item.alternatives.join(" · ")}
-                                </span>
-                              </p>
+                  {meal.items.length > 0 ? (
+                    <ul className="mt-3 flex flex-col gap-2">
+                      {meal.items.map((item, j) => (
+                        <li key={`${meal.id}-${i}-${j}`}>
+                          <p className="text-sm">
+                            {item.qty != null ? (
+                              <span className="tabular-nums text-ink">
+                                {item.qty}
+                                {item.unit ? ` ${item.unit}` : ""}{" "}
+                              </span>
                             ) : null}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
+                            <span className="text-ink">{item.food}</span>
+                          </p>
+                          {/* Variações: o que faz o plano caber na vida real. */}
+                          {item.alternatives && item.alternatives.length > 0 ? (
+                            <p className="mt-1 flex items-start gap-1.5 text-xs leading-relaxed text-muted">
+                              <Repeat2 size={13} aria-hidden className="mt-0.5 shrink-0 text-accent" />
+                              <span>
+                                <span className="text-faint">ou </span>
+                                {item.alternatives.join(" · ")}
+                              </span>
+                            </p>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
 
-                    {meal.why ? (
-                      <p className="mt-3 flex items-start gap-2 rounded-xl bg-surface2 p-3 text-xs leading-relaxed text-muted">
-                        <Info size={14} aria-hidden className="mt-0.5 shrink-0 text-accent" />
-                        <span>{meal.why}</span>
-                      </p>
-                    ) : null}
+                  {meal.why ? (
+                    <p className="mt-3 flex items-start gap-2 rounded-xl bg-surface2 p-3 text-xs leading-relaxed text-muted">
+                      <Info size={14} aria-hidden className="mt-0.5 shrink-0 text-accent" />
+                      <span>{meal.why}</span>
+                    </p>
+                  ) : null}
 
-                    {meal.notes ? (
-                      <p className="mt-2 text-xs leading-relaxed text-faint">{meal.notes}</p>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        </>
+                  {meal.notes ? (
+                    <p className="mt-2 text-xs leading-relaxed text-faint">{meal.notes}</p>
+                  ) : null}
+                </li>
+              );
+          })}
+          </ul>
+        </section>
       ) : null}
 
       {diet.shoppingList && diet.shoppingList.length > 0 ? (
