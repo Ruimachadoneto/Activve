@@ -34,12 +34,21 @@ import {
   WEEK_DAYS,
 } from "@/lib/plan/today";
 import { getSessionsForPlan } from "@/lib/storage/sessions";
+import type { WorkoutSession } from "@/lib/plan/session";
+import { ReadinessHero } from "@/components/ReadinessHero";
+import {
+  buildExerciseMuscles,
+  computeRecovery,
+  stimuliFromSessions,
+  todayReadiness,
+} from "@/lib/plan/recovery";
 import { getDayOverride, clearDayOverride } from "@/lib/storage/overrides";
 import { isoDate } from "@/lib/plan/session";
 
 export default function HojePage() {
   const { loading, plan, invalid } = useActivePlan();
   const [doneDates, setDoneDates] = useState<Set<string>>(new Set());
+  const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   // Override resolvido junto com o planId a que pertence — `overrideLoading` é DERIVADO
   // (planId atual ≠ planId do último fetch), não um booleano solto que pode ficar
   // obsoleto por 1 render quando o planId muda de null pro id real (mesmo achado do
@@ -55,10 +64,15 @@ export default function HojePage() {
   useEffect(() => {
     if (!plan) return;
     let cancelled = false;
-    getSessionsForPlan(plan.planId).then((sessions) => {
+    getSessionsForPlan(plan.planId).then((lista) => {
       if (cancelled) return;
-      const done = new Set(sessions.filter((s) => s.status === "done").map((s) => s.date));
+      const done = new Set(lista.filter((s) => s.status === "done").map((s) => s.date));
       setDoneDates(() => done);
+      // Mesma fonte que a tela Corpo usa (`getSessionsForPlan`): as duas telas precisam
+      // concordar sobre o estado do corpo — um número aqui e um mapa lá discordando seria
+      // pior que a limitação conhecida do ADR-002 (sessões de ciclos anteriores ficam de
+      // fora do mapa quando o plano troca).
+      setSessions(lista);
     });
     return () => {
       cancelled = true;
@@ -127,6 +141,24 @@ export default function HojePage() {
   const minutes = todayWorkout
     ? (p.profile.sessionMinutes ?? estimateWorkoutMinutes(todayWorkout))
     : null;
+
+  /*
+   * Prontidão do dia (DESIGN_SYSTEM §9). Só existe com treino hoje E com pelo menos uma
+   * sessão concluída: sem histórico, todo músculo é "descansado" e o número daria 100% —
+   * verdadeiro no sentido literal, mas seria um número de aparência científica sobre um
+   * corpo do qual não medimos nada. Sem dado, não se exibe número.
+   */
+  const temHistorico = sessions.some((s) => s.status === "done");
+  const readiness =
+    todayWorkout && temHistorico
+      ? todayReadiness(
+          todayWorkout.exercises.map((ex) => ({
+            primary: ex.primaryMuscles,
+            secondary: ex.secondaryMuscles,
+          })),
+          computeRecovery(stimuliFromSessions(sessions, buildExerciseMuscles(p))),
+        )
+      : null;
   // Só equipamentos CONHECIDOS: `equipment` omitido é desconhecido, não "livre" —
   // afirmar "Livre" pro usuário seria converter incerteza em promessa.
   const equipmentList = todayWorkout
@@ -188,6 +220,13 @@ export default function HojePage() {
           </button>
         </div>
       ) : null}
+
+      {/*
+        Resposta antes da complexidade: o herói responde "como está meu corpo pra isso hoje?"
+        acima do card do treino. É o ÚNICO E3 (foco) da tela — o card do treino segue em E1,
+        senão dois blocos disputariam a atenção (DESIGN_SYSTEM §5).
+      */}
+      {readiness ? <ReadinessHero readiness={readiness} /> : null}
 
       {today.kind === "workout" ? (
         <>

@@ -6,12 +6,15 @@ import {
   hoursToReady,
   recoveryColorVar,
   RECOVERY_LABEL_PT,
+  todayReadiness,
+  readinessLabel,
   type MuscleStimulus,
   type GetMuscles,
   type ExerciseMuscles,
+  type MuscleRecovery,
 } from "./recovery";
 import type { WorkoutSession, SetLog } from "./session";
-import { MUSCLES, type PlanFile } from "./schema";
+import { MUSCLES, type PlanFile, type Muscle } from "./schema";
 
 const NOW = Date.UTC(2026, 5, 29, 12, 0, 0);
 const H = 3_600_000;
@@ -357,5 +360,87 @@ describe("apresentação", () => {
   it("rótulos PT-BR anti-culpa", () => {
     expect(RECOVERY_LABEL_PT.rested).toBe("Descansado");
     expect(RECOVERY_LABEL_PT.worked).toBe("Trabalhado");
+  });
+});
+
+describe("todayReadiness", () => {
+  const cheio = (fraction: number) => ({
+    state: "recovering" as const,
+    lastWorkedAt: 0,
+    hoursSince: 1,
+    recoveryHours: 1,
+    fraction,
+  });
+  /** Monta um mapa de recuperação com todos descansados, sobrescrevendo os informados. */
+  function mapa(over: Partial<Record<Muscle, number>>): Record<Muscle, MuscleRecovery> {
+    const r = {} as Record<Muscle, MuscleRecovery>;
+    for (const m of MUSCLES) {
+      r[m] = { state: "rested", lastWorkedAt: null, hoursSince: null, recoveryHours: null, fraction: 1 };
+    }
+    for (const [m, f] of Object.entries(over)) r[m as Muscle] = cheio(f as number);
+    return r;
+  }
+
+  it("corpo todo recuperado = 100%", () => {
+    const r = todayReadiness([{ primary: ["chest"], secondary: ["triceps"] }], mapa({}));
+    expect(r?.pct).toBe(100);
+    expect(r?.limiting).toEqual([]);
+  });
+
+  it("primário pela metade pesa mais que secundário pela metade", () => {
+    const soPrimario = todayReadiness([{ primary: ["chest"], secondary: ["triceps"] }], mapa({ chest: 0.5 }));
+    const soSecundario = todayReadiness([{ primary: ["chest"], secondary: ["triceps"] }], mapa({ triceps: 0.5 }));
+    expect(soPrimario!.pct).toBeLessThan(soSecundario!.pct);
+  });
+
+  it("músculo em dois papéis conta pelo mais exigente (primário)", () => {
+    const r = todayReadiness(
+      [{ primary: ["chest"] }, { primary: ["triceps"], secondary: ["chest"] }],
+      mapa({ chest: 0 }),
+    );
+    // peso: chest 1 (primário vence), triceps 1 → 0*1 + 1*1 sobre 2 = 50%
+    expect(r?.pct).toBe(50);
+  });
+
+  it("músculo extra descansado não compensa outro em recuperação", () => {
+    // fraction > 1 saturado em 1: senão um músculo parado há semanas mascararia a fadiga
+    const comSatura = { ...mapa({ chest: 0.5 }) };
+    comSatura.triceps = cheio(3);
+    const r = todayReadiness([{ primary: ["chest", "triceps"] }], comSatura);
+    expect(r?.pct).toBe(75); // (0.5 + 1) / 2
+  });
+
+  it("lista os limitantes do mais fatigado para o menos", () => {
+    const r = todayReadiness(
+      [{ primary: ["chest", "quads", "lats"] }],
+      mapa({ chest: 0.6, quads: 0.2, lats: 1 }),
+    );
+    expect(r?.limiting).toEqual(["quads", "chest"]);
+  });
+
+  it("sem músculos exigidos devolve null (nunca um número fabricado)", () => {
+    expect(todayReadiness([], mapa({}))).toBeNull();
+    expect(todayReadiness([{ primary: [] }], mapa({}))).toBeNull();
+  });
+
+  it("músculo ausente do mapa não quebra nem penaliza", () => {
+    const parcial = {} as Record<Muscle, MuscleRecovery>;
+    expect(todayReadiness([{ primary: ["chest"] }], parcial)?.pct).toBe(100);
+  });
+});
+
+describe("readinessLabel", () => {
+  it("nunca fala do desempenho do usuário, só do corpo (anti-culpa)", () => {
+    for (const pct of [0, 20, 40, 60, 80, 100]) {
+      const { text } = readinessLabel(pct);
+      expect(text).not.toMatch(/você|voce|falhou|ruim|perdeu|atrasad/i);
+      expect(text.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("tom acompanha a semântica de cor do design system", () => {
+    expect(readinessLabel(95).tone).toBe("ready");
+    expect(readinessLabel(50).tone).toBe("recovering");
+    expect(readinessLabel(10).tone).toBe("worked");
   });
 });
