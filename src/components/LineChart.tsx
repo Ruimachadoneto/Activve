@@ -26,8 +26,26 @@ const PAD_R = 12;
 const PAD_T = 16;
 const AXIS_BAND = 18; // faixa reservada ao eixo X — nunca deixar o rótulo pra fora do container
 
+/**
+ * Menor precisão que representa `v` EXATAMENTE (até 2 casas), ou `null` se nem 2 casas
+ * bastam (dízima). Cobre inteiro, meio, décimo e quarto de passo — todos os incrementos
+ * reais de carga e peso corporal.
+ */
+function precisaoExata(v: number): string | null {
+  for (const casas of [0, 1, 2]) {
+    if (Number(v.toFixed(casas)) === v) return v.toFixed(casas).replace(".", ",");
+  }
+  return null;
+}
+
+/**
+ * Formata um valor para exibição. Usa a precisão exata quando existe — senão o número
+ * mostrado difere do medido, e o app passa a afirmar um dado que não coletou.
+ * Isto vale para rótulo, tooltip **e `aria-label`**: leitor de tela lendo "61,3" enquanto
+ * o eixo mostra "61,25" é a mesma mentira, só que invisível para quem revisa.
+ */
 function formatValue(v: number, unit?: string): string {
-  const n = Number.isInteger(v) ? String(v) : v.toFixed(1).replace(".", ",");
+  const n = precisaoExata(v) ?? v.toFixed(2).replace(".", ",");
   return unit ? `${n} ${unit}` : n;
 }
 
@@ -39,16 +57,33 @@ function formatValue(v: number, unit?: string): string {
  */
 export function formatTick(v: number, min: number, max: number): string {
   /*
-   * Invariante: **o rótulo do eixo nunca mostra um valor que não foi medido.**
+   * Invariante: **o rótulo do eixo nunca mostra um valor que não foi medido** — nem
+   * inventando variação, nem escondendo-a.
    *
-   * Três ciclos de review bateram aqui porque eu vinha tentando adivinhar QUANDO
-   * arredondar (empate de inteiros; depois faixa < 1). Toda regra por faixa é um proxy, e
-   * proxy sempre deixa um caso de fora — 62,4→62,6 furava a primeira, 70,1→71,1 furava a
-   * segunda. A regra correta não olha a faixa: **só arredonda quando arredondar não
-   * altera nada**, isto é, quando os extremos já são inteiros.
+   * Quatro ciclos de review bateram aqui, cada um num caso que a regra anterior deixava
+   * passar: empate de inteiros → faixa < 1 → extremos inteiros → quarto de passo
+   * (`avgLoad` de 60 e 62,5 = 61,25, que `toFixed(1)` vira "61,3", fora da faixa).
+   * Todas eram precisão FIXA, ou seja, proxies do invariante — e proxy sempre deixa um
+   * caso de fora.
+   *
+   * A regra que fecha a classe: usar a MENOR precisão que representa os dois extremos
+   * exatamente. Cobre inteiro, meio, décimo e quarto de passo — todos os incrementos que
+   * aparecem de verdade em carga e peso corporal.
    */
-  const extremosInteiros = Number.isInteger(min) && Number.isInteger(max);
-  return extremosInteiros ? String(v) : v.toFixed(1).replace(".", ",");
+  const exato = precisaoExata(v);
+  if (exato !== null) return exato;
+  /*
+   * Dízima (ex.: média de 3 séries dando 61,333…): nenhuma precisão curta é exata, então
+   * arredonda para DENTRO da faixa — mínimo para cima, máximo para baixo. Assim o rótulo
+   * continua dentro do medido; no máximo subdeclara a variação em 0,01, nunca a inventa.
+   */
+  const paraDentro =
+    v === min
+      ? Math.ceil(v * 100) / 100 // extremo inferior sobe: nunca abaixo do medido
+      : v === max
+        ? Math.floor(v * 100) / 100 // extremo superior desce: nunca acima do medido
+        : Math.round(v * 100) / 100; // tick intermediário: já está dentro da faixa
+  return paraDentro.toFixed(2).replace(".", ",");
 }
 
 function formatDate(iso: string): string {
@@ -148,7 +183,13 @@ export function LineChart({
         role="img"
         aria-label={`${label}. De ${formatValue(dataMin, unit)} a ${formatValue(dataMax, unit)}.`}
         onPointerDown={handlePointer}
-        onPointerMove={(e) => e.buttons !== 0 && handlePointer(e)}
+        /*
+         * Sem condição de botão: no mouse o hover já inspeciona (buttons === 0), no toque
+         * o arrasto continua funcionando (buttons === 1). Exigir botão pressionado tornava
+         * a inspeção inacessível no desktop, onde /corpo e /relatorios também são vistos
+         * (achado do review Codex).
+         */
+        onPointerMove={handlePointer}
         onPointerLeave={() => setActive(null)}
       >
         {/* Eixos: hairline sólido, recessivo. Nunca tracejado — tracejado lê como limiar. */}
