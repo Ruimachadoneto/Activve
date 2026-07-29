@@ -22,20 +22,45 @@ export default function AlimentacaoPage() {
    * de treino: ao trocar de plano, a lista antiga não pode ser usada enquanto o novo fetch
    * não resolve.
    */
-  const [doneFetch, setDoneFetch] = useState<{ planId: string | null; ids: string[] }>({
-    planId: null,
-    ids: [],
-  });
+  const [doneFetch, setDoneFetch] = useState<{
+    planId: string | null;
+    ids: string[];
+    date: string | null;
+  }>({ planId: null, ids: [], date: null });
+  /*
+   * Relógio do dia. Sem ele, uma aba deixada aberta durante a virada da meia-noite manteria
+   * `hoje` em ONTEM — e a próxima marcação seria gravada na chave do dia anterior, ou seja,
+   * dado salvo no dia errado (achado [P1] do review Codex). Mesmo padrão de tick + foco que
+   * o Hoje e o Corpo já usam.
+   */
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const atualizar = () => setNow(Date.now());
+    const id = window.setInterval(atualizar, 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") atualizar();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", atualizar);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", atualizar);
+    };
+  }, []);
+
   const planId = plan?.planId ?? null;
-  const carregando = doneFetch.planId !== planId;
+  const hoje = isoDate(new Date(now));
+  // Escopado a plano E data: entre a virada do dia e o novo fetch, a lista de ontem não
+  // pode continuar marcada na tela.
+  const carregando = doneFetch.planId !== planId || doneFetch.date !== hoje;
   const done = carregando ? [] : doneFetch.ids;
-  const hoje = isoDate();
 
   useEffect(() => {
     if (!planId) return;
     let cancelled = false;
     getMealsDone(planId, hoje).then((ids) => {
-      if (!cancelled) setDoneFetch({ planId, ids });
+      if (!cancelled) setDoneFetch({ planId, ids, date: hoje });
     });
     return () => {
       cancelled = true;
@@ -46,7 +71,7 @@ export default function AlimentacaoPage() {
     async (mealId: string) => {
       if (!planId) return;
       const ids = await toggleMealDone(planId, hoje, mealId);
-      setDoneFetch({ planId, ids });
+      setDoneFetch({ planId, ids, date: hoje });
     },
     [planId, hoje],
   );

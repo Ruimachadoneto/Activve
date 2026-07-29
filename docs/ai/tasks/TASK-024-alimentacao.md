@@ -49,3 +49,19 @@ deve nascer poluída. Ficam como candidatos.
 
 ## Pendente
 - [ ] Gate visual do usuário + aprovação de merge.
+
+## Review Codex — ciclo 1 (2 achados, ambos corrigidos)
+
+- **[P1] Marcação gravada no dia errado.** Com a aba aberta durante a virada da meia-noite,
+  `hoje` nunca mudava (nada disparava re-render por rollover), então o próximo toque escrevia na
+  chave de ONTEM. Corrigido com o mesmo relógio de tick + foco/visibilidade que o Hoje e o Corpo
+  já usam; `doneFetch` passou a ser escopado por **plano E data**, para que a lista de ontem não
+  siga marcada na tela entre a virada e o novo fetch.
+- **[P2] Card da Home defasado após a virada.** O fetch dependia só de `planId`, então o treino
+  passava para o dia novo enquanto a alimentação mostrava a contagem de ontem. Agora depende de
+  `hojeStr`, derivado do relógio que a tela já mantinha.
+
+**Verificação (browser, `Date.now` adiantado em 24h + evento de foco):** herói vai de "2 de 5" para
+"0 de 5" na virada; marcar no dia novo dá "1 de 5"; e o IndexedDB mostra **duas chaves distintas** —
+`mealsDone:pl_flat:2026-07-29` com `["cafe","almoco"]` e `mealsDone:pl_flat:2026-07-30` com
+`["cafe"]`. Antes da correção, a segunda marcação teria caído na chave do dia 29.
