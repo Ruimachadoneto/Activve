@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
@@ -47,8 +47,18 @@ import { isoDate } from "@/lib/plan/session";
 
 export default function HojePage() {
   const { loading, plan, invalid } = useActivePlan();
-  const [doneDates, setDoneDates] = useState<Set<string>>(new Set());
-  const [sessions, setSessions] = useState<WorkoutSession[]>([]);
+  /*
+   * Sessões guardadas JUNTO com o planId de origem (mesmo padrão do `overrideFetch`
+   * abaixo, e pelo mesmo motivo). Ao trocar de plano, a lista antiga continuava em estado
+   * até o novo fetch resolver, e a prontidão era calculada com o histórico do plano
+   * ANTERIOR — inclusive fazendo `temHistorico` ser verdadeiro num plano recém-importado
+   * que ainda não tem sessão nenhuma, exatamente o caso que a regra de honestidade quer
+   * evitar (achado do review Codex).
+   */
+  const [sessionsFetch, setSessionsFetch] = useState<{
+    planId: string | null;
+    list: WorkoutSession[];
+  }>({ planId: null, list: [] });
   // Override resolvido junto com o planId a que pertence — `overrideLoading` é DERIVADO
   // (planId atual ≠ planId do último fetch), não um booleano solto que pode ficar
   // obsoleto por 1 render quando o planId muda de null pro id real (mesmo achado do
@@ -59,20 +69,29 @@ export default function HojePage() {
   const planId = plan?.planId ?? null;
   const overrideLoading = overrideFetch.planId !== planId;
   const override = overrideLoading ? null : overrideFetch.value;
+  // Estado DERIVADO: enquanto o fetch não corresponder ao plano atual, a lista é vazia —
+  // nunca a do plano anterior. Memoizado porque o `[]` literal criaria um array novo a
+  // cada render e invalidaria os memos abaixo sem necessidade.
+  const sessions = useMemo(
+    () => (sessionsFetch.planId === planId ? sessionsFetch.list : []),
+    [sessionsFetch, planId],
+  );
+  const doneDates = useMemo(
+    () => new Set(sessions.filter((s) => s.status === "done").map((s) => s.date)),
+    [sessions],
+  );
 
   // Dias da semana com treino concluído (lê as sessões do período ativo).
   useEffect(() => {
     if (!plan) return;
     let cancelled = false;
+    // Mesma fonte que a tela Corpo usa (`getSessionsForPlan`): as duas telas precisam
+    // concordar sobre o estado do corpo — um número aqui e um mapa lá discordando seria
+    // pior que a limitação conhecida do ADR-002 (sessões de ciclos anteriores ficam de
+    // fora do mapa quando o plano troca).
     getSessionsForPlan(plan.planId).then((lista) => {
       if (cancelled) return;
-      const done = new Set(lista.filter((s) => s.status === "done").map((s) => s.date));
-      setDoneDates(() => done);
-      // Mesma fonte que a tela Corpo usa (`getSessionsForPlan`): as duas telas precisam
-      // concordar sobre o estado do corpo — um número aqui e um mapa lá discordando seria
-      // pior que a limitação conhecida do ADR-002 (sessões de ciclos anteriores ficam de
-      // fora do mapa quando o plano troca).
-      setSessions(lista);
+      setSessionsFetch({ planId: plan.planId, list: lista });
     });
     return () => {
       cancelled = true;

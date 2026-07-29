@@ -10,15 +10,26 @@ const SEGMENTOS = 12;
  * Conta de 0 até `alvo` na entrada. Respeita `prefers-reduced-motion` indo direto ao
  * valor final — a leitura do número nunca pode depender da animação (VISUAL_QUALITY §14).
  */
+function movimentoReduzido(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
 function useContagem(alvo: number, duracaoMs = 600): number {
-  const [valor, setValor] = useState(alvo);
+  /*
+   * Começa em 0 quando vai animar. Iniciar em `alvo` pintava o valor final no primeiro
+   * frame e o primeiro `requestAnimationFrame` o derrubava para perto de zero — o número
+   * fazia 32 → 2 → 32, um salto para trás bem visível na tela principal (achado do review
+   * Codex). A decisão é tomada no inicializador, não no efeito, justamente para não haver
+   * um frame com o valor errado.
+   */
+  const [valor, setValor] = useState(() => (movimentoReduzido() ? alvo : 0));
   const jaAnimou = useRef(false);
 
   useEffect(() => {
-    const reduzido =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduzido || jaAnimou.current) {
+    if (movimentoReduzido() || jaAnimou.current) {
       setValor(alvo);
       return;
     }
