@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Bell, Check, Dumbbell, Clock, Gauge, Play, Utensils } from "lucide-react";
+import { Bell, Check, ChevronRight, Dumbbell, Clock, Gauge, Play, Utensils } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { MuscleArt } from "@/components/MuscleArt";
@@ -30,6 +30,7 @@ import {
   todayReadiness,
 } from "@/lib/plan/recovery";
 import { getDayOverride, clearDayOverride } from "@/lib/storage/overrides";
+import { getMealsDone } from "@/lib/storage/meals";
 import { isoDate } from "@/lib/plan/session";
 
 export default function HojePage() {
@@ -60,6 +61,10 @@ export default function HojePage() {
    * de lá mantém as duas telas concordando sobre o estado do corpo.
    */
   const [now, setNow] = useState(() => Date.now());
+  const [mealsDoneFetch, setMealsDoneFetch] = useState<{ planId: string | null; ids: string[] }>({
+    planId: null,
+    ids: [],
+  });
 
   const planId = plan?.planId ?? null;
   const overrideLoading = overrideFetch.planId !== planId;
@@ -125,6 +130,18 @@ export default function HojePage() {
     };
   }, [plan]);
 
+  // Refeições marcadas hoje — só para o resumo do card; a tela de alimentação é a dona.
+  useEffect(() => {
+    if (!planId) return;
+    let cancelled = false;
+    getMealsDone(planId, isoDate()).then((ids) => {
+      if (!cancelled) setMealsDoneFetch({ planId, ids });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [planId]);
+
   // Treino trocado pelo usuário para hoje (TASK-016), se houver.
   useEffect(() => {
     let cancelled = false;
@@ -179,6 +196,11 @@ export default function HojePage() {
   const doneThisWeek = week.filter((d) => doneDates.has(d)).length;
   const trainingDays = p.training.weekSchedule.filter((d) => d !== "rest").length;
   const mealsCount = p.diet.meals.length;
+  // Escopado ao plano: marcações do ciclo anterior não podem contar no card de hoje.
+  const mealsDone =
+    mealsDoneFetch.planId === plan.planId
+      ? p.diet.meals.filter((m) => mealsDoneFetch.ids.includes(m.id)).length
+      : 0;
 
   const todayWorkout =
     today.kind === "workout"
@@ -384,16 +406,30 @@ export default function HojePage() {
         </div>
       </section>
 
-      <div className="mt-3 flex items-center gap-3 rounded-card border border-line bg-surface p-4">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface2 text-accent">
-          <Utensils size={18} aria-hidden />
-        </span>
-        <span className="flex-1">
-          <span className="block text-sm font-medium">Alimentação</span>
-          <span className="block text-xs text-muted">Plano de hoje</span>
-        </span>
-        <span className="text-xs text-muted">{mealsCount} refeições</span>
-      </div>
+      {/*
+        Era um `<div>` que prometia "Plano de hoje" e não levava a lugar nenhum — a mesma
+        classe de UI morta do sino. Agora é link de verdade para a tela de alimentação
+        (TASK-024), mostrando o progresso do dia em vez do total estático de refeições.
+      */}
+      {mealsCount > 0 ? (
+        <Link
+          href="/alimentacao"
+          className="mt-3 flex items-center gap-3 rounded-card border border-line bg-surface p-4 transition-colors hover:bg-surface2"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface2 text-accent">
+            <Utensils size={18} aria-hidden />
+          </span>
+          <span className="flex-1">
+            <span className="block text-sm font-medium">Alimentação</span>
+            <span className="block text-xs text-muted">
+              {mealsDone > 0
+                ? `${mealsDone} de ${mealsCount} refeições hoje`
+                : `${mealsCount} refeições no plano de hoje`}
+            </span>
+          </span>
+          <ChevronRight size={16} aria-hidden className="shrink-0 text-faint" />
+        </Link>
+      ) : null}
 
       <BottomNav active="hoje" />
     </main>
