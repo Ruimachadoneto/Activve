@@ -188,7 +188,11 @@ export function LineChart({
          */
         className="w-full touch-pan-y select-none"
         role="img"
-        aria-label={`${label}. De ${formatValue(dataMin, unit)} a ${formatValue(dataMax, unit)}.`}
+        aria-label={
+          dataMin === dataMax
+            ? `${label}. Estável em ${formatValue(dataMin, unit)}.`
+            : `${label}. De ${formatValue(dataMin, unit)} a ${formatValue(dataMax, unit)}.`
+        }
         onPointerDown={handlePointer}
         /*
          * Sem condição de botão: no mouse o hover já inspeciona (buttons === 0), no toque
@@ -211,13 +215,21 @@ export function LineChart({
         <line x1={PAD_L} y1={plotBottom} x2={W - PAD_R} y2={plotBottom} stroke="var(--color-line)" strokeWidth="1" />
         <line x1={PAD_L} y1={PAD_T} x2={PAD_L} y2={plotBottom} stroke="var(--color-line)" strokeWidth="1" />
 
-        {/* Ticks do eixo Y: só extremos, com `tabular-nums` (aqui números SE ALINHAM). */}
+        {/*
+          Ticks do eixo Y: só extremos, com `tabular-nums` (aqui números SE ALINHAM).
+          Série plana (todas as pesagens iguais, ex.: 80 kg repetido) tem dataMin ===
+          dataMax: os dois rótulos cairiam na MESMA posição com o MESMO texto e sairiam
+          sobrepostos, deixando ilegível o único valor do eixo. Nesse caso, um tick só
+          (achado do review Codex).
+        */}
         <text x={PAD_L - 5} y={y(dataMax) + 3} textAnchor="end" fill="var(--color-faint)" fontSize="10" style={{ fontVariantNumeric: "tabular-nums" }}>
           {formatTick(dataMax, dataMin, dataMax)}
         </text>
-        <text x={PAD_L - 5} y={y(dataMin) + 3} textAnchor="end" fill="var(--color-faint)" fontSize="10" style={{ fontVariantNumeric: "tabular-nums" }}>
-          {formatTick(dataMin, dataMin, dataMax)}
-        </text>
+        {dataMin !== dataMax && (
+          <text x={PAD_L - 5} y={y(dataMin) + 3} textAnchor="end" fill="var(--color-faint)" fontSize="10" style={{ fontVariantNumeric: "tabular-nums" }}>
+            {formatTick(dataMin, dataMin, dataMax)}
+          </text>
+        )}
 
         {/* Meta: tracejada porque É um limiar (a exceção legítima ao "nunca tracejar"). */}
         {target !== undefined && (
