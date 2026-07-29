@@ -38,8 +38,11 @@ function formatValue(v: number, unit?: string): string {
  * empatariam.
  */
 export function formatTick(v: number, min: number, max: number): string {
-  const collapses = Math.round(min) === Math.round(max);
-  return collapses ? v.toFixed(1).replace(".", ",") : String(Math.round(v));
+  // Faixa menor que 1 unidade: arredondar SEMPRE mente. Ou colapsa (80,2–80,4 → "80" nos
+  // dois extremos) ou estoura para fora dos valores observados quando cruza o meio
+  // (62,4–62,6 → "62" e "63", exagerando a variação). Nos dois casos o eixo contradiz a
+  // linha (achados do review Codex, ciclos 1 e 2).
+  return max - min < 1 ? v.toFixed(1).replace(".", ",") : String(Math.round(v));
 }
 
 function formatDate(iso: string): string {
@@ -101,26 +104,14 @@ export function LineChart({
     return { min, max, dataMin, dataMax, x, y };
   }, [series, target, plotBottom]);
 
-  if (series.length === 0) {
-    return (
-      <p className="py-6 text-center text-xs text-faint">
-        Ainda não há dados para mostrar aqui.
-      </p>
-    );
-  }
-
-  // Um ponto só não é uma tendência — mostrar uma linha reta sugeriria estabilidade que
-  // não foi medida. Mostra o valor e diz o que falta (§7.7).
-  if (series.length === 1) {
-    return (
-      <div className="py-4 text-center">
-        <p className="text-2xl leading-none">{formatValue(series[0].value, unit)}</p>
-        <p className="mt-1.5 text-xs text-faint">
-          Registrado em {formatDate(series[0].date)} · com mais um registro você vê a tendência
-        </p>
-      </div>
-    );
-  }
+  /*
+   * Menos de 2 pontos não é tendência — uma reta com um ponto só sugeriria estabilidade
+   * que não foi medida. Quem chama é dono do estado vazio, de propósito: a tela Corpo diz
+   * "Registre mais um peso (aba Medidas)" e o relatório mostra o valor em texto logo
+   * abaixo. Mensagens contextuais desse tipo são melhores que uma genérica aqui — por isso
+   * este componente não tenta escrever a sua.
+   */
+  if (series.length < 2) return null;
 
   const { x, y, dataMin, dataMax } = geom;
   const linePoints = series.map((s, i) => `${x(i)},${y(s.value)}`).join(" ");

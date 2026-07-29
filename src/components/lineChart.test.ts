@@ -18,15 +18,40 @@ describe("formatTick", () => {
     expect(formatTick(80.2, 80.2, 80.4)).toBe("80,2");
   });
 
+  it("não estoura para fora dos valores observados ao cruzar o meio", () => {
+    // 62,4 → 62,6 arredondaria para "62" e "63": rótulos FORA do que foi medido,
+    // exagerando a variação (achado do ciclo 2 do review Codex).
+    expect(formatTick(62.4, 62.4, 62.6)).toBe("62,4");
+    expect(formatTick(62.6, 62.4, 62.6)).toBe("62,6");
+  });
+
   it("os dois extremos nunca saem com o mesmo rótulo", () => {
     const casos: [number, number][] = [
       [80.2, 80.4],
+      [62.4, 62.6],
       [62.5, 63.0],
       [70.05, 70.4],
       [100, 140],
     ];
     for (const [min, max] of casos) {
       expect(formatTick(min, min, max)).not.toBe(formatTick(max, min, max));
+    }
+  });
+
+  it("nenhum rótulo cai fora da faixa medida", () => {
+    const casos: [number, number][] = [
+      [62.4, 62.6],
+      [80.2, 80.4],
+      [78, 85],
+      [99.6, 100.4],
+    ];
+    for (const [min, max] of casos) {
+      for (const v of [min, max]) {
+        const n = Number(formatTick(v, min, max).replace(",", "."));
+        expect(n).toBeGreaterThanOrEqual(Math.floor(min));
+        expect(n).toBeLessThanOrEqual(Math.ceil(max));
+        expect(Math.abs(n - v)).toBeLessThanOrEqual(0.5);
+      }
     }
   });
 
