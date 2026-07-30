@@ -69,3 +69,42 @@ Use este arquivo como área de triagem. Um aprendizado só deve virar regra em `
   leitor. Vale parar e mudar a forma em vez de aplicar o próximo remendo.
 - Deve virar regra, teste, hook ou CI?: candidato a regra curta em `AGENTS.md` §10. Observando.
 - Status: `observando`
+
+### 2026-07-30 — Quando um achado reaparece de outro ângulo, o interruptor é que está errado
+
+- Tarefa: TASK-026, tela de conclusão de treino. 3 ciclos de review Codex.
+- Sintoma: o mesmo ponto foi apontado três vezes, em formas diferentes. (1) A celebração aparecia
+  antes de a sessão estar no IndexedDB, e o atalho dela levava a uma tela que lê as sessões na
+  montagem. (2) Adiando a celebração, ela passou a ler `session`/`workout` correntes e podia
+  resumir o treino errado. (3) Adiando a celebração, o Modo Treino ficava vivo durante o
+  round-trip e aceitava edição num treino já encerrado.
+- Causa: eu tratava "quando a celebração entra" como **um** interruptor, quando havia **duas**
+  perguntas independentes com respostas opostas: *quando a tela troca* (imediatamente — fecha a
+  janela de edição e devolve a reação) e *quando é seguro sair dela* (depois da escrita — o
+  destino lê o disco na montagem). Cada tentativa de resolver com um booleano só movia o problema
+  de lugar.
+- Correção: separar as duas. A tela troca de forma síncrona a partir de um snapshot imutável; a
+  promessa da escrita viaja junto e só a **navegação** a aguarda.
+- Como detectar cedo: **se o mesmo trecho é apontado em ciclos consecutivos por motivos que
+  parecem diferentes, provavelmente há dois requisitos disputando uma variável.** Antes de mover o
+  `setState` mais uma vez, escrever as perguntas separadamente e ver se elas têm a mesma resposta.
+- Deve virar regra, teste, hook ou CI?: registrado no `DESIGN_SYSTEM` §0.2 como regra de produto
+  ("celebração é um momento"). Como heurística de revisão, observando.
+- Status: `observando`
+
+### 2026-07-30 — Escala de cor com texto em cima se mede, não se estima
+
+- Tarefa: TASK-026, mapa de constância em `/relatorios`.
+- Sintoma: a escala de intensidade (volume do dia → opacidade do acento) ficou bonita e passou no
+  olho. Medido no browser, o topo da escala dava **3,64:1** de contraste com o número do dia —
+  abaixo do AA (4,5:1). O teto tinha sido escolhido por aparência.
+- Correção: teto da escala baixado de 60% para 44% (≈4,9:1 no pior caso), mantendo 3× de razão
+  entre o dia mais fraco e o de pico. O motivo está comentado no código, senão o próximo ajuste
+  estético sobe o teto de novo sem saber o que está quebrando.
+- Bônus da mesma medição: o alvo de toque da grade era 36px **desde antes** desta task. Medir uma
+  coisa fez aparecer a outra.
+- Como detectar cedo: ao introduzir qualquer **gradiente/opacidade variável com texto por cima**,
+  calcular contraste no extremo mais claro E no mais escuro antes de fechar. É três linhas de
+  script na página; estimar de cabeça erra por larga margem em superfícies translúcidas empilhadas.
+- Deve virar regra, teste, hook ou CI?: candidato a checklist na `VISUAL_QUALITY.md`. Observando.
+- Status: `observando`

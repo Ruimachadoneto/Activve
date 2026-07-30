@@ -447,16 +447,38 @@ plan-file e acessibilidade continuam).
 - **Fases seguintes (não iniciadas):** tela de conclusão de treino celebrada; Corpo/Relatórios no
   tratamento v3; registro C editorial.
 
-### TASK-026 — Vivid Fase 2 (EM ANDAMENTO, branch `ai/TASK-026-vivid-corpo-claude`)
-Contrato completo com o que falta: `docs/ai/tasks/TASK-026-vivid-fase2.md` — **ler antes de tudo**.
-- ✅ **Corpo v3 entregue** (commit `42aaf98`): mapa muscular vira o E3 com spotlight radial atrás
-  dos corpos; peso vira número-herói de 44px e perde o `tabular-nums` que violava a §3.2;
-  `card-lift` + `stagger`. Verificado em 390×844 (1 E3, sem overflow, console limpo). Gates 200/200.
-- ⬜ **Faltam 3**: (1) tela de **conclusão de treino celebrada** — hoje não há celebração nenhuma
-  no fim do treino, que é o pico de conquista do app; (2) **Relatórios v3** — calendário como mapa
-  de constância + bloco de relatório em registro editorial; (3) **registro C (Editorial)** — o
-  degrau *Display* (30–34px) da escala tipográfica ainda não é usado em lugar nenhum do app.
-- ⚠️ **Corpo v3 ainda NÃO passou por review Codex nem foi mergeado.**
+### TASK-026 — Vivid Fase 2 (IMPLEMENTADA + REVISADA, branch `ai/TASK-026-vivid-corpo-claude`, **aguarda só o merge**)
+Contrato completo: `docs/ai/tasks/TASK-026-vivid-fase2.md` — **ler antes de mexer**.
+Os **4 itens** foram entregues, revisados (3 ciclos Codex, 5 achados [P2] reais, todos corrigidos)
+e verificados no browser em 390×844.
+
+- ✅ **Corpo v3** (`42aaf98`): mapa muscular vira o E3 com spotlight radial atrás dos corpos; peso
+  vira número-herói de 44px e perde o `tabular-nums` que violava a §3.2; `card-lift` + `stagger`.
+  Review Codex **limpo no ciclo 1**. 1 achado meu na verificação: `BottomNav` (espaçador + nav são
+  filhos DIRETOS do `<main>`) entrava na escada do `.stagger` e a navegação principal ficava
+  invisível ~280ms — classe **`stagger-skip`** (`1483e46`).
+- ✅ **Tela de conclusão de treino** (`779ab0f`+): a tela de execução **sai de cena** e entra uma
+  composição sobre o que acabou de acontecer — volume levantado como herói de 56px com count-up,
+  recordes da sessão em âmbar, séries/exercícios/duração, foco muscular e saídas explícitas.
+  Núcleo puro novo: **`src/lib/plan/summary.ts`** (`buildSessionSummary`, `sessionVolume`,
+  `buildConstancy`, `formatDuration`) com 27 testes.
+- ✅ **Relatórios v3** (`7648ef6`): o calendário vira **mapa de constância** — o dia se acende com
+  intensidade proporcional ao volume daquele dia sobre o maior do mês. Sessão aberta não soma
+  volume (mesma régua de `recovery.ts`), mas aparece tracejada e contada à parte.
+- ✅ **Registro C (Editorial)** (`5c855d0`): o degrau **Display (30–34px)**, que a §3.1 define e
+  nenhuma tela usava, passa a marcar as telas de LEITURA — `ReportView`, `ExerciseSheet`,
+  `PlanErrorState` e `/import`.
+
+**Gates:** typecheck ✓ · lint ✓ · **228/228** ✓ · build ✓ (eram 200 antes da task).
+
+**Dois achados de acessibilidade pegos MEDINDO no browser, não no olho** (detalhe no contrato):
+o teto da escala do calendário caiu de 60% para 44% porque o contraste do número do dia batia
+3,6:1 (abaixo do AA); e o alvo de toque da grade, que era 36px **desde antes desta task**, subiu
+para 44,6×44.
+
+⚠️ **Screenshot indisponível na sessão de 2026-07-30** (Browser pane não compositava). A
+verificação foi por DOM + estilos computados, com `getAnimations().finish()` para inspecionar o
+estado assentado. **O gate visual humano continua pendente.**
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
