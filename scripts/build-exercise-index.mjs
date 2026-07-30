@@ -44,7 +44,10 @@ const HEADS = [
   { head: "puxada", en: /pulldown/i },
   { head: "barra_fixa", en: /(pull[- ]?up|chin[- ]?up)/i },
   { head: "remada_alta", en: /upright row/i },
-  { head: "remada", en: /\brow\b/i, not: /upright/i },
+  // `rows?`: sem o plural, `Seated_Cable_Rows` — a remada baixa, das mais comuns em
+  // plano — nunca entrava no índice, e nomes fora do dicionário caíam em `Shotgun_Row`
+  // (achado [P1] do review Codex).
+  { head: "remada", en: /\brows?\b/i, not: /upright/i },
   { head: "stiff", en: /(stiff[- ]?leg|romanian)/i },
   { head: "terra", en: /deadlift/i, not: /(stiff|romanian)/i },
   { head: "pullover", en: /pullover/i },
@@ -54,7 +57,7 @@ const HEADS = [
   { head: "elevacao_frontal", en: /front (dumbbell |plate |cable |barbell )?raise/i },
   { head: "face_pull", en: /face pull/i },
   { head: "rosca", en: /curl/i, not: /(leg curl|thigh curl)/i },
-  { head: "triceps", en: /(tricep|pushdown|skullcrusher|kickback)/i },
+  { head: "triceps", en: /(tricep|pushdown|skullcrusher)/i },
   { head: "agachamento", en: /squat/i },
   { head: "leg_press", en: /leg press/i, not: /calf/i },
   { head: "extensora", en: /leg extension/i },
@@ -134,6 +137,61 @@ const NAME_TAGS = [
   [/plate/i, "anilha"],
 ];
 
+/**
+ * Musculatura esperada por núcleo — a GUARDA que fecha a classe de erro de bucketing.
+ *
+ * As regras de núcleo são regex sobre o nome em inglês, e regex sobre nome erra de um
+ * jeito específico e recorrente: `chin` casava dentro de ma-CHIN-e; `kickback` puxava
+ * `Glute_Kickback` para o núcleo de tríceps; `row` deixava `Seated_Cable_Rows` de
+ * fora. Foram três achados de review em duas rodadas, todos da MESMA forma.
+ *
+ * Corrigir regex a regex não converge — a próxima palavra ambígua produz o próximo
+ * achado. Esta guarda é ortogonal ao nome: o catálogo diz qual músculo o exercício
+ * trabalha, e um exercício de glúteo não pode morar no núcleo de tríceps, escreva-se o
+ * nome como se escrever. Entrada cujo músculo primário não bate com o núcleo é
+ * descartada, e o script REPORTA o descarte — é assim que um erro de bucketing novo
+ * aparece na hora de gerar, não meses depois na tela do usuário.
+ */
+const HEAD_MUSCLES = {
+  supino: ["chest"],
+  crucifixo: ["chest"],
+  crucifixo_inverso: ["shoulders"],
+  crossover: ["chest"],
+  voador: ["chest"],
+  flexao: ["chest", "triceps"],
+  paralelas: ["triceps", "chest"],
+  puxada: ["lats", "middle back"],
+  barra_fixa: ["lats", "biceps", "middle back"],
+  remada_alta: ["shoulders", "traps"],
+  remada: ["middle back", "lats"],
+  stiff: ["hamstrings", "glutes", "lower back"],
+  terra: ["lower back", "hamstrings", "quadriceps", "glutes", "traps"],
+  pullover: ["lats", "chest"],
+  encolhimento: ["traps"],
+  desenvolvimento: ["shoulders"],
+  elevacao_lateral: ["shoulders"],
+  elevacao_frontal: ["shoulders"],
+  face_pull: ["shoulders"],
+  rosca: ["biceps", "forearms"],
+  triceps: ["triceps"],
+  agachamento: ["quadriceps", "glutes", "hamstrings"],
+  leg_press: ["quadriceps", "glutes"],
+  extensora: ["quadriceps"],
+  flexora: ["hamstrings"],
+  afundo: ["quadriceps", "glutes", "hamstrings"],
+  hip_thrust: ["glutes"],
+  ponte_gluteo: ["glutes"],
+  abdutora: ["abductors", "glutes"],
+  adutora: ["adductors"],
+  panturrilha: ["calves"],
+  abdominal: ["abdominals"],
+  prancha: ["abdominals"],
+  elevacao_pernas: ["abdominals", "hip flexors"],
+  rotacao_russa: ["abdominals"],
+  good_morning: ["hamstrings", "lower back", "glutes"],
+  extensao_quadril: ["glutes", "hamstrings"],
+};
+
 function tagsFor(entry) {
   const tags = new Set();
   const eq = EQUIP_TAG[entry.equipment] ?? "outro";
@@ -166,13 +224,27 @@ const catalog = src
 const CATEGORIES = new Set(["strength", "powerlifting", "strongman", "olympic weightlifting"]);
 
 const rows = [];
-const skipped = { category: 0 };
+const skipped = { category: 0, muscle: [] };
 for (const entry of catalog) {
   if (!entry.images || entry.images.length < 2) continue;
   const head = headFor(entry);
   if (!head) continue;
   if (!CATEGORIES.has(entry.category)) {
     skipped.category += 1;
+    continue;
+  }
+  /*
+   * Primário OU secundário. Só primário era estrito demais: o catálogo classifica
+   * `Close-Grip_Barbell_Bench_Press` e `Bench_Press_-_Powerlifting` como TRÍCEPS
+   * primário (peito é secundário), e descartá-los tirava o "supino fechado" do índice.
+   * Aceitar o secundário mantém esses e continua barrando o que interessa —
+   * `Cable_Incline_Pushdown` é lats sem secundário nenhum, e os coices de glúteo não
+   * têm tríceps em lugar algum.
+   */
+  const esperados = HEAD_MUSCLES[head] ?? [];
+  const musculos = [...entry.primaryMuscles, ...(entry.secondaryMuscles ?? [])];
+  if (!musculos.some((m) => esperados.includes(m))) {
+    skipped.muscle.push(`${head} <- ${entry.id} (${musculos.join("/") || "sem músculo"})`);
     continue;
   }
   rows.push({ head, id: entry.id, tags: tagsFor(entry) });
@@ -214,5 +286,6 @@ ${body}
 );
 
 console.log(`${OUT}: ${rows.length} variações em ${Object.keys(byHead).length} núcleos`);
-console.log(`  descartadas: ${skipped.category} por categoria`);
+console.log(`  descartadas: ${skipped.category} por categoria, ${skipped.muscle.length} por musculatura`);
+for (const linha of skipped.muscle) console.log(`    x ${linha}`);
 for (const [head, list] of Object.entries(byHead)) console.log(`  ${head}: ${list.length}`);

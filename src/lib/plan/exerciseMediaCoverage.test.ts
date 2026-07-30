@@ -168,6 +168,42 @@ describe("casamento estrutural — o modificador refina, nunca atravessa o movim
     expect(id.toLowerCase()).not.toContain("pistol");
   });
 
+  it("nenhum núcleo contém exercício de outra musculatura", () => {
+    /*
+     * A guarda que fecha a classe. Três achados de review em duas rodadas foram todos a
+     * MESMA falha — regex sobre o nome em inglês deixando entrar movimento errado:
+     * `chin` casava dentro de ma-CHIN-e, `kickback` trazia `Glute_Kickback` para o
+     * tríceps, `row` sem plural deixava `Seated_Cable_Rows` de fora. O gerador agora
+     * valida contra a musculatura do catálogo; este teste trava a propriedade.
+     */
+    const proibidos: Record<string, RegExp> = {
+      triceps: /glute|hamstring/i,
+      rosca: /hamstring|leg_curl/i,
+      remada: /upright/i,
+      encolhimento: /squat|press/i,
+    };
+    const intrusos = Object.entries(proibidos).flatMap(([head, padrao]) =>
+      (EXERCISE_INDEX[head] ?? []).filter(([id]) => padrao.test(id)).map(([id]) => `${head}: ${id}`),
+    );
+    expect(intrusos).toEqual([]);
+  });
+
+  it("remada baixa fora do dicionário não cai em outro exercício de costas", () => {
+    // `\brow\b` sem plural excluía `Seated_Cable_Rows` do índice e estas frases caíam em
+    // `Shotgun_Row` (achado [P1] do review Codex).
+    for (const nome of ["Remada sentada no cabo pronada", "Remada baixa no cabo aberta"]) {
+      expect(resolveExerciseMedia(nome)?.sourceId, nome).toBe("Seated_Cable_Rows");
+    }
+  });
+
+  it("coice de tríceps não pode virar coice de glúteo", () => {
+    // `kickback` cru puxava `Glute_Kickback` para o núcleo de tríceps (achado [P1]).
+    for (const nome of ["Tríceps coice livre", "Tríceps coice no cabo"]) {
+      const id = resolveExerciseMedia(nome)?.sourceId ?? "";
+      expect(id.toLowerCase(), nome).toContain("tricep");
+    }
+  });
+
   it("`mediaId` do plano continua vencendo tudo", () => {
     expect(resolveExerciseMedia("Supino reto com barra", "Dumbbell_Flyes")?.sourceId).toBe(
       "Dumbbell_Flyes",

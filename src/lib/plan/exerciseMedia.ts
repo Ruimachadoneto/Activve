@@ -323,6 +323,12 @@ const PT_MODIFIERS: [token: string, tag: string][] = [
   ["arnold", "arnold"],
   ["anilha", "anilha"],
   ["bulgar", "bulgaro"],
+  // Token de DUAS palavras de propósito: "remada baixa" é o nome brasileiro da remada
+  // sentada no cabo, e "baixa" sozinha não quer dizer "sentado" em lugar nenhum. Sem
+  // isto, "remada baixa no cabo aberta" perdia `Seated_Cable_Rows` (penalizada por ter
+  // a tag `sentado` que o nome não pediu) para `Shotgun_Row`, que é obscura mas não
+  // tinha tag alguma sobrando.
+  ["remada baixa", "sentado"],
 ];
 
 /** Ids já curados à mão — usados como desempate: onde houve escolha humana, ela vale. */
