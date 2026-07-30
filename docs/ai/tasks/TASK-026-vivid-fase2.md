@@ -3,6 +3,25 @@
 > **Status: EM ANDAMENTO.** Corpo entregue e commitado. Os outros 3 itens NÃO foram iniciados.
 > Branch: `ai/TASK-026-vivid-corpo-claude` · Base: `main` (`0ef1fff`, TASK-025 fase 1 mergeada)
 
+## ⚠️ MANDATO DO USUÁRIO — leia isto com atenção antes de projetar qualquer coisa
+
+Reafirmado em 2026-07-30, com estas palavras: *"a ideia é avançar o app para um novo nível, não
+precisa se limitar ao padrão exigido na documentação ou demais limitações se isso impedir avanços,
+seja estéticos ou de funcionalidade."*
+
+**Como aplicar:** se uma regra de sobriedade da documentação estiver travando um avanço real,
+**o avanço vence** — e a decisão é registrada aqui e no `DESIGN_SYSTEM` §0.1. Isso vale também
+para funcionalidade: se algo exige um campo novo no `PLAN_SCHEMA` (como a 1.2 fez com
+`meals[].why` e `items[].alternatives`), **proponha o bump** em vez de encolher a ideia para caber
+no schema atual.
+
+**O que continua valendo mesmo assim** (o usuário liberou estética e escopo, não integridade):
+honestidade de dados, anti-culpa, o app não prescreve treino/dieta, e acessibilidade.
+
+**Leitura errada deste mandato:** fazer os pendentes abaixo como "aplicar `card-lift` e seguir".
+O pedido é que as telas fiquem **irreconhecíveis de forma positiva** — repense a tela, não só a
+sua pintura.
+
 ## Contexto herdado (leia antes de continuar)
 A direção **v3 "Vivid"** está registrada no `DESIGN_SYSTEM.md` **§0.1**. O usuário liberou
 explicitamente os limites de sobriedade da política visual ("não precisa se limitar ao padrão
