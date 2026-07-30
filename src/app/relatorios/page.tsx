@@ -90,6 +90,24 @@ function dayAriaLabel(date: string, day?: DayConstancy): string {
   return `${legivel} · ${partes.join(" · ")}`;
 }
 
+/**
+ * Resumo do mês sob o nome do mês. Só descreve o que existe: sessão aberta é contada
+ * como "em andamento" (nunca somada ao volume, que é de treino concluído), e o mês
+ * vazio de verdade é o único que diz que está vazio.
+ */
+function monthSummary(
+  totals: { done: number; inProgress: number; volumeKg: number },
+  hasScale: boolean,
+): string {
+  const partes: string[] = [];
+  if (totals.done > 0) {
+    partes.push(`${totals.done} ${totals.done === 1 ? "treino" : "treinos"}`);
+    if (hasScale) partes.push(`${totals.volumeKg.toLocaleString("pt-BR")} kg`);
+  }
+  if (totals.inProgress > 0) partes.push(`${totals.inProgress} em andamento`);
+  return partes.length > 0 ? partes.join(" · ") : "Nenhum treino registrado";
+}
+
 function monthPeriod(y: number, m: number): ReportPeriod {
   const from = `${y}-${String(m + 1).padStart(2, "0")}-01`;
   const lastDay = new Date(y, m + 1, 0).getDate();
@@ -251,8 +269,12 @@ export default function RelatoriosPage() {
   const monthPrefix = `${view.y}-${String(view.m + 1).padStart(2, "0")}`;
   const constancy = buildConstancy(sessions.filter((s) => s.date.startsWith(monthPrefix)));
   const monthTotals = [...constancy.values()].reduce(
-    (acc, d) => ({ done: acc.done + d.done, volumeKg: acc.volumeKg + d.volumeKg }),
-    { done: 0, volumeKg: 0 },
+    (acc, d) => ({
+      done: acc.done + d.done,
+      inProgress: acc.inProgress + d.inProgress,
+      volumeKg: acc.volumeKg + d.volumeKg,
+    }),
+    { done: 0, inProgress: 0, volumeKg: 0 },
   );
   /** Algum dia do mês tem volume medido? Sem isso, a escala não significa nada. */
   const hasScale = monthTotals.volumeKg > 0;
@@ -302,13 +324,12 @@ export default function RelatoriosPage() {
               </button>
               <div className="text-center">
                 <p className="text-sm font-medium">{monthLabel(view.y, view.m)}</p>
-                <p className="mt-0.5 text-[11px] text-faint">
-                  {monthTotals.done === 0
-                    ? "Nenhum treino registrado"
-                    : `${monthTotals.done} ${monthTotals.done === 1 ? "treino" : "treinos"}${
-                        hasScale ? ` · ${monthTotals.volumeKg.toLocaleString("pt-BR")} kg` : ""
-                      }`}
-                </p>
+                {/* O resumo precisa contar a MESMA história que a grade: um mês só com
+                    sessões abertas acende dias tracejados e abre detalhe ao toque —
+                    dizer "Nenhum treino registrado" ali seria a tela se contradizendo
+                    (achado do review Codex). Sessão aberta aparece na contagem, mas
+                    continua fora do volume: ela não é treino concluído. */}
+                <p className="mt-0.5 text-[11px] text-faint">{monthSummary(monthTotals, hasScale)}</p>
               </div>
               <button
                 type="button"

@@ -70,6 +70,11 @@ export default function TreinoPage() {
   const [celebration, setCelebration] = useState<{
     session: WorkoutSession;
     workout: PlanFile["training"]["workouts"][number];
+    /**
+     * Escrita da sessão encerrada. A celebração entra na hora, mas os atalhos dela
+     * levam a telas que leem o IndexedDB na montagem — a navegação espera isto.
+     */
+    whenSaved: Promise<unknown>;
   } | null>(null);
   /*
    * O descanso adiado pelo compasso do recorde. Guardado em ref para poder ser CANCELADO:
@@ -237,6 +242,7 @@ export default function TreinoPage() {
         summary={summary}
         movementName={nomeDoMovimento}
         muscles={musculos}
+        whenSaved={celebration.whenSaved}
         onBackToWorkout={() => setCelebration(null)}
       />
     );
@@ -413,24 +419,26 @@ export default function TreinoPage() {
     const next = completeSession(session);
     setStored(next);
     /*
-     * A celebração só entra DEPOIS que a sessão está no IndexedDB. Ela oferece
-     * "Ver como seu corpo ficou" e "Voltar ao início", e as duas telas leem as sessões
-     * na montagem: exibir os atalhos antes da escrita permitia um toque rápido montar
-     * `/corpo` com dado velho — o treino que o usuário acabou de fazer não apareceria no
-     * mapa, justamente o que o CTA promete (achado do review Codex).
+     * A celebração entra AGORA, de forma síncrona, a partir de um snapshot imutável.
+     * Duas razões, as duas vindas do review Codex:
      *
-     * O custo é de poucos milissegundos, e o retorno visual do toque é imediato de
-     * qualquer forma: `setStored` já trocou o rótulo do botão de forma síncrona.
+     * 1. Adiar a troca de tela até a escrita responder deixava o Modo Treino VIVO
+     *    durante o round-trip — dava pra editar série, nota e variação de um treino já
+     *    encerrado, e essas edições tardias ficavam de fora do snapshot. Trocar a tela
+     *    na hora fecha a janela por construção: não há mais UI para editar.
+     * 2. Celebração é reação; ela não deve esperar disco.
      *
-     * Se a escrita falhar, celebra assim mesmo: o treino aconteceu, e segurar a
-     * celebração por causa de erro de armazenamento castigaria o usuário por algo que
-     * não é dele. A falha já era ignorada antes desta tela existir.
+     * O que de fato precisava esperar a escrita não era a tela, era a NAVEGAÇÃO: os
+     * atalhos levam a `/corpo` e `/`, que leem as sessões na montagem. Por isso a
+     * promessa viaja junto no snapshot e a tela de conclusão só navega depois dela.
+     *
+     * Se a escrita falhar, a promessa resolve mesmo assim: o treino aconteceu, e travar
+     * a saída por erro de armazenamento castigaria o usuário por algo que não é dele.
      */
-    const snapshot = { session: next, workout };
-    void saveSession(next)
+    const whenSaved = saveSession(next)
       .then(() => getAllSessions().then(setHistory))
-      .catch(() => undefined)
-      .finally(() => setCelebration(snapshot));
+      .catch(() => undefined);
+    setCelebration({ session: next, workout, whenSaved });
   }
 
   const allDone = progress.allDone;

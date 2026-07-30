@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Trophy } from "lucide-react";
 import { formatDuration, type SessionSummary } from "@/lib/plan/summary";
 
@@ -31,6 +32,7 @@ export function WorkoutCompletion({
   summary,
   movementName,
   muscles,
+  whenSaved,
   onBackToWorkout,
 }: {
   workoutName: string;
@@ -40,10 +42,46 @@ export function WorkoutCompletion({
   movementName: (exerciseId: string, movementId: string) => string;
   /** Músculos PRIMÁRIOS dos movimentos executados, já em PT-BR (ver eyebrow "Foco muscular"). */
   muscles: string[];
+  /**
+   * Escrita da sessão no IndexedDB. `/corpo` e `/` leem as sessões na montagem, então
+   * sair daqui antes da escrita mostraria o treino recém-feito ausente do mapa —
+   * justamente o que o atalho promete. A tela aparece na hora; só a saída espera.
+   */
+  whenSaved: Promise<unknown>;
   /** Volta ao Modo Treino (a sessão continua concluída — é só sair da celebração). */
   onBackToWorkout: () => void;
 }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const router = useRouter();
+  const [saved, setSaved] = useState(false);
+  /** Desmontar durante a espera não pode empurrar navegação depois (lição do `restDelayRef`). */
+  const aliveRef = useRef(true);
+
+  useEffect(() => {
+    aliveRef.current = true;
+    let current = true;
+    void whenSaved.then(() => {
+      if (current) setSaved(true);
+    });
+    return () => {
+      current = false;
+      aliveRef.current = false;
+    };
+  }, [whenSaved]);
+
+  /**
+   * Enquanto a escrita não resolveu, o link vira navegação adiada: segura o toque,
+   * espera a promessa e então empurra a rota. Na prática são milissegundos e o caminho
+   * normal é o `<Link>` nativo — o desvio existe só para fechar a corrida, não para ser
+   * o comportamento de todo dia.
+   */
+  const irQuandoSalvo = (href: string) => (e: React.MouseEvent) => {
+    if (saved) return;
+    e.preventDefault();
+    void whenSaved.then(() => {
+      if (aliveRef.current) router.push(href);
+    });
+  };
 
   useEffect(() => {
     // A tela inteira trocou: leva o foco pro título, senão o leitor de tela e o
@@ -216,13 +254,14 @@ export function WorkoutCompletion({
         <div className="mt-7 flex flex-col gap-3">
           <Link
             href="/corpo"
+            onClick={irQuandoSalvo("/corpo")}
             className="flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-medium text-on-accent transition-colors hover:bg-accent-press active:scale-[0.98]"
           >
             Ver como seu corpo ficou
             <ArrowRight size={16} aria-hidden />
           </Link>
           <div className="flex items-center justify-between px-1 text-sm">
-            <Link href="/" className="text-muted">
+            <Link href="/" onClick={irQuandoSalvo("/")} className="text-muted">
               Voltar ao início
             </Link>
             <button type="button" onClick={onBackToWorkout} className="text-muted">
