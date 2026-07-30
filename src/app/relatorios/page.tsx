@@ -12,6 +12,7 @@ import { getAllSessions } from "@/lib/storage/sessions";
 import { getBodyLog } from "@/lib/storage/bodylog";
 import { getAllPlans, type StoredPlan } from "@/lib/storage/plans";
 import { isoDate, type WorkoutSession } from "@/lib/plan/session";
+import { buildConstancy, type DayConstancy } from "@/lib/plan/summary";
 import type { BodyEntry } from "@/lib/plan/body";
 import { buildReport, reportToMarkdown, type KnownPlan, type ReportFile, type ReportPeriod } from "@/lib/plan/report";
 import { weekDates } from "@/lib/plan/today";
@@ -52,6 +53,41 @@ function monthGrid(y: number, m: number): string[][] {
     if (cur.getMonth() !== m && cur.getDate() > 7) break; // já cobriu o mês inteiro
   }
   return weeks;
+}
+
+/**
+ * Luz de um dia no mapa de constância. Piso de 14% para um dia treinado nunca sumir do
+ * calendário só porque o volume dele foi pequeno perto do maior do mês.
+ *
+ * **O teto de 44% é de acessibilidade, não de gosto.** O número do dia é `text-ink` em
+ * 12px; medido no browser, o acento a 55–60% derruba o contraste para 3,6–4,1:1, abaixo
+ * do AA (4,5:1). A 44% fica em ~5,4:1 com folga, e a escala continua legível (o dia de
+ * pico tem 3× a luz do dia mais fraco). Acessibilidade é inegociável mesmo com a
+ * liberdade estética da §0.1.
+ *
+ * `intensity` nula = mês sem nenhum volume medido: sem régua, todo dia treinado recebe
+ * a MESMA presença, em vez de uma comparação inventada.
+ */
+function dayFill(intensity: number | null): string {
+  const pct = intensity == null ? 28 : Math.round(14 + intensity * 30);
+  return `color-mix(in srgb, var(--color-accent) ${pct}%, transparent)`;
+}
+
+/**
+ * Rótulo do dia para leitor de tela. A intensidade é um canal VISUAL — sozinha ela não
+ * chega a quem não enxerga, então o que a cor diz vai por extenso aqui.
+ */
+function dayAriaLabel(date: string, day?: DayConstancy): string {
+  const legivel = new Date(`${date}T12:00:00`).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+  });
+  if (!day) return legivel;
+  const partes: string[] = [];
+  if (day.done > 0) partes.push(`${day.done} ${day.done === 1 ? "treino" : "treinos"}`);
+  if (day.inProgress > 0) partes.push(`${day.inProgress} em andamento`);
+  if (day.volumeKg > 0) partes.push(`${day.volumeKg.toLocaleString("pt-BR")} kg`);
+  return `${legivel} · ${partes.join(" · ")}`;
 }
 
 function monthPeriod(y: number, m: number): ReportPeriod {
@@ -207,12 +243,26 @@ export default function RelatoriosPage() {
   const weeks = monthGrid(view.y, view.m);
   const selectedSessions = selected ? (sessionsByDate.get(selected) ?? []) : [];
 
+  /*
+   * Mapa de constância do MÊS EM TELA. A comparação de volume é entre os dias daquele
+   * mês — normalizar pelo histórico inteiro faria um mês inteiro parecer apagado só
+   * porque houve um pico em outro ciclo, o que é dramatizar oscilação (§7.8).
+   */
+  const monthPrefix = `${view.y}-${String(view.m + 1).padStart(2, "0")}`;
+  const constancy = buildConstancy(sessions.filter((s) => s.date.startsWith(monthPrefix)));
+  const monthTotals = [...constancy.values()].reduce(
+    (acc, d) => ({ done: acc.done + d.done, volumeKg: acc.volumeKg + d.volumeKg }),
+    { done: 0, volumeKg: 0 },
+  );
+  /** Algum dia do mês tem volume medido? Sem isso, a escala não significa nada. */
+  const hasScale = monthTotals.volumeKg > 0;
+
   if (invalid) {
     return <PlanErrorState errors={invalid.errors} />;
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-7">
+    <main className="stagger mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-7">
       <header className="print:hidden">
         <h1 className="text-xl font-medium tracking-tight">Relatórios</h1>
         <p className="mt-0.5 text-sm text-muted">Seu histórico de treino, dia a dia.</p>
@@ -229,7 +279,16 @@ export default function RelatoriosPage() {
         </section>
       ) : (
         <>
-          <section className="mt-5 rounded-card border border-line bg-surface p-4 print:hidden">
+          {/*
+            Mapa de constância (v3). Antes cada dia com treino era um ponto de 4px — a
+            informação existia e não se via. Agora o próprio dia se acende, e a força da
+            luz é o VOLUME daquele dia comparado ao maior do mês: o calendário deixa de
+            ser uma lista de datas e vira o desenho do seu ritmo.
+
+            Anti-culpa: dia vazio continua vazio — sem vermelho, sem "faltou", sem
+            streak. O mapa só mostra o que aconteceu.
+          */}
+          <section className="card-lift elev-focus mt-5 rounded-card border border-line p-3 print:hidden">
             <div className="flex items-center justify-between">
               <button
                 type="button"
@@ -237,69 +296,97 @@ export default function RelatoriosPage() {
                 onClick={() =>
                   setView((v) => (v.m === 0 ? { y: v.y - 1, m: 11 } : { y: v.y, m: v.m - 1 }))
                 }
-                className="flex h-8 w-8 items-center justify-center rounded-full text-muted active:bg-surface2"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-muted active:bg-surface2"
               >
                 <ChevronLeft size={18} aria-hidden />
               </button>
-              <p className="text-sm font-medium">{monthLabel(view.y, view.m)}</p>
+              <div className="text-center">
+                <p className="text-sm font-medium">{monthLabel(view.y, view.m)}</p>
+                <p className="mt-0.5 text-[11px] text-faint">
+                  {monthTotals.done === 0
+                    ? "Nenhum treino registrado"
+                    : `${monthTotals.done} ${monthTotals.done === 1 ? "treino" : "treinos"}${
+                        hasScale ? ` · ${monthTotals.volumeKg.toLocaleString("pt-BR")} kg` : ""
+                      }`}
+                </p>
+              </div>
               <button
                 type="button"
                 aria-label="Próximo mês"
                 onClick={() =>
                   setView((v) => (v.m === 11 ? { y: v.y + 1, m: 0 } : { y: v.y, m: v.m + 1 }))
                 }
-                className="flex h-8 w-8 items-center justify-center rounded-full text-muted active:bg-surface2"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-muted active:bg-surface2"
               >
                 <ChevronRight size={18} aria-hidden />
               </button>
             </div>
 
-            <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[10px] text-faint">
+            <div className="mt-4 grid grid-cols-7 gap-0.5 text-center text-[10px] text-faint">
               {WEEK_DAYS.map((d, i) => (
                 <span key={i}>{d}</span>
               ))}
             </div>
-            <div className="mt-1 flex flex-col gap-1">
+            {/* `gap-0.5` + `p-3`: sete colunas em 390px só chegam aos 44x44px do §4 com esta
+                geometria. Alvo de toque abaixo do mínimo era regressão herdada (a grade
+                antiga tinha 36px de altura). */}
+            <div className="mt-1 flex flex-col gap-0.5">
               {weeks.map((week, wi) => (
-                <div key={wi} className="grid grid-cols-7 gap-1">
+                <div key={wi} className="grid grid-cols-7 gap-0.5">
                   {week.map((date) => {
                     const inMonth = Number(date.slice(5, 7)) === view.m + 1;
+                    const day = constancy.get(date);
                     const has = sessionsByDate.has(date);
-                    const done = (sessionsByDate.get(date) ?? []).some((s) => s.status === "done");
                     const isToday = date === todayStr;
                     const isSelected = date === selected;
+                    // Só o dia CONCLUÍDO se acende. Em andamento ganha contorno: é um
+                    // estado diferente, e pintar os dois igual seria dizer que treino
+                    // aberto é treino feito.
+                    const lit = !isSelected && !!day && day.done > 0;
+                    const onlyOpen = !isSelected && !!day && day.done === 0 && day.inProgress > 0;
                     return (
                       <button
                         key={date}
                         type="button"
                         disabled={!has}
                         onClick={() => setSelected(date)}
-                        aria-label={date}
+                        aria-label={dayAriaLabel(date, day)}
                         aria-pressed={isSelected}
-                        className={`relative flex h-9 items-center justify-center rounded-lg text-xs transition-colors ${
-                          !inMonth ? "text-faint/40" : isSelected ? "bg-accent text-on-accent" : "text-ink"
-                        } ${has && !isSelected ? "hover:bg-surface2" : ""} ${
-                          isToday && !isSelected ? "border border-accent/50" : ""
+                        className={`relative flex h-11 items-center justify-center rounded-lg text-xs transition-[background-color,box-shadow] duration-[var(--dur-fast)] ${
+                          !inMonth && !lit ? "text-faint/40" : ""
+                        } ${isSelected ? "bg-accent font-medium text-on-accent" : "text-ink"} ${
+                          has && !isSelected ? "hover:brightness-125" : ""
+                        } ${isToday && !isSelected ? "ring-1 ring-accent/60" : ""} ${
+                          onlyOpen ? "border border-dashed border-faint/70" : ""
                         }`}
+                        style={lit ? { background: dayFill(day.intensity) } : undefined}
                       >
                         {Number(date.slice(8, 10))}
-                        {has ? (
-                          <span
-                            className={`absolute bottom-1 h-1 w-1 rounded-full ${
-                              isSelected ? "bg-on-accent" : done ? "bg-accent" : "bg-faint"
-                            }`}
-                          />
-                        ) : null}
                       </button>
                     );
                   })}
                 </div>
               ))}
             </div>
+
+            {hasScale ? (
+              <div className="mt-3 flex items-center justify-end gap-1.5 text-[10px] text-faint">
+                <span>menos volume</span>
+                {[0, 0.34, 0.67, 1].map((i) => (
+                  <span
+                    key={i}
+                    className="h-2.5 w-4 rounded-[3px]"
+                    style={{ background: dayFill(i) }}
+                    aria-hidden
+                  />
+                ))}
+                <span>mais</span>
+              </div>
+            ) : null}
           </section>
 
           {selected ? (
-            <section className="mt-4 rounded-card border border-line bg-surface p-4 print:hidden">
+            <section className="card-lift mt-4 rounded-card border border-line p-4 print:hidden">
               <p className="text-[11px] uppercase tracking-wider text-faint">
                 {new Date(`${selected}T12:00:00`).toLocaleDateString("pt-BR", {
                   weekday: "long",
@@ -357,7 +444,7 @@ export default function RelatoriosPage() {
             </section>
           ) : null}
 
-          <section className="mt-4 rounded-card border border-line bg-surface p-4 print:hidden">
+          <section className="card-lift mt-4 rounded-card border border-line p-4 print:hidden">
             <p className="text-[11px] uppercase tracking-wider text-faint">Relatório de progresso</p>
             <p className="mt-1 text-xs text-muted">
               Gera um relatório com progressão de carga, peso e constância — pra você acompanhar e,
@@ -423,7 +510,7 @@ export default function RelatoriosPage() {
         </>
       )}
 
-      <div className="print:hidden">
+      <div className="stagger-skip print:hidden">
         <BottomNav active="mais" />
       </div>
     </main>

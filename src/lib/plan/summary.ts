@@ -55,6 +55,30 @@ export type SessionSummary = {
 const movementOf = (log: { exerciseId: string; swappedToId?: string }) =>
   log.swappedToId ?? log.exerciseId;
 
+/**
+ * Volume levantado numa sessão: Σ (carga × reps) das séries feitas que têm **os dois**
+ * valores. `sets` diz quantas entraram — a diferença para as séries feitas é o que
+ * permite à UI dizer que a conta é parcial em vez de estimar o que falta.
+ *
+ * Fonte única: o resumo completo e o mapa de constância do calendário (`/relatorios`)
+ * usam esta função, para as duas telas nunca divergirem sobre o mesmo número.
+ */
+export function sessionVolume(session: WorkoutSession): { kg: number; sets: number } {
+  let kg = 0;
+  let sets = 0;
+  for (const log of session.exercises) {
+    for (const set of log.sets) {
+      if (!set.done) continue;
+      if (typeof set.load_kg !== "number" || typeof set.reps !== "number") continue;
+      kg += set.load_kg * set.reps;
+      sets += 1;
+    }
+  }
+  // Ponto flutuante acumulado (2,5 kg × 8 …) rende 4859.999999; volume é contagem de
+  // quilos, não medida de precisão infinita.
+  return { kg: Math.round(kg), sets };
+}
+
 /** Minutos inteiros entre dois ISO timestamps; `null` se algo não for utilizável. */
 function minutesBetween(startedAt?: string, completedAt?: string): number | null {
   if (!startedAt || !completedAt) return null;
@@ -76,8 +100,7 @@ export function buildSessionSummary(
   session: WorkoutSession,
   history: WorkoutSession[],
 ): SessionSummary {
-  let volumeKg = 0;
-  let volumeSets = 0;
+  const volume = sessionVolume(session);
   let doneSets = 0;
   let totalSets = 0;
   let exercisesDone = 0;
@@ -96,11 +119,6 @@ export function buildSessionSummary(
       if (!set.done) continue;
       doneSets += 1;
       exerciseHasDone = true;
-
-      if (typeof set.load_kg === "number" && typeof set.reps === "number") {
-        volumeKg += set.load_kg * set.reps;
-        volumeSets += 1;
-      }
       if (typeof set.load_kg !== "number") continue;
 
       // Empate de carga: fica a de mais repetições (esforço maior no mesmo peso).
@@ -141,10 +159,8 @@ export function buildSessionSummary(
   records.sort((a, b) => b.load_kg - b.previousBest - (a.load_kg - a.previousBest));
 
   return {
-    // Ponto flutuante acumulado (2,5 kg × 8 …) rende 4859.999999; o volume é uma
-    // contagem de quilos, não uma medida de precisão infinita.
-    volumeKg: Math.round(volumeKg),
-    volumeSets,
+    volumeKg: volume.kg,
+    volumeSets: volume.sets,
     doneSets,
     totalSets,
     exercisesDone,
@@ -154,6 +170,52 @@ export function buildSessionSummary(
     heaviestSet,
     movementIds,
   };
+}
+
+/** Um dia do mapa de constância do calendário (`/relatorios`). */
+export type DayConstancy = {
+  date: string;
+  /** Sessões concluídas no dia. */
+  done: number;
+  /** Sessões abertas (começadas e não encerradas) no dia. */
+  inProgress: number;
+  volumeKg: number;
+  /**
+   * Volume do dia sobre o MAIOR volume do período — 0..1.
+   *
+   * `null` quando nenhum dia do período tem volume registrado: sem régua não existe
+   * "mais" nem "menos", e pintar intensidade nesse caso inventaria uma comparação.
+   * Um dia com treino e volume 0 dá `0` — ele aconteceu, só não foi medido; cabe à UI
+   * dar presença mínima a ele em vez de apagá-lo.
+   */
+  intensity: number | null;
+};
+
+/**
+ * Mapa de constância: agrega as sessões por dia e normaliza o volume dentro do
+ * PERÍODO recebido (o chamador passa só o mês em tela, e a comparação é entre os dias
+ * daquele mês). Anti-culpa por construção: dia sem sessão simplesmente não entra no
+ * mapa — não existe registro de ausência, nem penalidade, nem streak.
+ */
+export function buildConstancy(sessions: WorkoutSession[]): Map<string, DayConstancy> {
+  const byDate = new Map<string, DayConstancy>();
+  for (const s of sessions) {
+    const day = byDate.get(s.date) ?? {
+      date: s.date,
+      done: 0,
+      inProgress: 0,
+      volumeKg: 0,
+      intensity: null,
+    };
+    if (s.status === "done") day.done += 1;
+    else day.inProgress += 1;
+    day.volumeKg += sessionVolume(s).kg;
+    byDate.set(s.date, day);
+  }
+  let max = 0;
+  for (const day of byDate.values()) if (day.volumeKg > max) max = day.volumeKg;
+  if (max > 0) for (const day of byDate.values()) day.intensity = day.volumeKg / max;
+  return byDate;
 }
 
 /** "1h05" / "48 min" — duração legível, sem inventar precisão que não existe. */

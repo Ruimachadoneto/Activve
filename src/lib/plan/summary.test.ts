@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildSessionSummary, formatDuration } from "./summary";
+import { buildConstancy, buildSessionSummary, formatDuration, sessionVolume } from "./summary";
 import type { WorkoutSession } from "./session";
 
 type SetSpec = { done: boolean; load_kg?: number; reps?: number };
@@ -215,6 +215,76 @@ describe("buildSessionSummary — duração", () => {
   it("carimbo ilegível não derruba o resumo", () => {
     const s = session("s1", [], { startedAt: "ontem à noite" });
     expect(buildSessionSummary(s, []).durationMin).toBeNull();
+  });
+});
+
+describe("sessionVolume — fonte única do número", () => {
+  it("é o mesmo número que o resumo completo publica", () => {
+    const s = session("s1", [
+      {
+        exerciseId: "a",
+        sets: [
+          { done: true, load_kg: 62.5, reps: 8 },
+          { done: true, load_kg: 62.5 },
+          { done: false, load_kg: 62.5, reps: 8 },
+        ],
+      },
+    ]);
+    const sum = buildSessionSummary(s, []);
+    expect(sessionVolume(s)).toEqual({ kg: 500, sets: 1 });
+    expect(sum.volumeKg).toBe(500);
+    expect(sum.volumeSets).toBe(1);
+  });
+});
+
+describe("buildConstancy — mapa do calendário", () => {
+  const dia = (date: string, status: WorkoutSession["status"], load: number, reps: number) =>
+    session(`${date}-${status}-${load}`, [{ exerciseId: "a", sets: [{ done: true, load_kg: load, reps }] }], {
+      date,
+      status,
+    });
+
+  it("agrega sessões do mesmo dia e normaliza pelo maior volume do período", () => {
+    const map = buildConstancy([
+      dia("2026-07-01", "done", 50, 10), // 500
+      dia("2026-07-08", "done", 100, 10), // 1000 — o maior
+      dia("2026-07-15", "done", 25, 10), // 250
+    ]);
+    expect(map.get("2026-07-01")).toMatchObject({ volumeKg: 500, intensity: 0.5, done: 1 });
+    expect(map.get("2026-07-08")).toMatchObject({ volumeKg: 1000, intensity: 1 });
+    expect(map.get("2026-07-15")).toMatchObject({ volumeKg: 250, intensity: 0.25 });
+  });
+
+  it("dois treinos no mesmo dia somam volume e contagem", () => {
+    const map = buildConstancy([dia("2026-07-02", "done", 40, 10), dia("2026-07-02", "done", 60, 10)]);
+    expect(map.get("2026-07-02")).toMatchObject({ done: 2, volumeKg: 1000, intensity: 1 });
+  });
+
+  it("separa em andamento de concluído", () => {
+    const map = buildConstancy([dia("2026-07-03", "in_progress", 30, 10)]);
+    expect(map.get("2026-07-03")).toMatchObject({ done: 0, inProgress: 1 });
+  });
+
+  it("sem volume em lugar nenhum, não há régua — intensidade fica null", () => {
+    const semCarga = session("x", [{ exerciseId: "a", sets: [{ done: true, reps: 10 }] }], {
+      date: "2026-07-04",
+    });
+    const map = buildConstancy([semCarga]);
+    expect(map.get("2026-07-04")).toMatchObject({ volumeKg: 0, intensity: null, done: 1 });
+  });
+
+  it("dia sem volume convive com dias medidos e vale 0, não desaparece", () => {
+    const semCarga = session("x", [{ exerciseId: "a", sets: [{ done: true, reps: 10 }] }], {
+      date: "2026-07-05",
+    });
+    const map = buildConstancy([semCarga, dia("2026-07-06", "done", 100, 10)]);
+    expect(map.get("2026-07-05")).toMatchObject({ intensity: 0, done: 1 });
+  });
+
+  it("dia sem sessão não entra no mapa (não existe registro de ausência)", () => {
+    const map = buildConstancy([dia("2026-07-07", "done", 50, 10)]);
+    expect(map.has("2026-07-06")).toBe(false);
+    expect(map.size).toBe(1);
   });
 });
 
