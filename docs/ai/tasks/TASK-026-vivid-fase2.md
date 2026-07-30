@@ -1,7 +1,7 @@
 # TASK-026 — Vivid Fase 2: Corpo, conclusão de treino, Relatórios e registro editorial
 
-> **Status: IMPLEMENTADA, REVISADA (3 ciclos Codex) e VERIFICADA — aguarda só o gate humano de
-> merge.** Branch: `ai/TASK-026-vivid-corpo-claude` · Base: `main` (`0ef1fff`)
+> **Status: MERGEADA em `main` (`c725dc0`, 2026-07-30).** Gate visual aprovado pelo usuário depois
+> da validação por screenshot; gates revalidados na `main` (229/229); branch apagada.
 
 ## ⚠️ MANDATO DO USUÁRIO — leia isto com atenção antes de projetar qualquer coisa
 

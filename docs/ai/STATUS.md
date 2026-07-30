@@ -447,7 +447,7 @@ plan-file e acessibilidade continuam).
 - **Fases seguintes (não iniciadas):** tela de conclusão de treino celebrada; Corpo/Relatórios no
   tratamento v3; registro C editorial.
 
-### TASK-026 — Vivid Fase 2 (IMPLEMENTADA + REVISADA, branch `ai/TASK-026-vivid-corpo-claude`, **aguarda só o merge**)
+### TASK-026 — Vivid Fase 2 (**MERGEADA em `main` `c725dc0`, 2026-07-30**)
 Contrato completo: `docs/ai/tasks/TASK-026-vivid-fase2.md` — **ler antes de mexer**.
 Os **4 itens** foram entregues, revisados (3 ciclos Codex, 5 achados [P2] reais, todos corrigidos)
 e verificados no browser em 390×844.
@@ -485,7 +485,11 @@ topo com ~200px de vazio; e o relatório afirmava "Cintura: 0 cm" com uma única
 quando o screenshot do preview falhar, o Chrome real é a segunda porta, não um substituto
 opcional** — DOM prova estrutura, contraste e overflow, mas não prova composição nem foco visual.
 
-**O gate visual do usuário (aprovar o merge) continua pendente.**
+**Gate visual: PASS** — o usuário aprovou o merge em 2026-07-30 depois da validação visual.
+Mergeada com `--no-ff`, gates revalidados na `main` (**229/229**), branch apagada.
+
+⚠️ **`main` está 37 commits à frente de `origin` e o push NÃO foi feito** — o push dispara o deploy
+do Vercel, e isso é decisão do usuário.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
@@ -584,7 +588,8 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-016 | Selecionar/fixar treino do dia | MERGEADA | main (`76c7dcb`) |
 | TASK-017 | Timer de descanso ancorado em tempo real | MERGEADA | main (`fb09bbe`) |
 | TASK-018 | Calendário de treinos + relatório visual (PDF) | MERGEADA | main (`98a7703`) |
-| TASK-013 | Estado de erro amigável p/ plano corrompido | IMPLEMENTADA + REVISADA — aguarda só o merge | `ai/TASK-013-erro-plano-claude` |
+| TASK-013 | Estado de erro amigável p/ plano corrompido | MERGEADA | main (`2118ff0`) |
+| TASK-026 | Vivid Fase 2 (Corpo, conclusão de treino, Relatórios, editorial) | MERGEADA | main (`c725dc0`) |
 
 ---
 
