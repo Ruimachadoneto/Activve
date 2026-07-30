@@ -46,8 +46,13 @@ export default function ImportPage() {
         <Chevron /> voltar
       </Link>
 
-      <h1 className="text-[22px] font-medium tracking-tight">Importar plano</h1>
-      <p className="mt-1 text-sm text-muted">Traga seu plano para dentro do Activve.</p>
+      {/* Registro C — Editorial (DESIGN_SYSTEM §0): o import é uma tela de leitura e
+          onboarding, não um painel. Degrau *Display* no título e medida de linha
+          confortável no texto. */}
+      <h1 className="text-[30px] font-medium leading-[1.15] tracking-tight">Importar plano</h1>
+      <p className="mt-2 max-w-[40ch] text-[15px] leading-relaxed text-muted">
+        Traga seu plano para dentro do Activve.
+      </p>
 
       <div className="mt-5 grid grid-cols-2 gap-1 rounded-xl bg-surface p-1">
         <TabButton active={tab === "file"} onClick={() => setTab("file")}>Arquivo</TabButton>

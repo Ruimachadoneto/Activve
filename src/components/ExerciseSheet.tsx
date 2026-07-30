@@ -11,6 +11,12 @@ import { ExerciseThumb } from "@/components/ExerciseMediaCard";
 /**
  * Detalhe do exercício (bottom-sheet): músculos trabalhados, como fazer, dicas
  * técnicas/dica rápida (schema 1.1, quando o plano traz) e troca de variação.
+ *
+ * **Registro C — Editorial** (DESIGN_SYSTEM §0): aqui a tarefa é LER e absorver como
+ * executar um movimento, não decidir nem agir sob esforço. Por isso o nome do exercício
+ * sobe ao degrau *Display* e os passos deixam de ser legenda cinza para virar o texto
+ * principal da tela — era a informação mais importante da sheet renderizada com a menor
+ * ênfase disponível.
  */
 export function ExerciseSheet({
   exercise,
@@ -50,11 +56,12 @@ export function ExerciseSheet({
     >
       <button type="button" className="absolute inset-0 bg-black/60" aria-label="Fechar" onClick={onClose} />
 
-      <div className="relative max-h-[85vh] w-full max-w-[440px] overflow-y-auto rounded-t-2xl border border-line bg-surface p-5 pb-8">
+      {/* E4 — é um elemento que de fato flutua, o único nível com sombra projetada (§5). */}
+      <div className="elev-float relative max-h-[85vh] w-full max-w-[440px] overflow-y-auto rounded-t-2xl border border-line bg-surface px-6 py-6 pb-9">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-medium leading-tight">{mov.name}</h2>
-            <p className="mt-0.5 text-xs text-muted">
+            <h2 className="text-[30px] font-medium leading-[1.12] tracking-tight">{mov.name}</h2>
+            <p className="mt-1.5 text-xs text-muted">
               {equipmentLabel(mov.equipment)}
               {mov.isSwapped ? <span className="text-accent"> · variação</span> : null}
             </p>
@@ -85,13 +92,15 @@ export function ExerciseSheet({
           </div>
         ) : null}
 
-        <section className="mt-4">
-          <h3 className="text-[11px] uppercase tracking-wider text-faint">Execução</h3>
-          <ol className="mt-2 flex flex-col gap-2">
+        <section className="mt-6 border-t border-line pt-5">
+          <h3 className="text-[10px] uppercase tracking-[0.18em] text-faint">Execução</h3>
+          {/* Numeral em `faint`, não em teal: a §2.1 reserva o acento para ação e para o
+              estado "pronto". Número de passo é estrutura de leitura, não ação. */}
+          <ol className="mt-3 flex flex-col gap-3.5">
             {mov.howTo.steps.map((step, i) => (
-              <li key={i} className="flex gap-2 text-sm">
-                <span className="shrink-0 font-medium text-accent">{i + 1}.</span>
-                <span className="text-muted">{step}</span>
+              <li key={i} className="flex gap-3 text-[15px] leading-relaxed">
+                <span className="w-4 shrink-0 tabular-nums text-faint">{i + 1}</span>
+                <span className="max-w-[46ch] text-ink">{step}</span>
               </li>
             ))}
           </ol>
@@ -106,21 +115,21 @@ export function ExerciseSheet({
         </section>
 
         {tips.length > 0 ? (
-          <section className="mt-5 rounded-xl border border-line bg-surface2/30 p-3.5">
-            <h3 className="text-[11px] uppercase tracking-wider text-faint">Dicas técnicas</h3>
-            <ul className="mt-2 flex flex-col gap-2">
+          <section className="mt-6 rounded-xl border border-line bg-surface2/30 px-4 py-4">
+            <h3 className="text-[10px] uppercase tracking-[0.18em] text-faint">Dicas técnicas</h3>
+            <ul className="mt-3 flex flex-col gap-2.5">
               {tips.map((tip, i) => (
-                <li key={i} className="flex gap-2 text-sm">
-                  <CheckCircle2 size={15} aria-hidden className="mt-0.5 shrink-0 text-accent" />
-                  <span className="text-muted">{tip}</span>
+                <li key={i} className="flex gap-2.5 text-[15px] leading-relaxed">
+                  <CheckCircle2 size={15} aria-hidden className="mt-1 shrink-0 text-accent" />
+                  <span className="max-w-[46ch] text-ink">{tip}</span>
                 </li>
               ))}
             </ul>
           </section>
         ) : null}
 
-        <section className="mt-5">
-          <h3 className="text-[11px] uppercase tracking-wider text-faint">Variações</h3>
+        <section className="mt-6 border-t border-line pt-5">
+          <h3 className="text-[10px] uppercase tracking-[0.18em] text-faint">Variações</h3>
           <div className="mt-2 flex flex-col gap-2">
             <VariationRow
               name={exercise.name}
@@ -144,13 +153,13 @@ export function ExerciseSheet({
         </section>
 
         {quickTip ? (
-          <section className="mt-5 flex items-start gap-3 rounded-xl border border-warn/30 bg-warn/5 p-3.5">
-            <Lightbulb size={16} aria-hidden className="mt-0.5 shrink-0 text-warn" />
-            <p className="min-w-0 text-sm text-muted">
-              <span className="mr-1 text-[11px] font-medium uppercase tracking-wider text-warn">
+          <section className="mt-6 flex items-start gap-3 rounded-xl border border-warn/30 bg-warn/5 px-4 py-4">
+            <Lightbulb size={16} aria-hidden className="mt-1 shrink-0 text-warn" />
+            <p className="min-w-0 text-[15px] leading-relaxed">
+              <span className="mr-1 text-[10px] font-medium uppercase tracking-[0.18em] text-warn">
                 Dica rápida
               </span>
-              <span className="block">{quickTip}</span>
+              <span className="block max-w-[46ch] text-ink">{quickTip}</span>
             </p>
           </section>
         ) : null}
