@@ -491,6 +491,33 @@ Mergeada com `--no-ff`, gates revalidados na `main` (**229/229**), branch apagad
 ⚠️ **`main` está 37 commits à frente de `origin` e o push NÃO foi feito** — o push dispara o deploy
 do Vercel, e isso é decisão do usuário.
 
+### TASK-027 — Cobertura de mídia + escala do calendário (**MERGEADA em `main` `ddaf9ab`, 2026-07-30**)
+Contrato: `docs/ai/tasks/TASK-027-midia-e-escala.md`. Veio de feedback de uso real do usuário
+logo depois do merge da TASK-026.
+
+- **Escala do calendário: opacidade → geometria.** A escala estava "morta" porque volume
+  codificado em opacidade tem teto de CONTRASTE (o acento acima de ~44% derruba o número do dia
+  abaixo do AA), e a faixa que sobrava era sutil demais. Agora a cor é fixa e varia a **altura**
+  do nível: amplitude 41%→100% e contraste **uniforme em 5,6:1**. *Regra que fica: quando um canal
+  visual esbarra em acessibilidade, trocar de canal é melhor do que espremer o mesmo.*
+- **Mídia dos exercícios: 28% → 100%** de cobertura numa amostra de 60 nomes realistas de plano.
+  O dicionário de string exata era o formato errado (quase toda falha era "movimento conhecido +
+  um modificador"). Agora o casamento é **estrutural**: `scripts/build-exercise-index.mjs` gera um
+  índice por **núcleo de movimento** (37 núcleos, 440 variações) com tags derivadas do catálogo, e
+  o resolvedor escolhe a variação dentro do núcleo. Modificador desconhecido não quebra mais o
+  match.
+- **A garantia central não mudou:** sem núcleo reconhecido, nenhuma foto. "Esteira" e
+  "alongamento" continuam sem imagem; o app não inventa movimento.
+- ⚠️ **Aprendizado forte:** 4 achados [P1] do review Codex, TODOS da mesma família (regex sobre o
+  nome em inglês deixando entrar movimento errado no núcleo — `chin` dentro de ma-CHIN-e,
+  `kickback` trazendo glúteo pro tríceps, `row` sem plural). A correção que fechou a classe não foi
+  remendar regex, foi **validar contra a musculatura declarada pelo catálogo** — guarda ortogonal
+  ao nome, com relatório de descarte na geração. Mesma lição da TASK-013.
+- ⚠️ **A auditoria manual dos 60 resultados achou 6 matches errados que o teste de cobertura
+  deixava passar.** "Não-nulo" não é "certo": conferir a lista um a um foi o que pegou alongamento
+  entrando como exercício e equipamento exótico ganhando desempate.
+- Gates: typecheck ✓ · lint ✓ · **244/244** ✓ · build ✓.
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
 branch apagada. ⚠️ **`main` está à frente de `origin` e o push NÃO foi feito** — o push dispara o
@@ -590,6 +617,7 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-018 | Calendário de treinos + relatório visual (PDF) | MERGEADA | main (`98a7703`) |
 | TASK-013 | Estado de erro amigável p/ plano corrompido | MERGEADA | main (`2118ff0`) |
 | TASK-026 | Vivid Fase 2 (Corpo, conclusão de treino, Relatórios, editorial) | MERGEADA | main (`c725dc0`) |
+| TASK-027 | Cobertura de mídia (28%→100%) + escala do calendário | MERGEADA | main (`ddaf9ab`) |
 
 ---
 

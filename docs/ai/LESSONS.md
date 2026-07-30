@@ -108,3 +108,36 @@ Use este arquivo como área de triagem. Um aprendizado só deve virar regra em `
   script na página; estimar de cabeça erra por larga margem em superfícies translúcidas empilhadas.
 - Deve virar regra, teste, hook ou CI?: candidato a checklist na `VISUAL_QUALITY.md`. Observando.
 - Status: `observando`
+
+### 2026-07-30 — "Não-nulo" não é "certo": auditar a lista, não só a métrica
+
+- Tarefa: TASK-027, cobertura de mídia dos exercícios.
+- Sintoma: o teste de cobertura passou de 17/60 para 60/60 e eu quase parei aí. Ao imprimir e
+  conferir os 60 resultados **um a um**, 6 estavam errados — alongamento entrando como exercício
+  (`Tríceps francês` → `Tricep_Side_Stretch`), equipamento exótico ganhando o desempate
+  (`Band_Assisted_Pull-Up` vencendo `Pullups`), e uma substring inflando a pontuação.
+- Causa: a asserção era `!== null`, que mede COBERTURA e não CORREÇÃO. Num matcher, cobertura alta
+  com precisão baixa é pior que cobertura baixa — foto errada quebra a confiança de um jeito que
+  placeholder não quebra.
+- Como detectar cedo: sempre que a métrica for "quantos resolveram", **imprimir o mapeamento
+  completo e ler**. É barato (um dump em arquivo) e foi o que pegou 100% dos erros de precisão
+  desta task; nenhum apareceu no número.
+- Deve virar regra, teste, hook ou CI?: o dump virou parte do fluxo de manutenção do índice
+  (`scripts/build-exercise-index.mjs` reporta descartes). Observando.
+- Status: `observando`
+
+### 2026-07-30 — Canal visual com teto de acessibilidade: troque de canal, não espreme o mesmo
+
+- Tarefa: TASK-027, escala de constância do calendário.
+- Sintoma: o usuário disse que a escala estava "praticamente morta". Eu havia codificado volume em
+  opacidade e depois BAIXADO o teto de 60% para 44% porque o contraste do número do dia falhava no
+  AA. As duas exigências — legibilidade da escala e contraste do texto — disputavam o mesmo canal,
+  e a segunda venceu até a primeira deixar de existir.
+- Correção: cor FIXA num valor seguro e a informação passou para a **altura** do preenchimento.
+  Geometria não tem custo de contraste. Amplitude de 41% a 100% e contraste uniforme de 5,6:1 —
+  as duas exigências atendidas em vez de negociadas.
+- Como detectar cedo: quando um limite de acessibilidade obrigar a **encolher a faixa** de um
+  canal visual, é sinal de que o canal está errado para aquele dado — não de que a faixa precisa
+  ser espremida. Posição, tamanho, altura e forma não competem com contraste de texto.
+- Deve virar regra, teste, hook ou CI?: registrado no `DESIGN_SYSTEM` §0.2. Observando.
+- Status: `observando`
