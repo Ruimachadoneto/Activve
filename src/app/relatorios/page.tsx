@@ -56,22 +56,32 @@ function monthGrid(y: number, m: number): string[][] {
 }
 
 /**
- * Luz de um dia no mapa de constância. Piso de 14% para um dia treinado nunca sumir do
- * calendário só porque o volume dele foi pequeno perto do maior do mês.
+ * Altura do nível de um dia no mapa de constância — a intensidade virou GEOMETRIA.
  *
- * **O teto de 44% é de acessibilidade, não de gosto.** O número do dia é `text-ink` em
- * 12px; medido no browser, o acento a 55–60% derruba o contraste para 3,6–4,1:1, abaixo
- * do AA (4,5:1). A 44% fica em ~5,4:1 com folga, e a escala continua legível (o dia de
- * pico tem 3× a luz do dia mais fraco). Acessibilidade é inegociável mesmo com a
- * liberdade estética da §0.1.
+ * A primeira versão codificava volume em opacidade (14%→44%). Não funcionou: opacidade
+ * é limitada por cima pelo contraste do número do dia (medido: o acento a 55–60% cai
+ * para 3,6–4,1:1, abaixo do AA), e a faixa que sobra é sutil demais para ser lida — na
+ * prática a escala ficava morta.
+ *
+ * Altura não tem custo de contraste. A cor fica FIXA num valor seguro e o que varia é
+ * quanto da célula o nível preenche, de baixo pra cima: o dia se lê como uma barra, não
+ * como um tom. Dá pra comparar dois dias de relance, que era o ponto do mapa.
+ *
+ * Piso de 26% para um dia treinado nunca virar uma célula vazia só porque o volume dele
+ * foi pequeno perto do maior do mês.
  *
  * `intensity` nula = mês sem nenhum volume medido: sem régua, todo dia treinado recebe
- * a MESMA presença, em vez de uma comparação inventada.
+ * o MESMO nível, em vez de uma comparação inventada.
  */
-function dayFill(intensity: number | null): string {
-  const pct = intensity == null ? 28 : Math.round(14 + intensity * 30);
-  return `color-mix(in srgb, var(--color-accent) ${pct}%, transparent)`;
+function dayLevel(intensity: number | null): number {
+  return intensity == null ? 60 : Math.round(26 + intensity * 74);
 }
+
+/**
+ * Cor do nível. Fixa de propósito (ver `dayLevel`): 40% do acento mede ~5,2:1 contra o
+ * `text-ink` de 12px, com folga sobre o AA. Nenhum dia fica mais claro que este.
+ */
+const DAY_FILL = "color-mix(in srgb, var(--color-accent) 40%, transparent)";
 
 /**
  * Rótulo do dia para leitor de tela. A intensidade é um canal VISUAL — sozinha ela não
@@ -373,16 +383,27 @@ export default function RelatoriosPage() {
                         onClick={() => setSelected(date)}
                         aria-label={dayAriaLabel(date, day)}
                         aria-pressed={isSelected}
-                        className={`relative flex h-11 items-center justify-center rounded-lg text-xs transition-[background-color,box-shadow] duration-[var(--dur-fast)] ${
+                        className={`relative flex h-11 items-center justify-center overflow-hidden rounded-lg text-xs transition-colors duration-[var(--dur-fast)] ${
                           !inMonth && !lit ? "text-faint/40" : ""
                         } ${isSelected ? "bg-accent font-medium text-on-accent" : "text-ink"} ${
                           has && !isSelected ? "hover:brightness-125" : ""
                         } ${isToday && !isSelected ? "ring-1 ring-accent/60" : ""} ${
                           onlyOpen ? "border border-dashed border-faint/70" : ""
                         }`}
-                        style={lit ? { background: dayFill(day.intensity) } : undefined}
                       >
-                        {Number(date.slice(8, 10))}
+                        {lit ? (
+                          <>
+                            {/* Base tênue: o dia foi treinado mesmo quando o nível é
+                                baixo — sem ela, um dia de volume pequeno pareceria vazio. */}
+                            <span className="absolute inset-0 bg-accent/10" aria-hidden />
+                            <span
+                              className="absolute inset-x-0 bottom-0"
+                              style={{ height: `${dayLevel(day.intensity)}%`, background: DAY_FILL }}
+                              aria-hidden
+                            />
+                          </>
+                        ) : null}
+                        <span className="relative">{Number(date.slice(8, 10))}</span>
                       </button>
                     );
                   })}
@@ -396,10 +417,14 @@ export default function RelatoriosPage() {
                 {[0, 0.34, 0.67, 1].map((i) => (
                   <span
                     key={i}
-                    className="h-2.5 w-4 rounded-[3px]"
-                    style={{ background: dayFill(i) }}
+                    className="relative h-5 w-4 overflow-hidden rounded-[3px] bg-accent/10"
                     aria-hidden
-                  />
+                  >
+                    <span
+                      className="absolute inset-x-0 bottom-0"
+                      style={{ height: `${dayLevel(i)}%`, background: DAY_FILL }}
+                    />
+                  </span>
                 ))}
                 <span>mais</span>
               </div>
