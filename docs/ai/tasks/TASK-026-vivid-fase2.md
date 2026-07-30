@@ -135,10 +135,30 @@ booleano produziu, nas duas primeiras tentativas, um problema no lugar do outro.
 - Editorial: sheet 30px/500 com passos 15px/1.62 e numeral `faint`; erro com ícone `#E5614F`;
   import 30px.
 
-⚠️ **Screenshot indisponível nesta sessão** (a Browser pane não estava compositando — quirk já
-registrado no `STATUS.md`). Toda a verificação acima é por DOM + estilos computados, com as
-animações forçadas ao estado assentado via `getAnimations().finish()`. **O gate visual humano
-continua pendente.**
+### Gate visual — o screenshot mudou 3 coisas que o DOM não pegava
+
+A Browser pane do preview **não compositava frames** nesta sessão (screenshot sempre em timeout;
+disco não era a causa — 127 GB livres). A saída foi capturar pelo **Chrome real** (`claude-in-chrome`),
+onde funcionou. Isso rendeu 3 achados que **nenhuma verificação por DOM ou estilo computado pega**:
+
+1. **O campo de luz da conclusão estava no lugar errado.** Preso aos 520px do topo com o gradiente
+   em 26% daquela caixa, ele ficava atrás do **título**, não do número-herói — o "momento" quase
+   não existia na tela. Agora cobre o `<main>` e ancora em 38% da altura, com **dois** campos
+   (núcleo quente + halo largo): com um gradiente só, ou era fraco demais para existir ou espalhado
+   demais para ter foco.
+2. **A composição encostava no topo**, com ~200px de vazio embaixo. `my-auto` centra opticamente
+   quando sobra espaço e degrada para o fluxo normal quando o conteúdo passa da tela
+   (`justify-center` tornaria o topo inalcançável na rolagem).
+3. **[§9] O relatório afirmava "Cintura: 0 cm"** quando havia UMA medição no período. Zero ali
+   significa "medi duas vezes e não mudou nada", quando a verdade é "só há uma medida, não dá pra
+   saber". `delta_cm` agora exige duas pontas (+1 teste). **Pré-existente** (`report.ts`, desde a
+   TASK-018) — o tratamento editorial só deu destaque a ele.
+
+**Lição:** verificação por DOM prova estrutura, contraste, alvo de toque e ausência de overflow.
+Ela **não** prova composição, foco visual nem se a luz está onde deveria. Quando o screenshot do
+preview falhar, o Chrome real é a segunda porta — não um substituto opcional.
+
+**O gate visual do usuário (aprovar o merge) continua pendente.**
 
 ## Dois achados de acessibilidade pegos MEDINDO, não no olho
 1. **Contraste do mapa de constância:** o acento a 55–60% derrubava o número do dia para 3,6–4,1:1,

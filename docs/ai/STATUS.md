@@ -476,9 +476,16 @@ o teto da escala do calendário caiu de 60% para 44% porque o contraste do núme
 3,6:1 (abaixo do AA); e o alvo de toque da grade, que era 36px **desde antes desta task**, subiu
 para 44,6×44.
 
-⚠️ **Screenshot indisponível na sessão de 2026-07-30** (Browser pane não compositava). A
-verificação foi por DOM + estilos computados, com `getAnimations().finish()` para inspecionar o
-estado assentado. **O gate visual humano continua pendente.**
+⚠️ **A Browser pane do preview não compositava frames na sessão de 2026-07-30** (screenshot sempre
+em timeout; disco NÃO era a causa — 127 GB livres). Saída: capturar pelo **Chrome real**
+(`claude-in-chrome`), que funcionou. Isso rendeu **3 achados de olho** que DOM não pega: o campo de
+luz da tela de conclusão estava atrás do título em vez do número-herói; a composição encostava no
+topo com ~200px de vazio; e o relatório afirmava "Cintura: 0 cm" com uma única medição no período
+(§9 — corrigido em `report.ts`, bug **pré-existente** da TASK-018). **Regra nova de verificação:
+quando o screenshot do preview falhar, o Chrome real é a segunda porta, não um substituto
+opcional** — DOM prova estrutura, contraste e overflow, mas não prova composição nem foco visual.
+
+**O gate visual do usuário (aprovar o merge) continua pendente.**
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
