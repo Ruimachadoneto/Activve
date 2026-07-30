@@ -53,6 +53,38 @@ limitar ao padrão exigido na documentação") para um upgrade de imersividade. 
 - Anti-culpa, arquitetura plan-file (app não prescreve), acessibilidade (reduced-motion,
   contraste, aria) e o teto de 1 E3 por tela — brilho em tudo é brilho em nada.
 
+### 0.2 Regras que a Fase 2 (TASK-026) acrescentou
+
+**Chrome não entra na escada de entrada.** `.stagger` aplica `rise` a todo filho direto, e o
+`BottomNav` renderiza espaçador + nav como filhos diretos do `<main>`. Com `fill-mode: both`, o
+`opacity: 0` do keyframe fica retido durante o atraso e a navegação principal aparecia ~280ms
+depois do conteúdo — o "movimento que atrasa a ação" proibido na §6. Elementos de chrome levam
+**`stagger-skip`**.
+
+**Escala de intensidade tem teto de contraste, não de gosto.** No mapa de constância
+(`/relatorios`) a luz do dia codifica volume. Medido no browser: o acento a 55–60% derruba o
+número do dia (12px, `text-ink`) para **3,6–4,1:1**, abaixo do AA. O teto da escala é **44%**
+(≈4,9:1 medido no pior caso). **Toda escala de intensidade sobre a qual haja texto deve ser
+medida, não estimada** — e a liberdade da §0.1 não alcança contraste.
+
+**Intensidade nunca é o único canal.** O que a cor diz vai por extenso no `aria-label`, e a escala
+só aparece com legenda. Sem régua (nenhum volume medido no período), não se pinta gradiente: sem
+comparação real, gradiente é comparação inventada.
+
+**Celebração é um MOMENTO, não um estado.** A tela de conclusão de treino é disparada pelo ATO de
+concluir (snapshot local), nunca derivada de `status === "done"` — senão o app comemoraria treino
+velho a cada reabertura. Corolário: a tela troca de forma **síncrona** (fecha a janela em que o
+treino encerrado ainda aceitaria edição, e devolve a reação imediata); o que espera o disco é a
+**navegação para fora**, porque o destino lê o IndexedDB na montagem.
+
+**Número animado carrega o valor final no HTML.** O count-up escreve no DOM por cima de um JSX que
+já contém o número verdadeiro. Sem JS, com `prefers-reduced-motion`, ou se o rAF nunca rodar, a
+tela mostra a verdade — nunca um valor parcial congelado. Animação de dado não pode ser a fonte do
+dado.
+
+**O degrau Display (30–34px) é a assinatura do registro C.** Ele marca as telas cuja tarefa é LER:
+relatório/PDF, "Como fazer", `/import`, estados de erro e vazios. Fora dessas, não se usa.
+
 ## 1. Marca
 - **Nome:** Activve. Logo: "A" estilizado (pico/seta) + wordmark.
 - **Tagline:** "Seu plano. Seu ritmo. Resultados consistentes."

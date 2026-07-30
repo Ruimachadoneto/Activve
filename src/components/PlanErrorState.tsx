@@ -19,6 +19,10 @@ function truncate(value: string): string {
  * Tom anti-culpa: o problema é do arquivo, não do usuário, e existe uma saída óbvia.
  * Os erros são renderizados como TEXTO (React escapa) e truncados — o conteúdo vem de
  * um arquivo não confiável.
+ *
+ * **Registro C — Editorial** (DESIGN_SYSTEM §0): estado de erro é uma tela de LEITURA.
+ * O título vai ao degrau *Display* e o texto ganha medida e entrelinha de leitura — quem
+ * chega aqui precisa entender o que houve, não escanear um card.
  */
 export function PlanErrorState({ errors }: { errors: FieldError[] }) {
   const shown = errors.slice(0, MAX_SHOWN);
@@ -26,18 +30,21 @@ export function PlanErrorState({ errors }: { errors: FieldError[] }) {
 
   return (
     <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col items-center justify-center px-5 py-10 text-center">
-      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-surface2 text-accent">
+      {/* `danger`, não `accent`: a §2.1 reserva o teal para ação disponível e estado
+          "pronto". Plano ilegível é falha real — é exatamente o que o vermelho significa.
+          O tom calmo mora na copy, não em fingir que nada quebrou. */}
+      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-surface2 text-danger">
         <FileWarning size={26} aria-hidden />
       </span>
 
-      <h1 className="mt-5 text-[22px] font-medium leading-tight tracking-tight">
+      <h1 className="mt-6 max-w-[18ch] text-[30px] font-medium leading-[1.15] tracking-tight">
         Não conseguimos abrir seu plano
       </h1>
-      <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted">
+      <p className="mt-3 max-w-[34ch] text-[15px] leading-relaxed text-muted">
         O arquivo salvo neste aparelho está incompleto ou fora do formato esperado. Nada de errado
         do seu lado — é só reimportar o plano para voltar ao normal.
       </p>
-      <p className="mt-3 max-w-xs text-xs leading-relaxed text-faint">
+      <p className="mt-3 max-w-[34ch] text-[13px] leading-relaxed text-faint">
         Seu histórico de treinos e medidas continua salvo: reimportar não apaga nada.
       </p>
 

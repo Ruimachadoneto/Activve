@@ -19,9 +19,13 @@ import { ExerciseSheet } from "@/components/ExerciseSheet";
 import { RestTimer } from "@/components/RestTimer";
 import { PlanErrorState } from "@/components/PlanErrorState";
 import { ExerciseMediaCard, ExerciseThumb, PreloadImages } from "@/components/ExerciseMediaCard";
+import { WorkoutCompletion } from "@/components/WorkoutCompletion";
 import { resolveMovement, videoHref } from "@/lib/plan/movement";
 import { resolveExerciseMedia } from "@/lib/plan/exerciseMedia";
-import { equipmentLabel } from "@/lib/plan/labels";
+import { equipmentLabel, muscleLabel } from "@/lib/plan/labels";
+import { buildExerciseMuscles } from "@/lib/plan/recovery";
+import { buildSessionSummary } from "@/lib/plan/summary";
+import type { PlanFile } from "@/lib/plan/schema";
 import {
   createSession,
   sessionProgress,
@@ -51,6 +55,27 @@ export default function TreinoPage() {
   const [allSetsOpen, setAllSetsOpen] = useState(false);
   /** Recorde pessoal recém-batido — controla o selo de celebração (some sozinho). */
   const [prCelebration, setPrCelebration] = useState<{ load: number; token: number } | null>(null);
+  /*
+   * Tela de conclusão. É estado LOCAL de propósito, e não `session.status === "done"`:
+   * celebração é um MOMENTO, não uma propriedade da sessão. Derivar do status faria a
+   * tela celebrar de novo toda vez que o usuário reabrisse um treino já concluído —
+   * comemoração automática de coisa velha é o oposto de conquista.
+   *
+   * Guarda um SNAPSHOT (sessão encerrada + treino), não um booleano: a tela entra
+   * depois que o IndexedDB responde, e a página continua interativa nesse intervalo.
+   * Lendo o `session`/`workout` correntes, trocar de treino nesse meio-tempo fazia a
+   * celebração resumir o treino errado — ou sumir de vez, porque o treino novo não
+   * está `done` (achado do review Codex). O snapshot é imutável por construção.
+   */
+  const [celebration, setCelebration] = useState<{
+    session: WorkoutSession;
+    workout: PlanFile["training"]["workouts"][number];
+    /**
+     * Escrita da sessão encerrada. A celebração entra na hora, mas os atalhos dela
+     * levam a telas que leem o IndexedDB na montagem — a navegação espera isto.
+     */
+    whenSaved: Promise<unknown>;
+  } | null>(null);
   /*
    * O descanso adiado pelo compasso do recorde. Guardado em ref para poder ser CANCELADO:
    * se a série do recorde era a última e o usuário toca "Concluir treino" dentro do
@@ -122,6 +147,10 @@ export default function TreinoPage() {
     [planId, workout?.id],
   );
 
+  // Lookup exercício→músculos do plano ativo (inclui variações, com escopo por
+  // exercício). Serve à tela de conclusão; o mapa do Corpo usa o mesmo núcleo.
+  const getMuscles = useMemo(() => (p ? buildExerciseMuscles(p) : null), [p]);
+
   useEffect(() => {
     if (!draft) return;
     let cancelled = false;
@@ -175,6 +204,47 @@ export default function TreinoPage() {
           Importar plano
         </Link>
       </main>
+    );
+  }
+
+  if (celebration) {
+    /*
+     * A celebração SUBSTITUI o Modo Treino — não é um banner por cima. O usuário
+     * acabou de terminar; a tela de execução não tem mais nada a dizer.
+     *
+     * Tudo aqui sai do SNAPSHOT, nunca do estado corrente: a tela precisa resumir o
+     * treino que foi concluído, não o que estiver selecionado agora.
+     * `bestPreviousLoad` (dentro do resumo) exclui esta sessão pelo `sessionId`, então
+     * não importa se o `history` já foi recarregado com ela dentro.
+     */
+    const summary = buildSessionSummary(celebration.session, history);
+    const nomeDoMovimento = (exerciseId: string, movementId: string) => {
+      const alvo = celebration.workout.exercises.find((e) => e.id === exerciseId);
+      if (!alvo) return movementId;
+      return resolveMovement(alvo, movementId === exerciseId ? undefined : movementId).name;
+    };
+    const musculos = getMuscles
+      ? [
+          ...new Set(
+            summary.movementIds.flatMap(
+              ({ exerciseId, movementId }) =>
+                getMuscles(exerciseId, movementId === exerciseId ? undefined : movementId)
+                  ?.primary ?? [],
+            ),
+          ),
+        ].map(muscleLabel)
+      : [];
+
+    return (
+      <WorkoutCompletion
+        workoutName={celebration.workout.name}
+        dateISO={celebration.session.date}
+        summary={summary}
+        movementName={nomeDoMovimento}
+        muscles={musculos}
+        whenSaved={celebration.whenSaved}
+        onBackToWorkout={() => setCelebration(null)}
+      />
     );
   }
 
@@ -334,15 +404,41 @@ export default function TreinoPage() {
   }
 
   function concluirTreino() {
-    if (!session) return;
+    // `workout` entra na guarda junto com `session`: o snapshot da celebração leva os
+    // dois, e o estreitamento das saídas antecipadas não alcança o corpo desta função.
+    if (!session || !workout) return;
     // Treino encerrado cancela qualquer descanso pendente do compasso do recorde.
     if (restDelayRef.current != null) {
       window.clearTimeout(restDelayRef.current);
       restDelayRef.current = null;
     }
+    // O overlay de descanso (E4) sobreviveria à troca de tela e ficaria por cima da
+    // celebração — mesma classe do achado do compasso do recorde na TASK-025.
+    setRestOpen(false);
+    setPrCelebration(null);
     const next = completeSession(session);
     setStored(next);
-    void saveSession(next).then(() => getAllSessions().then(setHistory));
+    /*
+     * A celebração entra AGORA, de forma síncrona, a partir de um snapshot imutável.
+     * Duas razões, as duas vindas do review Codex:
+     *
+     * 1. Adiar a troca de tela até a escrita responder deixava o Modo Treino VIVO
+     *    durante o round-trip — dava pra editar série, nota e variação de um treino já
+     *    encerrado, e essas edições tardias ficavam de fora do snapshot. Trocar a tela
+     *    na hora fecha a janela por construção: não há mais UI para editar.
+     * 2. Celebração é reação; ela não deve esperar disco.
+     *
+     * O que de fato precisava esperar a escrita não era a tela, era a NAVEGAÇÃO: os
+     * atalhos levam a `/corpo` e `/`, que leem as sessões na montagem. Por isso a
+     * promessa viaja junto no snapshot e a tela de conclusão só navega depois dela.
+     *
+     * Se a escrita falhar, a promessa resolve mesmo assim: o treino aconteceu, e travar
+     * a saída por erro de armazenamento castigaria o usuário por algo que não é dele.
+     */
+    const whenSaved = saveSession(next)
+      .then(() => getAllSessions().then(setHistory))
+      .catch(() => undefined);
+    setCelebration({ session: next, workout, whenSaved });
   }
 
   const allDone = progress.allDone;

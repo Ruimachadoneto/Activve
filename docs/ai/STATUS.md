@@ -447,6 +447,46 @@ plan-file e acessibilidade continuam).
 - **Fases seguintes (não iniciadas):** tela de conclusão de treino celebrada; Corpo/Relatórios no
   tratamento v3; registro C editorial.
 
+### TASK-026 — Vivid Fase 2 (IMPLEMENTADA + REVISADA, branch `ai/TASK-026-vivid-corpo-claude`, **aguarda só o merge**)
+Contrato completo: `docs/ai/tasks/TASK-026-vivid-fase2.md` — **ler antes de mexer**.
+Os **4 itens** foram entregues, revisados (3 ciclos Codex, 5 achados [P2] reais, todos corrigidos)
+e verificados no browser em 390×844.
+
+- ✅ **Corpo v3** (`42aaf98`): mapa muscular vira o E3 com spotlight radial atrás dos corpos; peso
+  vira número-herói de 44px e perde o `tabular-nums` que violava a §3.2; `card-lift` + `stagger`.
+  Review Codex **limpo no ciclo 1**. 1 achado meu na verificação: `BottomNav` (espaçador + nav são
+  filhos DIRETOS do `<main>`) entrava na escada do `.stagger` e a navegação principal ficava
+  invisível ~280ms — classe **`stagger-skip`** (`1483e46`).
+- ✅ **Tela de conclusão de treino** (`779ab0f`+): a tela de execução **sai de cena** e entra uma
+  composição sobre o que acabou de acontecer — volume levantado como herói de 56px com count-up,
+  recordes da sessão em âmbar, séries/exercícios/duração, foco muscular e saídas explícitas.
+  Núcleo puro novo: **`src/lib/plan/summary.ts`** (`buildSessionSummary`, `sessionVolume`,
+  `buildConstancy`, `formatDuration`) com 27 testes.
+- ✅ **Relatórios v3** (`7648ef6`): o calendário vira **mapa de constância** — o dia se acende com
+  intensidade proporcional ao volume daquele dia sobre o maior do mês. Sessão aberta não soma
+  volume (mesma régua de `recovery.ts`), mas aparece tracejada e contada à parte.
+- ✅ **Registro C (Editorial)** (`5c855d0`): o degrau **Display (30–34px)**, que a §3.1 define e
+  nenhuma tela usava, passa a marcar as telas de LEITURA — `ReportView`, `ExerciseSheet`,
+  `PlanErrorState` e `/import`.
+
+**Gates:** typecheck ✓ · lint ✓ · **228/228** ✓ · build ✓ (eram 200 antes da task).
+
+**Dois achados de acessibilidade pegos MEDINDO no browser, não no olho** (detalhe no contrato):
+o teto da escala do calendário caiu de 60% para 44% porque o contraste do número do dia batia
+3,6:1 (abaixo do AA); e o alvo de toque da grade, que era 36px **desde antes desta task**, subiu
+para 44,6×44.
+
+⚠️ **A Browser pane do preview não compositava frames na sessão de 2026-07-30** (screenshot sempre
+em timeout; disco NÃO era a causa — 127 GB livres). Saída: capturar pelo **Chrome real**
+(`claude-in-chrome`), que funcionou. Isso rendeu **3 achados de olho** que DOM não pega: o campo de
+luz da tela de conclusão estava atrás do título em vez do número-herói; a composição encostava no
+topo com ~200px de vazio; e o relatório afirmava "Cintura: 0 cm" com uma única medição no período
+(§9 — corrigido em `report.ts`, bug **pré-existente** da TASK-018). **Regra nova de verificação:
+quando o screenshot do preview falhar, o Chrome real é a segunda porta, não um substituto
+opcional** — DOM prova estrutura, contraste e overflow, mas não prova composição nem foco visual.
+
+**O gate visual do usuário (aprovar o merge) continua pendente.**
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
 branch apagada. ⚠️ **`main` está à frente de `origin` e o push NÃO foi feito** — o push dispara o

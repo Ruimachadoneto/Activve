@@ -191,6 +191,62 @@ body {
   animation: pr-ring 700ms var(--ease-out-soft) both;
 }
 
+/*
+ * Conclusão de treino: o campo de luz e os anéis que sobem de trás do número-herói.
+ * É a única tela que ganha luz mais forte que a atmosfera do `body` — é O momento de
+ * conquista do app, e a §0.1 libera isso justamente aqui.
+ *
+ * Os anéis animam a propriedade `scale`, não `transform`: o `-translate-x-1/2` do
+ * Tailwind v4 usa a propriedade `translate`, e as duas compõem sem se apagar. Animar
+ * `transform` aqui teria centralizado errado no meio da animação.
+ */
+@keyframes completion-bloom {
+  from {
+    opacity: 0;
+    scale: 0.9;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+.completion-bloom {
+  /*
+   * Dois campos: um núcleo quente atrás do número-herói e um halo largo que dissolve
+   * na atmosfera do `body`. Com um gradiente só, o brilho ou ficava fraco demais para
+   * existir ou espalhado demais para ter foco — visto no screenshot, não no DOM.
+   */
+  background:
+    radial-gradient(
+      34% 20% at 50% 38%,
+      color-mix(in srgb, var(--color-accent) 30%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      70% 42% at 50% 34%,
+      color-mix(in srgb, var(--color-accent) 14%, transparent),
+      transparent 74%
+    );
+  animation: completion-bloom var(--dur-slow) var(--ease-out-soft) both;
+}
+@keyframes completion-ring {
+  0% {
+    opacity: 0.5;
+    scale: 0.5;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.9;
+  }
+}
+.completion-ring {
+  border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  animation: completion-ring 1400ms var(--ease-out-soft) both;
+}
+.completion-ring-2 {
+  animation-delay: 320ms;
+}
+
 /* Desenho da linha do gráfico, da esquerda para a direita (dataviz §7). */
 @keyframes draw-line {
   from {
@@ -252,6 +308,15 @@ body {
 .stagger > *:nth-child(6) { animation-delay: 200ms; }
 .stagger > *:nth-child(7) { animation-delay: 240ms; }
 .stagger > *:nth-child(n + 8) { animation-delay: 280ms; }
+/*
+ * Chrome não é conteúdo. O nav flutuante e seu espaçador são filhos diretos do `<main>`,
+ * então entravam na escada e a navegação principal ficava invisível (fill-mode `both`
+ * segura o `opacity: 0` durante o atraso) por ~280ms a cada entrada numa tela com
+ * `stagger` — exatamente o "movimento que atrasa a ação" proibido na §6.
+ */
+.stagger > .stagger-skip {
+  animation: none;
+}
 
 /*
  * Acessibilidade: a UI precisa funcionar 100% sem depender de animação
@@ -261,12 +326,20 @@ body {
   .draw-line,
   .stagger > *,
   .pr-badge,
-  .pr-ring {
+  .pr-ring,
+  .completion-bloom,
+  .completion-ring {
     animation: none;
   }
-  /* O anel é só movimento — sem animação ele não deve nem aparecer. */
-  .pr-ring {
+  /* Anéis são só movimento — sem animação eles não devem nem aparecer. */
+  .pr-ring,
+  .completion-ring {
     opacity: 0;
+  }
+  /* O campo de luz não é movimento: sem animação ele fica, apenas já assentado. */
+  .completion-bloom {
+    opacity: 1;
+    scale: 1;
   }
   .draw-line {
     stroke-dasharray: none;
