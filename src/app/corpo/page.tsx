@@ -193,7 +193,7 @@ export default function CorpoPage() {
   const measureValue = (key: string) => measureDraft[key] ?? (measures[key]?.toString() ?? "");
 
   return (
-    <main className="mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-7">
+    <main className="stagger mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-7">
       <header>
         <h1 className="text-xl font-medium tracking-tight">Corpo</h1>
         <p className="mt-0.5 text-sm text-muted">Sua evolução, sem cobrança.</p>
@@ -221,24 +221,40 @@ export default function CorpoPage() {
 
       {tab === "overview" ? (
         <>
-          <section
-            className="mt-4 rounded-card border border-line p-5"
-            style={{ background: "linear-gradient(180deg, #16263a 0%, #101d2e 60%)" }}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-faint">Recuperação muscular</p>
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
+          {/*
+            O mapa é o protagonista do Corpo — é o E3 da tela (§5: máximo 1). Ganha
+            spotlight: um campo de luz atrás dos corpos, para eles emergirem do fundo em
+            vez de flutuarem num retângulo (direção v3).
+          */}
+          <section className="card-lift elev-focus relative mt-4 overflow-hidden rounded-card border border-line p-5">
+            <div
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[320px] w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle, color-mix(in srgb, var(--color-accent) 12%, transparent) 0%, transparent 68%)",
+              }}
+              aria-hidden
+            />
+            <div className="relative">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-faint">
+                  Recuperação muscular
+                </p>
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
+              </div>
+              {recovery ? <RecoveryMap recovery={recovery} gender={gender} /> : null}
             </div>
-            {recovery ? <RecoveryMap recovery={recovery} gender={gender} /> : null}
           </section>
 
           {/* Tendência de peso: número grande + chip de delta (30 dias) + gráfico */}
-          <section className="mt-4 rounded-card border border-line bg-surface p-5">
+          <section className="card-lift mt-4 rounded-card border border-line p-5">
             <p className="text-[11px] uppercase tracking-wider text-faint">Tendência de peso</p>
             <div className="mt-2 flex items-end justify-between">
               <div className="flex items-end gap-1.5">
-                <span className="text-4xl font-medium leading-none tabular-nums">{latest}</span>
-                <span className="pb-1 text-sm text-muted">kg</span>
+                {/* Numerais proporcionais: `tabular-nums` num número grande e isolado
+                    deixa o display frouxo (§3.2, regra corrigida na TASK-021). */}
+                <span className="text-[44px] font-medium leading-none tracking-tight">{latest}</span>
+                <span className="pb-1.5 text-sm text-muted">kg</span>
               </div>
               {delta30 !== null ? (
                 <span className="mb-0.5 inline-flex items-center gap-1 rounded-full bg-surface2/60 px-2.5 py-1 text-xs text-muted">
@@ -271,7 +287,7 @@ export default function CorpoPage() {
           </section>
 
           {/* Medidas principais (resumo, leitura) */}
-          <section className="mt-4 rounded-card border border-line bg-surface p-5">
+          <section className="card-lift mt-4 rounded-card border border-line p-5">
             <div className="flex items-center justify-between">
               <p className="text-[11px] uppercase tracking-wider text-faint">Medidas principais</p>
               <button
@@ -309,7 +325,7 @@ export default function CorpoPage() {
             </dl>
           </section>
 
-          <section className="mt-4 rounded-card border border-line bg-surface p-5">
+          <section className="card-lift mt-4 rounded-card border border-line p-5">
             <p className="text-[11px] uppercase tracking-wider text-faint">Sua meta</p>
             <h2 className="mt-1.5 text-lg font-medium">{goalLabel(goal.type)}</h2>
             {goal.summary ? <p className="mt-1 text-sm text-muted">{goal.summary}</p> : null}
@@ -329,7 +345,7 @@ export default function CorpoPage() {
         </>
       ) : tab === "measures" ? (
         <>
-          <section className="mt-4 rounded-card border border-line bg-surface p-5">
+          <section className="card-lift mt-4 rounded-card border border-line p-5">
             <p className="text-[11px] uppercase tracking-wider text-faint">Registrar peso de hoje</p>
             <div className="mt-3 flex items-center gap-2">
               <input
@@ -351,7 +367,7 @@ export default function CorpoPage() {
             </div>
           </section>
 
-          <section className="mt-4 rounded-card border border-line bg-surface p-5">
+          <section className="card-lift mt-4 rounded-card border border-line p-5">
             <p className="text-[11px] uppercase tracking-wider text-faint">Medidas (cm)</p>
             <p className="mt-1 text-xs text-muted">Preencha o que quiser acompanhar. Fica opcional.</p>
             <div className="mt-3 flex flex-col gap-2.5">
@@ -382,7 +398,7 @@ export default function CorpoPage() {
           </section>
         </>
       ) : (
-        <section className="mt-4 rounded-card border border-line bg-surface p-5">
+        <section className="card-lift mt-4 rounded-card border border-line p-5">
           <p className="text-[11px] uppercase tracking-wider text-faint">Histórico</p>
           {historyDesc.length === 0 ? (
             <p className="mt-3 text-sm text-muted">
