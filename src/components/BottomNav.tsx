@@ -20,9 +20,15 @@ export function BottomNav({ active }: { active: Tab }) {
     <>
       {/* Reserva a MESMA altura que a pílula ocupa — incluindo a safe-area de iPhones,
           senão o último conteúdo da página fica escondido atrás do nav (achado do review). */}
-      <div style={{ height: "calc(6rem + env(safe-area-inset-bottom, 0px))" }} aria-hidden />
+      <div
+        className="stagger-skip"
+        style={{ height: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}
+        aria-hidden
+      />
+      {/* `stagger-skip`: numa tela com `.stagger` no `<main>`, o nav é filho direto e
+          entraria na escada de entrada — chrome não espera a vez do conteúdo. */}
       <nav
-        className="elev-float fixed bottom-4 left-1/2 z-40 flex w-[calc(100%_-_40px)] max-w-[400px] -translate-x-1/2 items-center justify-around rounded-full border border-line bg-surface/80 px-2 py-2 backdrop-blur-xl"
+        className="stagger-skip elev-float fixed bottom-4 left-1/2 z-40 flex w-[calc(100%_-_40px)] max-w-[400px] -translate-x-1/2 items-center justify-around rounded-full border border-line bg-surface/80 px-2 py-2 backdrop-blur-xl"
         style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
       >
         {ITEMS.map(({ id, label, Icon, href }) => {

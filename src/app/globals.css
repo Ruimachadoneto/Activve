@@ -252,6 +252,15 @@ body {
 .stagger > *:nth-child(6) { animation-delay: 200ms; }
 .stagger > *:nth-child(7) { animation-delay: 240ms; }
 .stagger > *:nth-child(n + 8) { animation-delay: 280ms; }
+/*
+ * Chrome não é conteúdo. O nav flutuante e seu espaçador são filhos diretos do `<main>`,
+ * então entravam na escada e a navegação principal ficava invisível (fill-mode `both`
+ * segura o `opacity: 0` durante o atraso) por ~280ms a cada entrada numa tela com
+ * `stagger` — exatamente o "movimento que atrasa a ação" proibido na §6.
+ */
+.stagger > .stagger-skip {
+  animation: none;
+}
 
 /*
  * Acessibilidade: a UI precisa funcionar 100% sem depender de animação
