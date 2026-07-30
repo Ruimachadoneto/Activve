@@ -447,6 +447,17 @@ plan-file e acessibilidade continuam).
 - **Fases seguintes (não iniciadas):** tela de conclusão de treino celebrada; Corpo/Relatórios no
   tratamento v3; registro C editorial.
 
+### TASK-026 — Vivid Fase 2 (EM ANDAMENTO, branch `ai/TASK-026-vivid-corpo-claude`)
+Contrato completo com o que falta: `docs/ai/tasks/TASK-026-vivid-fase2.md` — **ler antes de tudo**.
+- ✅ **Corpo v3 entregue** (commit `42aaf98`): mapa muscular vira o E3 com spotlight radial atrás
+  dos corpos; peso vira número-herói de 44px e perde o `tabular-nums` que violava a §3.2;
+  `card-lift` + `stagger`. Verificado em 390×844 (1 E3, sem overflow, console limpo). Gates 200/200.
+- ⬜ **Faltam 3**: (1) tela de **conclusão de treino celebrada** — hoje não há celebração nenhuma
+  no fim do treino, que é o pico de conquista do app; (2) **Relatórios v3** — calendário como mapa
+  de constância + bloco de relatório em registro editorial; (3) **registro C (Editorial)** — o
+  degrau *Display* (30–34px) da escala tipográfica ainda não é usado em lugar nenhum do app.
+- ⚠️ **Corpo v3 ainda NÃO passou por review Codex nem foi mergeado.**
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
 branch apagada. ⚠️ **`main` está à frente de `origin` e o push NÃO foi feito** — o push dispara o
