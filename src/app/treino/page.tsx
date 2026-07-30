@@ -360,8 +360,24 @@ export default function TreinoPage() {
     setPrCelebration(null);
     const next = completeSession(session);
     setStored(next);
-    void saveSession(next).then(() => getAllSessions().then(setHistory));
-    setCelebrating(true);
+    /*
+     * A celebração só entra DEPOIS que a sessão está no IndexedDB. Ela oferece
+     * "Ver como seu corpo ficou" e "Voltar ao início", e as duas telas leem as sessões
+     * na montagem: exibir os atalhos antes da escrita permitia um toque rápido montar
+     * `/corpo` com dado velho — o treino que o usuário acabou de fazer não apareceria no
+     * mapa, justamente o que o CTA promete (achado do review Codex).
+     *
+     * O custo é de poucos milissegundos, e o retorno visual do toque é imediato de
+     * qualquer forma: `setStored` já trocou o rótulo do botão de forma síncrona.
+     *
+     * Se a escrita falhar, celebra assim mesmo: o treino aconteceu, e segurar a
+     * celebração por causa de erro de armazenamento castigaria o usuário por algo que
+     * não é dele. A falha já era ignorada antes desta tela existir.
+     */
+    void saveSession(next)
+      .then(() => getAllSessions().then(setHistory))
+      .catch(() => undefined)
+      .finally(() => setCelebrating(true));
   }
 
   const allDone = progress.allDone;
