@@ -338,7 +338,16 @@ export function buildReport(
       key,
       start_cm,
       latest_cm,
-      delta_cm: start_cm != null && latest_cm != null ? round1(latest_cm - start_cm) : undefined,
+      /*
+       * Delta exige DUAS medições. Com uma só, `start_cm === latest_cm` e a conta dava
+       * `0` — o relatório afirmava "Cintura: 0 cm", isto é, "medi duas vezes e não
+       * mudou nada", quando a verdade é "só há uma medida, não dá pra saber". Número
+       * fabricado é exatamente o que a §9 proíbe. Sem as duas pontas, não há delta.
+       */
+      delta_cm:
+        touches.length >= 2 && start_cm != null && latest_cm != null
+          ? round1(latest_cm - start_cm)
+          : undefined,
     };
   });
 

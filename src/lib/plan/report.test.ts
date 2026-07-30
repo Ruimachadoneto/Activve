@@ -196,6 +196,16 @@ describe("buildReport — body", () => {
     expect(waist?.delta_cm).toBe(-2);
   });
 
+  it("uma medição só não vira delta 0 — sem duas pontas não há variação", () => {
+    const umaSo: BodyEntry[] = [{ date: "2026-06-22", measures: { waist: 90 }, recordedAt: "" }];
+    const r = buildReport(plan, knownPlans, [], umaSo, period);
+    const waist = r.body.measures.find((m) => m.key === "waist");
+    expect(waist?.latest_cm).toBe(90);
+    // "0 cm" afirmaria que mediu duas vezes e não mudou nada (§9: nada de número
+    // fabricado). O relatório simplesmente não mostra a linha.
+    expect(waist?.delta_cm).toBeUndefined();
+  });
+
   it("lápide (null) apagando uma medida no período vira 'sem valor', não o número antigo", () => {
     const withTombstone: BodyEntry[] = [
       { date: "2026-06-22", measures: { waist: 90 }, recordedAt: "" },

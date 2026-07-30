@@ -104,22 +104,35 @@ export function WorkoutCompletion({
   });
 
   return (
-    <main className="relative mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-10 pt-10">
+    <main className="relative mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 py-8">
       {/*
         Campo de luz da conquista: mais forte que a atmosfera do `body` (§0.1 permite —
-        é O momento da tela), ancorado atrás do herói. `aria-hidden`: é clima, não dado.
+        é O momento da tela). `aria-hidden`: é clima, não dado.
+
+        Cobre o `<main>` inteiro e ancora em 38% da altura — a posição do número-herói
+        depois da centralização óptica abaixo. A primeira versão prendia o brilho aos
+        520px do topo, o que o deixava atrás do TÍTULO: no screenshot ele praticamente
+        não existia. Só deu pra ver isso com olho; nenhuma verificação por DOM pega
+        "a luz está no lugar errado".
+
         O `overflow-hidden` mora AQUI, não no `<main>`: os anéis crescem além da largura
         da tela e precisam ser recortados sem transformar a página num contêiner de corte.
       */}
       <div
-        className="completion-bloom pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] overflow-hidden"
+        className="completion-bloom pointer-events-none absolute inset-0 -z-10 overflow-hidden"
         aria-hidden
       >
-        <span className="completion-ring absolute left-1/2 top-[210px] h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full" />
-        <span className="completion-ring completion-ring-2 absolute left-1/2 top-[210px] h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full" />
+        <span className="completion-ring absolute left-1/2 top-[38%] h-60 w-60 -translate-x-1/2 -translate-y-1/2 rounded-full" />
+        <span className="completion-ring completion-ring-2 absolute left-1/2 top-[38%] h-60 w-60 -translate-x-1/2 -translate-y-1/2 rounded-full" />
       </div>
 
-      <div className="stagger flex flex-col">
+      {/*
+        `my-auto` em vez de `justify-center`: centra opticamente quando sobra espaço
+        (a composição estava encostada no topo com ~200px de vazio embaixo) e degrada
+        para o fluxo normal quando o conteúdo é mais alto que a tela — `justify-center`
+        ali tornaria o topo inalcançável na rolagem.
+      */}
+      <div className="stagger my-auto flex flex-col">
         <header>
           <p className="text-[11px] uppercase tracking-[0.14em] text-accent">Treino concluído</p>
           <h1
