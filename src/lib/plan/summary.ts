@@ -207,9 +207,20 @@ export function buildConstancy(sessions: WorkoutSession[]): Map<string, DayConst
       volumeKg: 0,
       intensity: null,
     };
-    if (s.status === "done") day.done += 1;
-    else day.inProgress += 1;
-    day.volumeKg += sessionVolume(s).kg;
+    if (s.status === "done") {
+      day.done += 1;
+      /*
+       * Só sessão CONCLUÍDA entra no volume. Uma sessão aberta com séries marcadas
+       * tem volume real, mas o mapa é de treino concluído: contá-la acenderia o dia
+       * mais forte do que o treino terminado justifica, e um mês só com sessões
+       * abertas mostraria escala de volume debaixo de "Nenhum treino registrado".
+       * É a mesma régua do resto do app — `recovery.ts` e o relatório também só
+       * contam `status === "done"` (achado do review Codex).
+       */
+      day.volumeKg += sessionVolume(s).kg;
+    } else {
+      day.inProgress += 1;
+    }
     byDate.set(s.date, day);
   }
   let max = 0;

@@ -25,6 +25,7 @@ import { resolveExerciseMedia } from "@/lib/plan/exerciseMedia";
 import { equipmentLabel, muscleLabel } from "@/lib/plan/labels";
 import { buildExerciseMuscles } from "@/lib/plan/recovery";
 import { buildSessionSummary } from "@/lib/plan/summary";
+import type { PlanFile } from "@/lib/plan/schema";
 import {
   createSession,
   sessionProgress,
@@ -59,8 +60,17 @@ export default function TreinoPage() {
    * celebração é um MOMENTO, não uma propriedade da sessão. Derivar do status faria a
    * tela celebrar de novo toda vez que o usuário reabrisse um treino já concluído —
    * comemoração automática de coisa velha é o oposto de conquista.
+   *
+   * Guarda um SNAPSHOT (sessão encerrada + treino), não um booleano: a tela entra
+   * depois que o IndexedDB responde, e a página continua interativa nesse intervalo.
+   * Lendo o `session`/`workout` correntes, trocar de treino nesse meio-tempo fazia a
+   * celebração resumir o treino errado — ou sumir de vez, porque o treino novo não
+   * está `done` (achado do review Codex). O snapshot é imutável por construção.
    */
-  const [celebrating, setCelebrating] = useState(false);
+  const [celebration, setCelebration] = useState<{
+    session: WorkoutSession;
+    workout: PlanFile["training"]["workouts"][number];
+  } | null>(null);
   /*
    * O descanso adiado pelo compasso do recorde. Guardado em ref para poder ser CANCELADO:
    * se a série do recorde era a última e o usuário toca "Concluir treino" dentro do
@@ -189,6 +199,46 @@ export default function TreinoPage() {
           Importar plano
         </Link>
       </main>
+    );
+  }
+
+  if (celebration) {
+    /*
+     * A celebração SUBSTITUI o Modo Treino — não é um banner por cima. O usuário
+     * acabou de terminar; a tela de execução não tem mais nada a dizer.
+     *
+     * Tudo aqui sai do SNAPSHOT, nunca do estado corrente: a tela precisa resumir o
+     * treino que foi concluído, não o que estiver selecionado agora.
+     * `bestPreviousLoad` (dentro do resumo) exclui esta sessão pelo `sessionId`, então
+     * não importa se o `history` já foi recarregado com ela dentro.
+     */
+    const summary = buildSessionSummary(celebration.session, history);
+    const nomeDoMovimento = (exerciseId: string, movementId: string) => {
+      const alvo = celebration.workout.exercises.find((e) => e.id === exerciseId);
+      if (!alvo) return movementId;
+      return resolveMovement(alvo, movementId === exerciseId ? undefined : movementId).name;
+    };
+    const musculos = getMuscles
+      ? [
+          ...new Set(
+            summary.movementIds.flatMap(
+              ({ exerciseId, movementId }) =>
+                getMuscles(exerciseId, movementId === exerciseId ? undefined : movementId)
+                  ?.primary ?? [],
+            ),
+          ),
+        ].map(muscleLabel)
+      : [];
+
+    return (
+      <WorkoutCompletion
+        workoutName={celebration.workout.name}
+        dateISO={celebration.session.date}
+        summary={summary}
+        movementName={nomeDoMovimento}
+        muscles={musculos}
+        onBackToWorkout={() => setCelebration(null)}
+      />
     );
   }
 
@@ -348,7 +398,9 @@ export default function TreinoPage() {
   }
 
   function concluirTreino() {
-    if (!session) return;
+    // `workout` entra na guarda junto com `session`: o snapshot da celebração leva os
+    // dois, e o estreitamento das saídas antecipadas não alcança o corpo desta função.
+    if (!session || !workout) return;
     // Treino encerrado cancela qualquer descanso pendente do compasso do recorde.
     if (restDelayRef.current != null) {
       window.clearTimeout(restDelayRef.current);
@@ -374,50 +426,14 @@ export default function TreinoPage() {
      * celebração por causa de erro de armazenamento castigaria o usuário por algo que
      * não é dele. A falha já era ignorada antes desta tela existir.
      */
+    const snapshot = { session: next, workout };
     void saveSession(next)
       .then(() => getAllSessions().then(setHistory))
       .catch(() => undefined)
-      .finally(() => setCelebrating(true));
+      .finally(() => setCelebration(snapshot));
   }
 
   const allDone = progress.allDone;
-
-  if (celebrating && session.status === "done") {
-    /*
-     * A celebração SUBSTITUI o Modo Treino — não é um banner por cima. O usuário
-     * acabou de terminar; a tela de execução não tem mais nada a dizer.
-     * `bestPreviousLoad` (dentro do resumo) exclui esta sessão pelo `sessionId`, então
-     * não importa se o `history` já foi recarregado com ela dentro.
-     */
-    const summary = buildSessionSummary(session, history);
-    const nomeDoMovimento = (exerciseId: string, movementId: string) => {
-      const alvo = workout.exercises.find((e) => e.id === exerciseId);
-      if (!alvo) return movementId;
-      return resolveMovement(alvo, movementId === exerciseId ? undefined : movementId).name;
-    };
-    const musculos = getMuscles
-      ? [
-          ...new Set(
-            summary.movementIds.flatMap(
-              ({ exerciseId, movementId }) =>
-                getMuscles(exerciseId, movementId === exerciseId ? undefined : movementId)
-                  ?.primary ?? [],
-            ),
-          ),
-        ].map(muscleLabel)
-      : [];
-
-    return (
-      <WorkoutCompletion
-        workoutName={workout.name}
-        dateISO={session.date}
-        summary={summary}
-        movementName={nomeDoMovimento}
-        muscles={musculos}
-        onBackToWorkout={() => setCelebrating(false)}
-      />
-    );
-  }
 
   return (
     <main className="relative mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-8 pt-6">

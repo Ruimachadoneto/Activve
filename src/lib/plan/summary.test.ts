@@ -260,9 +260,30 @@ describe("buildConstancy — mapa do calendário", () => {
     expect(map.get("2026-07-02")).toMatchObject({ done: 2, volumeKg: 1000, intensity: 1 });
   });
 
-  it("separa em andamento de concluído", () => {
+  it("separa em andamento de concluído, e sessão aberta não entra no volume", () => {
     const map = buildConstancy([dia("2026-07-03", "in_progress", 30, 10)]);
-    expect(map.get("2026-07-03")).toMatchObject({ done: 0, inProgress: 1 });
+    // Sem nenhuma sessão concluída no período, não existe escala — nem no dia, nem no
+    // rodapé do mês (senão a legenda de volume apareceria sob "Nenhum treino
+    // registrado").
+    expect(map.get("2026-07-03")).toMatchObject({
+      done: 0,
+      inProgress: 1,
+      volumeKg: 0,
+      intensity: null,
+    });
+  });
+
+  it("dia com treino concluído E treino aberto acende só pelo concluído", () => {
+    const map = buildConstancy([
+      dia("2026-07-09", "done", 50, 10), // 500 — conta
+      dia("2026-07-09", "in_progress", 40, 10), // 400 — não conta
+    ]);
+    expect(map.get("2026-07-09")).toMatchObject({
+      done: 1,
+      inProgress: 1,
+      volumeKg: 500,
+      intensity: 1,
+    });
   });
 
   it("sem volume em lugar nenhum, não há régua — intensidade fica null", () => {
