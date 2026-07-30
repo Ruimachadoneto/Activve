@@ -191,6 +191,51 @@ body {
   animation: pr-ring 700ms var(--ease-out-soft) both;
 }
 
+/*
+ * Conclusão de treino: o campo de luz e os anéis que sobem de trás do número-herói.
+ * É a única tela que ganha luz mais forte que a atmosfera do `body` — é O momento de
+ * conquista do app, e a §0.1 libera isso justamente aqui.
+ *
+ * Os anéis animam a propriedade `scale`, não `transform`: o `-translate-x-1/2` do
+ * Tailwind v4 usa a propriedade `translate`, e as duas compõem sem se apagar. Animar
+ * `transform` aqui teria centralizado errado no meio da animação.
+ */
+@keyframes completion-bloom {
+  from {
+    opacity: 0;
+    scale: 0.9;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+.completion-bloom {
+  background: radial-gradient(
+    58% 40% at 50% 26%,
+    color-mix(in srgb, var(--color-accent) 22%, transparent),
+    transparent 70%
+  );
+  animation: completion-bloom var(--dur-slow) var(--ease-out-soft) both;
+}
+@keyframes completion-ring {
+  0% {
+    opacity: 0.5;
+    scale: 0.5;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.9;
+  }
+}
+.completion-ring {
+  border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  animation: completion-ring 1400ms var(--ease-out-soft) both;
+}
+.completion-ring-2 {
+  animation-delay: 320ms;
+}
+
 /* Desenho da linha do gráfico, da esquerda para a direita (dataviz §7). */
 @keyframes draw-line {
   from {
@@ -270,12 +315,20 @@ body {
   .draw-line,
   .stagger > *,
   .pr-badge,
-  .pr-ring {
+  .pr-ring,
+  .completion-bloom,
+  .completion-ring {
     animation: none;
   }
-  /* O anel é só movimento — sem animação ele não deve nem aparecer. */
-  .pr-ring {
+  /* Anéis são só movimento — sem animação eles não devem nem aparecer. */
+  .pr-ring,
+  .completion-ring {
     opacity: 0;
+  }
+  /* O campo de luz não é movimento: sem animação ele fica, apenas já assentado. */
+  .completion-bloom {
+    opacity: 1;
+    scale: 1;
   }
   .draw-line {
     stroke-dasharray: none;

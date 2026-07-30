@@ -19,9 +19,12 @@ import { ExerciseSheet } from "@/components/ExerciseSheet";
 import { RestTimer } from "@/components/RestTimer";
 import { PlanErrorState } from "@/components/PlanErrorState";
 import { ExerciseMediaCard, ExerciseThumb, PreloadImages } from "@/components/ExerciseMediaCard";
+import { WorkoutCompletion } from "@/components/WorkoutCompletion";
 import { resolveMovement, videoHref } from "@/lib/plan/movement";
 import { resolveExerciseMedia } from "@/lib/plan/exerciseMedia";
-import { equipmentLabel } from "@/lib/plan/labels";
+import { equipmentLabel, muscleLabel } from "@/lib/plan/labels";
+import { buildExerciseMuscles } from "@/lib/plan/recovery";
+import { buildSessionSummary } from "@/lib/plan/summary";
 import {
   createSession,
   sessionProgress,
@@ -51,6 +54,13 @@ export default function TreinoPage() {
   const [allSetsOpen, setAllSetsOpen] = useState(false);
   /** Recorde pessoal recém-batido — controla o selo de celebração (some sozinho). */
   const [prCelebration, setPrCelebration] = useState<{ load: number; token: number } | null>(null);
+  /*
+   * Tela de conclusão. É estado LOCAL de propósito, e não `session.status === "done"`:
+   * celebração é um MOMENTO, não uma propriedade da sessão. Derivar do status faria a
+   * tela celebrar de novo toda vez que o usuário reabrisse um treino já concluído —
+   * comemoração automática de coisa velha é o oposto de conquista.
+   */
+  const [celebrating, setCelebrating] = useState(false);
   /*
    * O descanso adiado pelo compasso do recorde. Guardado em ref para poder ser CANCELADO:
    * se a série do recorde era a última e o usuário toca "Concluir treino" dentro do
@@ -121,6 +131,10 @@ export default function TreinoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [planId, workout?.id],
   );
+
+  // Lookup exercício→músculos do plano ativo (inclui variações, com escopo por
+  // exercício). Serve à tela de conclusão; o mapa do Corpo usa o mesmo núcleo.
+  const getMuscles = useMemo(() => (p ? buildExerciseMuscles(p) : null), [p]);
 
   useEffect(() => {
     if (!draft) return;
@@ -340,12 +354,54 @@ export default function TreinoPage() {
       window.clearTimeout(restDelayRef.current);
       restDelayRef.current = null;
     }
+    // O overlay de descanso (E4) sobreviveria à troca de tela e ficaria por cima da
+    // celebração — mesma classe do achado do compasso do recorde na TASK-025.
+    setRestOpen(false);
+    setPrCelebration(null);
     const next = completeSession(session);
     setStored(next);
     void saveSession(next).then(() => getAllSessions().then(setHistory));
+    setCelebrating(true);
   }
 
   const allDone = progress.allDone;
+
+  if (celebrating && session.status === "done") {
+    /*
+     * A celebração SUBSTITUI o Modo Treino — não é um banner por cima. O usuário
+     * acabou de terminar; a tela de execução não tem mais nada a dizer.
+     * `bestPreviousLoad` (dentro do resumo) exclui esta sessão pelo `sessionId`, então
+     * não importa se o `history` já foi recarregado com ela dentro.
+     */
+    const summary = buildSessionSummary(session, history);
+    const nomeDoMovimento = (exerciseId: string, movementId: string) => {
+      const alvo = workout.exercises.find((e) => e.id === exerciseId);
+      if (!alvo) return movementId;
+      return resolveMovement(alvo, movementId === exerciseId ? undefined : movementId).name;
+    };
+    const musculos = getMuscles
+      ? [
+          ...new Set(
+            summary.movementIds.flatMap(
+              ({ exerciseId, movementId }) =>
+                getMuscles(exerciseId, movementId === exerciseId ? undefined : movementId)
+                  ?.primary ?? [],
+            ),
+          ),
+        ].map(muscleLabel)
+      : [];
+
+    return (
+      <WorkoutCompletion
+        workoutName={workout.name}
+        dateISO={session.date}
+        summary={summary}
+        movementName={nomeDoMovimento}
+        muscles={musculos}
+        onBackToWorkout={() => setCelebrating(false)}
+      />
+    );
+  }
 
   return (
     <main className="relative mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-8 pt-6">
