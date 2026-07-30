@@ -104,7 +104,10 @@ const NAME_TAGS = [
   [/bent[- ]?over/i, "curvado"],
   [/close[- ]?grip/i, "fechada"],
   [/wide[- ]?grip/i, "aberta"],
-  [/(reverse grip|underhand|supinated|chin)/i, "supinada"],
+  // `\b` antes de "chin" é obrigatório: sem ele, o padrão casa dentro de ma-CHIN-e e
+  // TODA variação de máquina ganhava uma tag `supinada` falsa — "Supino reto supinado"
+  // ia parar em `Machine_Bench_Press` (achado [P1] do review Codex).
+  [/(reverse grip|underhand|supinated|\bchin)/i, "supinada"],
   [/(overhand|pronated)/i, "pronada"],
   [/smith/i, "smith"],
   [/rope/i, "corda"],

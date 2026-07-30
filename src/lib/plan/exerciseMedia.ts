@@ -329,6 +329,22 @@ const PT_MODIFIERS: [token: string, tag: string][] = [
 const CURATED_IDS = new Set(Object.values(PT_TO_ID));
 
 /**
+ * Ordem de "quão básico é o equipamento". Quando o plano não diz com o quê, a versão
+ * canônica de um movimento é a de peso livre, não a da máquina: sem este critério,
+ * "supino reto supinado" caía em `Machine_Bench_Press` só porque o id é mais curto.
+ */
+const EQUIPMENT_RANK = ["barra", "halteres", "livre", "barraw", "cabo", "kettlebell", "maquina", "smith", "elastico", "bola", "outro"];
+
+function equipmentRank(tags: readonly string[]): number {
+  let rank = EQUIPMENT_RANK.length;
+  for (const tag of tags) {
+    const i = EQUIPMENT_RANK.indexOf(tag);
+    if (i >= 0 && i < rank) rank = i;
+  }
+  return rank;
+}
+
+/**
  * Casamento ESTRUTURAL: identifica o núcleo do movimento e, dentro dele, escolhe a
  * variação cujas tags mais combinam com os modificadores do nome.
  *
@@ -357,7 +373,8 @@ function matchStructural(normalized: string): string | null {
   // `Reverse_Barbell_Preacher_Curls`). O qualificador mais específico vence.
   if (nameTags.has("barraw")) nameTags.delete("barra");
 
-  let best: { id: string; score: number; curated: boolean; tags: number } | null = null;
+  let best: { id: string; score: number; curated: boolean; tags: number; rank: number } | null =
+    null;
   for (const [id, tags] of candidates) {
     let hits = 0;
     let cost = 0;
@@ -374,14 +391,29 @@ function matchStructural(normalized: string): string | null {
     }
     const score = hits * 3 - cost;
     const curated = CURATED_IDS.has(id);
-    if (
+    const rank = equipmentRank(tags);
+    /*
+     * Desempate, em ordem: escolha humana (dicionário curado) > menos especificidade
+     * (menos tags) > equipamento mais básico > nome mais curto.
+     *
+     * Nenhum destes é estética. Sem o último, o empate caía na ORDEM DO ARQUIVO e a
+     * variação exótica vencia a básica ("agachamento no smith" →
+     * `Smith_Machine_Pistol_Squat`). Sem o penúltimo, o id mais curto vencia e um nome
+     * genérico caía na máquina ("supino reto supinado" → `Machine_Bench_Press`), quando
+     * a versão canônica de um movimento é a de peso livre.
+     */
+    const better =
       best === null ||
       score > best.score ||
-      (score === best.score && curated && !best.curated) ||
-      (score === best.score && curated === best.curated && tags.length < best.tags)
-    ) {
-      best = { id, score, curated, tags: tags.length };
-    }
+      (score === best.score &&
+        (curated !== best.curated
+          ? curated
+          : tags.length !== best.tags
+            ? tags.length < best.tags
+            : rank !== best.rank
+              ? rank < best.rank
+              : id.length < best.id.length));
+    if (better) best = { id, score, curated, tags: tags.length, rank };
   }
   return best?.id ?? null;
 }

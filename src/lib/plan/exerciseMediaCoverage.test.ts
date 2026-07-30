@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { resolveExerciseMedia } from "./exerciseMedia";
+import { EXERCISE_INDEX } from "./exerciseIndex.generated";
 
 /**
  * Cobertura de mídia sobre nomes REALISTAS de plano.
@@ -137,6 +138,34 @@ describe("casamento estrutural — o modificador refina, nunca atravessa o movim
   it("o dicionário curado continua tendo precedência sobre o estrutural", () => {
     // "puxada frontal" é escolha humana registrada; o estrutural não pode sobrescrevê-la.
     expect(resolveExerciseMedia("Puxada frontal")?.sourceId).toBe("Wide-Grip_Lat_Pulldown");
+  });
+
+  it("tag derivada não pode vazar de dentro de outra palavra", () => {
+    // `/chin/` casava dentro de ma-CHIN-e e dava tag `supinada` a TODA variação de
+    // máquina (achado [P1] do review Codex). O invariante é sobre o índice: nenhuma
+    // entrada pode ser ao mesmo tempo `maquina` e `supinada` por acidente de substring.
+    const vazamentos = Object.entries(EXERCISE_INDEX).flatMap(([head, variantes]) =>
+      variantes
+        .filter(([id, tags]) => tags.includes("supinada") && !/chin|reverse|underhand|supinat/i.test(id))
+        .map(([id]) => `${head}: ${id}`),
+    );
+    expect(vazamentos).toEqual([]);
+  });
+
+  it("sem pista de equipamento, vence o peso livre — não a máquina", () => {
+    // Empate entre variações curadas caía no id mais curto, e "supino reto supinado"
+    // ia para `Machine_Bench_Press`. A versão canônica de um movimento é a de barra.
+    expect(resolveExerciseMedia("Supino reto supinado")!.sourceId.toLowerCase()).toContain(
+      "barbell",
+    );
+  });
+
+  it("no empate vence a variação BÁSICA, não a exótica que veio primeiro na lista", () => {
+    // Sem desempate por nome mais curto, "agachamento no smith" caía em
+    // `Smith_Machine_Pistol_Squat` (achado [P2] do review Codex).
+    const id = resolveExerciseMedia("Agachamento no smith")!.sourceId;
+    expect(id.toLowerCase()).toContain("smith");
+    expect(id.toLowerCase()).not.toContain("pistol");
   });
 
   it("`mediaId` do plano continua vencendo tudo", () => {
