@@ -488,8 +488,8 @@ opcional** — DOM prova estrutura, contraste e overflow, mas não prova composi
 **Gate visual: PASS** — o usuário aprovou o merge em 2026-07-30 depois da validação visual.
 Mergeada com `--no-ff`, gates revalidados na `main` (**229/229**), branch apagada.
 
-⚠️ **`main` está 37 commits à frente de `origin` e o push NÃO foi feito** — o push dispara o deploy
-do Vercel, e isso é decisão do usuário.
+✅ **`main` empurrada para `origin` em 2026-07-30 (`2b5bed2`)** — deploy do Vercel disparado pelo
+push, com TASK-026 e TASK-027 dentro. `main` e `origin/main` em sincronia.
 
 ### TASK-027 — Cobertura de mídia + escala do calendário (**MERGEADA em `main` `ddaf9ab`, 2026-07-30**)
 Contrato: `docs/ai/tasks/TASK-027-midia-e-escala.md`. Veio de feedback de uso real do usuário
@@ -520,7 +520,8 @@ logo depois do merge da TASK-026.
 
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
-branch apagada. ⚠️ **`main` está à frente de `origin` e o push NÃO foi feito** — o push dispara o
+branch apagada. (Nota histórica daquele momento — o push só veio em 2026-07-30, ver acima.)
+⚠️ Contexto de então: **`main` estava à frente de `origin` e o push não tinha sido feito** — o push dispara o
 deploy do Vercel, e isso é decisão do usuário.
 
 **Trabalho atual: UPGRADE VISUAL v2** (seção acima). Benchmark e direção aprovados.
