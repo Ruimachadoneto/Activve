@@ -55,8 +55,39 @@ function isState(value: unknown): value is RestTimerState {
   );
 }
 
-/** Lê o descanso salvo. `null` se não houver, se for de outra sessão ou se for velho. */
-export function loadRestTimer(sessionId: string, now: number = Date.now()): RestTimerState | null {
+/**
+ * Lê o registro salvo sem filtrar por sessão nem por idade.
+ *
+ * Serve para a página de treino RESTAURAR A POSIÇÃO: descartado o app durante o descanso
+ * do 3º exercício, a remontagem voltava para o 1º e o overlay reaparecia sobre o card
+ * errado (achado do review Codex). Perder o lugar no treino já era o defeito — a guarda
+ * sozinha só esconderia o sintoma.
+ */
+export function peekRestTimer(): RestTimerState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isState(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lê o descanso salvo. `null` se não houver, se for de outra sessão, de outro EXERCÍCIO,
+ * ou se for velho.
+ *
+ * O casamento por exercício é a garantia por construção: mesmo que a posição não seja
+ * restaurada por algum motivo, o cronômetro nunca reaparece sobre um card que não é o
+ * dele — e nenhuma ação de preset/pausa sobrescreve o registro com o exercício errado.
+ */
+export function loadRestTimer(
+  sessionId: string,
+  exerciseId: string,
+  now: number = Date.now(),
+): RestTimerState | null {
   if (typeof window === "undefined") return null;
   let raw: string | null = null;
   try {
@@ -76,8 +107,8 @@ export function loadRestTimer(sessionId: string, now: number = Date.now()): Rest
     clearRestTimer();
     return null;
   }
-  // Descanso de outra sessão (outro dia, outro treino) não volta à tela.
-  if (parsed.sessionId !== sessionId) return null;
+  // Descanso de outra sessão (outro dia, outro treino) ou de outro exercício não volta.
+  if (parsed.sessionId !== sessionId || parsed.exerciseId !== exerciseId) return null;
   // Pausado não expira pelo relógio; rodando, sim.
   if (parsed.pausedRemaining === null && now - parsed.endAt > MAX_REVIVE_MS) {
     clearRestTimer();

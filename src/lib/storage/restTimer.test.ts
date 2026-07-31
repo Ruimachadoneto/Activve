@@ -43,19 +43,27 @@ const base: RestTimerState = {
 describe("restTimer — sobreviver a sair do app", () => {
   it("salva e devolve o descanso da mesma sessão", () => {
     saveRestTimer(base);
-    expect(loadRestTimer("p1:A:2026-07-30", 999_000)).toEqual(base);
+    expect(loadRestTimer("p1:A:2026-07-30", "supino", 999_000)).toEqual(base);
+  });
+
+  it("não devolve descanso de outro EXERCÍCIO", () => {
+    // Descartado o app no descanso do 3º exercício, a tela podia remontar no 1º; sem
+    // este escopo o cronômetro reaparecia sobre o card errado e a próxima ação de
+    // preset/pausa reescrevia o registro com o exercício errado (review Codex).
+    saveRestTimer(base);
+    expect(loadRestTimer(base.sessionId, "agachamento", 999_000)).toBeNull();
   });
 
   it("não devolve descanso de outra sessão", () => {
     // Treino de ontem, ou o outro treino do dia: o cronômetro não pode reaparecer ali.
     saveRestTimer(base);
-    expect(loadRestTimer("p1:B:2026-07-30", 999_000)).toBeNull();
+    expect(loadRestTimer("p1:B:2026-07-30", "supino", 999_000)).toBeNull();
   });
 
   it("não ressuscita descanso velho, e limpa o registro", () => {
     saveRestTimer(base);
     // 31 min depois do fim: o usuário não está mais "naquele descanso".
-    expect(loadRestTimer(base.sessionId, base.endAt + 31 * 60 * 1000)).toBeNull();
+    expect(loadRestTimer(base.sessionId, base.exerciseId, base.endAt + 31 * 60 * 1000)).toBeNull();
     expect(storage.size).toBe(0);
   });
 
@@ -63,25 +71,25 @@ describe("restTimer — sobreviver a sair do app", () => {
     // Pausado, o tempo real não corre — voltar horas depois deve encontrar o mesmo valor.
     const pausado = { ...base, pausedRemaining: 45 };
     saveRestTimer(pausado);
-    expect(loadRestTimer(base.sessionId, base.endAt + 5 * 60 * 60 * 1000)).toEqual(pausado);
+    expect(loadRestTimer(base.sessionId, base.exerciseId, base.endAt + 5 * 60 * 60 * 1000)).toEqual(pausado);
   });
 
   it("registro corrompido não derruba a leitura e é descartado", () => {
     storage.setItem("activve:rest-timer", "{ isso não é json");
-    expect(loadRestTimer(base.sessionId)).toBeNull();
+    expect(loadRestTimer(base.sessionId, base.exerciseId)).toBeNull();
     expect(storage.size).toBe(0);
   });
 
   it("registro com formato inesperado é descartado", () => {
     storage.setItem("activve:rest-timer", JSON.stringify({ endAt: "agora" }));
-    expect(loadRestTimer(base.sessionId)).toBeNull();
+    expect(loadRestTimer(base.sessionId, base.exerciseId)).toBeNull();
     expect(storage.size).toBe(0);
   });
 
   it("limpar apaga de verdade", () => {
     saveRestTimer(base);
     clearRestTimer();
-    expect(loadRestTimer(base.sessionId, 999_000)).toBeNull();
+    expect(loadRestTimer(base.sessionId, base.exerciseId, 999_000)).toBeNull();
   });
 
   it("storage indisponível não quebra nada", () => {
@@ -101,7 +109,7 @@ describe("restTimer — sobreviver a sair do app", () => {
     // Sem storage o descanso só perde a memória; não pode derrubar a tela de treino.
     expect(() => saveRestTimer(base)).not.toThrow();
     expect(() => clearRestTimer()).not.toThrow();
-    expect(loadRestTimer(base.sessionId)).toBeNull();
+    expect(loadRestTimer(base.sessionId, base.exerciseId)).toBeNull();
   });
 });
 
@@ -122,7 +130,7 @@ describe("remainingOf — o tempo vem do relógio, não de decremento", () => {
   it("o tempo que passou FORA do app conta — é o ponto de persistir", () => {
     // Saiu com 90s, ficou 70s noutro app: volta faltando 20, não 90.
     saveRestTimer(base);
-    const voltou = loadRestTimer(base.sessionId, base.endAt - 20_000)!;
+    const voltou = loadRestTimer(base.sessionId, base.exerciseId, base.endAt - 20_000)!;
     expect(remainingOf(voltou, base.endAt - 20_000)).toBe(20);
   });
 });

@@ -40,6 +40,7 @@ import {
 } from "@/lib/plan/session";
 import { getSession, saveSession, getAllSessions } from "@/lib/storage/sessions";
 import { getDayOverride, setDayOverride, clearDayOverride } from "@/lib/storage/overrides";
+import { peekRestTimer } from "@/lib/storage/restTimer";
 
 const LOAD_STEP = 2.5;
 /**
@@ -55,7 +56,16 @@ export default function TreinoPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [stored, setStored] = useState<WorkoutSession | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [current, setCurrent] = useState(0);
+  /*
+   * Exercício em foco. `null` = "ainda não escolhi", e aí a posição vem do descanso
+   * salvo: descartado o app durante o descanso do 3º exercício, voltar no 1º perdia o
+   * lugar no treino e o overlay reaparecia sobre o card errado (achado do review Codex).
+   * Derivado em vez de sincronizado por efeito — `setState` em efeito é o que o lint
+   * proíbe, e a lição da TASK-010 é reestruturar.
+   */
+  const [current, setCurrent] = useState<number | null>(null);
+  /** Leitura única do disco (inicializador preguiçoso): só para reposicionar o treino. */
+  const [savedRest] = useState(peekRestTimer);
   const [restToken, setRestToken] = useState(0);
   const [restOpen, setRestOpen] = useState(false);
   const [allSetsOpen, setAllSetsOpen] = useState(false);
@@ -66,7 +76,12 @@ export default function TreinoPage() {
    * feitas. Guarda o exercício que disparou para o contador não reaparecer quando o
    * usuário voltar a um exercício já concluído — só a AÇÃO de concluir arma o avanço.
    */
-  const [autoNext, setAutoNext] = useState<{ exerciseId: string; left: number } | null>(null);
+  const [autoNext, setAutoNext] = useState<{
+    exerciseId: string;
+    left: number;
+    /** Índice de destino, fixado ao armar — o efeito não depende do foco corrente. */
+    toIndex: number;
+  } | null>(null);
   /*
    * Tela de conclusão. É estado LOCAL de propósito, e não `session.status === "done"`:
    * celebração é um MOMENTO, não uma propriedade da sessão. Derivar do status faria a
@@ -211,7 +226,7 @@ export default function TreinoPage() {
     const id = window.setTimeout(() => {
       if (autoNext.left <= 1) {
         setAutoNext(null);
-        setCurrent((c) => c + 1);
+        setCurrent(autoNext.toIndex);
       } else {
         setAutoNext({ ...autoNext, left: autoNext.left - 1 });
       }
@@ -295,7 +310,15 @@ export default function TreinoPage() {
   }
 
   const total = workout.exercises.length;
-  const idx = Math.min(current, total - 1);
+  /*
+   * Sem escolha explícita, o foco cai no exercício do descanso salvo — é onde o usuário
+   * estava quando saiu do app.
+   */
+  const restoredIdx =
+    savedRest && savedRest.sessionId === session.sessionId
+      ? workout.exercises.findIndex((e) => e.id === savedRest.exerciseId)
+      : -1;
+  const idx = Math.min(current ?? (restoredIdx >= 0 ? restoredIdx : 0), total - 1);
   const ex = workout.exercises[idx];
   const log = session.exercises.find((e) => e.exerciseId === ex.id);
   const mov = resolveMovement(ex, log?.swappedToId);
@@ -426,7 +449,9 @@ export default function TreinoPage() {
      * exercício, e avançar dali seria o app decidindo no lugar do usuário.
      */
     const faltando = (log?.sets ?? []).filter((s, i) => !s.done && i !== activeSet).length;
-    if (faltando === 0 && nextEx) setAutoNext({ exerciseId: ex.id, left: AUTO_NEXT_SECONDS });
+    if (faltando === 0 && nextEx) {
+      setAutoNext({ exerciseId: ex.id, left: AUTO_NEXT_SECONDS, toIndex: Math.min(total - 1, idx + 1) });
+    }
     /*
      * O recorde merece seu compasso: sem o atraso, o overlay de descanso (E4) abria POR
      * CIMA do selo no mesmo frame e a celebração nunca era vista — pego na verificação
@@ -817,7 +842,7 @@ export default function TreinoPage() {
       {nextEx && nextMov ? (
         <button
           type="button"
-          onClick={() => navegar(() => setCurrent((c) => Math.min(total - 1, c + 1)))}
+          onClick={() => navegar(() => setCurrent(Math.min(total - 1, idx + 1)))}
           className="mt-4 flex w-full items-center gap-3 rounded-card border border-line bg-surface p-3 text-left active:bg-surface2"
         >
           <ExerciseThumb media={nextMedia} className="h-12 w-12 shrink-0" />
@@ -897,7 +922,7 @@ export default function TreinoPage() {
       <div className="mt-5 flex items-center justify-between text-sm">
         <button
           type="button"
-          onClick={() => navegar(() => setCurrent((c) => Math.max(0, c - 1)))}
+          onClick={() => navegar(() => setCurrent(Math.max(0, idx - 1)))}
           disabled={idx === 0}
           className="flex items-center gap-1 text-muted disabled:opacity-30"
         >
@@ -915,7 +940,7 @@ export default function TreinoPage() {
         ) : (
           <button
             type="button"
-            onClick={() => navegar(() => setCurrent((c) => Math.min(total - 1, c + 1)))}
+            onClick={() => navegar(() => setCurrent(Math.min(total - 1, idx + 1)))}
             className="flex items-center gap-1 text-muted"
           >
             Próximo <ChevronRight size={16} aria-hidden />

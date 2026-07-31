@@ -54,7 +54,7 @@ export function RestTimer({
    */
   const revived = useRef<RestTimerState | null>(null);
   const [duration, setDuration] = useState(() => {
-    const saved = loadRestTimer(sessionId);
+    const saved = loadRestTimer(sessionId, exerciseId);
     revived.current = saved;
     return saved?.duration ?? seconds;
   });
@@ -142,6 +142,15 @@ export function RestTimer({
       remainingRef.current = left;
       setRemaining(left);
       if (left === 0) {
+        /*
+         * Zerou: a âncora morre AGORA, não daqui a 1,4s quando o overlay some. Sem isto,
+         * um descarte do app dentro dessa janela revivia o descanso como ativo e a
+         * vibração de fim tocava de novo (achado [P3] do review Codex).
+         *
+         * Só limpa quem chegou vivo ao zero. Se a página estava congelada, o registro
+         * sobrevive de propósito — é ele que dá o aviso de recuperação ao voltar.
+         */
+        clearRestTimer();
         if (!vibratedRef.current) {
           vibratedRef.current = true;
           try {
