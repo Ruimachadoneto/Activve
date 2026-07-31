@@ -1,63 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { estimateWorkoutMinutes, getTodayWorkout, greeting, todayIndex, weekDates, workoutBadge } from "./today";
-import type { PlanFile } from "./schema";
-
-const plan = {
-  training: {
-    split: "AB",
-    weekSchedule: ["A", "rest", "B", "rest", "A", "B", "rest"],
-    workouts: [
-      { id: "A", name: "Treino A", focus: "Empurrar", exercises: [{}, {}] },
-      { id: "B", name: "Treino B", focus: "Puxar", exercises: [{}] },
-    ],
-  },
-} as unknown as PlanFile;
-
-describe("getTodayWorkout", () => {
-  it("retorna o treino agendado num dia de treino (segunda → A)", () => {
-    const monday = new Date("2026-06-22T10:00:00"); // segunda-feira
-    const result = getTodayWorkout(plan, monday);
-    expect(result.kind).toBe("workout");
-    if (result.kind === "workout") {
-      expect(result.workoutId).toBe("A");
-      expect(result.exerciseCount).toBe(2);
-    }
-  });
-
-  it("retorna descanso num dia de rest (terça)", () => {
-    const tuesday = new Date("2026-06-23T10:00:00");
-    expect(getTodayWorkout(plan, tuesday).kind).toBe("rest");
-  });
-
-  it("trata referência a treino inexistente como descanso", () => {
-    const broken = { training: { ...plan.training, weekSchedule: ["Z", "rest", "rest", "rest", "rest", "rest", "rest"] } } as unknown as PlanFile;
-    const monday = new Date("2026-06-22T10:00:00");
-    expect(getTodayWorkout(broken, monday).kind).toBe("rest");
-  });
-
-  it("override troca o treino do dia, ignorando o weekSchedule (TASK-016)", () => {
-    const monday = new Date("2026-06-22T10:00:00"); // agendado: A
-    const result = getTodayWorkout(plan, monday, "B");
-    expect(result.kind).toBe("workout");
-    if (result.kind === "workout") expect(result.workoutId).toBe("B");
-  });
-
-  it("override 'rest' força descanso mesmo num dia de treino", () => {
-    const monday = new Date("2026-06-22T10:00:00");
-    expect(getTodayWorkout(plan, monday, "rest").kind).toBe("rest");
-  });
-
-  it("override inexistente cai em descanso (mesmo fallback defensivo)", () => {
-    const monday = new Date("2026-06-22T10:00:00");
-    expect(getTodayWorkout(plan, monday, "Z").kind).toBe("rest");
-  });
-
-  it("sem override, comportamento idêntico ao atual", () => {
-    const monday = new Date("2026-06-22T10:00:00");
-    expect(getTodayWorkout(plan, monday, null)).toEqual(getTodayWorkout(plan, monday));
-    expect(getTodayWorkout(plan, monday, undefined)).toEqual(getTodayWorkout(plan, monday));
-  });
-});
+import { estimateWorkoutMinutes, greeting, todayIndex, weekDates, workoutBadge } from "./today";
+/*
+ * Os testes de `getTodayWorkout` foram removidos junto com a função na TASK-029: eles
+ * codificavam a regra ANTIGA (treino resolvido pelo dia da semana), que o feedback de uso
+ * real derrubou. A regra nova — sugestão pela rotação do que foi concluído — está coberta
+ * em `rotation.test.ts`, incluindo o caso que originou o pedido.
+ */
 
 describe("greeting", () => {
   it("varia por horário", () => {

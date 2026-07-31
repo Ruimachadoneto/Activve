@@ -10,10 +10,10 @@ import { Logo } from "@/components/Logo";
 import { PlanErrorState } from "@/components/PlanErrorState";
 import { equipmentLabel } from "@/lib/plan/labels";
 import { hasDietContent, hasDietTargets } from "@/lib/plan/diet";
+import { resolveToday, rotationOf } from "@/lib/plan/rotation";
 import {
   estimateWorkoutMinutes,
   experienceLabel,
-  getTodayWorkout,
   greeting,
   todayIndex,
   weekDates,
@@ -174,11 +174,16 @@ export default function HojePage() {
   }
 
   const p = plan.plan;
-  const today = getTodayWorkout(p, new Date(), override);
+  const today = resolveToday(p, sessions, new Date(), override);
   const ti = todayIndex();
   const week = weekDates();
   const doneThisWeek = week.filter((d) => doneDates.has(d)).length;
-  const trainingDays = p.training.weekSchedule.filter((d) => d !== "rest").length;
+  /*
+   * Meta semanal vem da ROTAÇÃO, não da contagem de dias não-"rest" do calendário
+   * (TASK-029). São o mesmo número hoje, mas a fonte passou a ser a mesma que decide a
+   * sugestão — duas contas separadas para o mesmo conceito acabam divergindo.
+   */
+  const trainingDays = rotationOf(p).weeklyTarget;
   const mealsCount = p.diet.meals.length;
   // Plano só com metas, ou só com compras/preparo, também tem o que mostrar (review Codex).
   const temDieta = hasDietContent(p.diet);

@@ -1,7 +1,14 @@
 import type { Muscle, PlanFile } from "./schema";
 
 export type TodayResult =
-  | { kind: "rest" }
+  | {
+      kind: "rest";
+      /** Por que descansar: ciclo (2 dias seguidos) ou meta da semana batida. */
+      reason: "cycle" | "week";
+      /** O que viria a seguir — descanso não é beco sem saída (TASK-029). */
+      nextWorkoutId: string | null;
+      nextWorkoutName: string | null;
+    }
   | {
       kind: "workout";
       workoutId: string;
@@ -9,36 +16,17 @@ export type TodayResult =
       focus?: string;
       exerciseCount: number;
       muscles: Muscle[];
+      /** Este treino já foi CONCLUÍDO hoje — a tela mostra fechamento, não convite. */
+      doneToday: boolean;
     };
 
-/**
- * Treino de hoje a partir do weekSchedule (índice 0 = segunda), ou do `override` do
- * usuário quando presente (TASK-016: "rest" ou um workoutId — tem precedência sobre o
- * weekSchedule, mesmo fallback defensivo: id desconhecido → rest).
- * Agenda é uma sugestão (decisão de produto: agenda flexível) — aqui só resolvemos
- * o que está previsto/escolhido para o dia atual.
+/*
+ * `getTodayWorkout` (agenda por DIA DA SEMANA) foi removida na TASK-029 e substituída por
+ * `resolveToday` em `rotation.ts`. A sugestão passou a vir do que foi efetivamente
+ * concluído: o usuário treinou A na terça, faltou quarta e quinta, e na sexta o app
+ * insistia no treino da sexta em vez de sugerir B — "perde toda a flexibilidade que o app
+ * deve dar". Manter as duas faria a mesma pergunta ter duas respostas.
  */
-export function getTodayWorkout(
-  plan: PlanFile,
-  now: Date = new Date(),
-  override?: string | null,
-): TodayResult {
-  const mondayIndex = (now.getDay() + 6) % 7; // getDay(): 0=domingo → mapeia p/ 0=segunda
-  const entry = override ?? plan.training.weekSchedule[mondayIndex];
-  if (!entry || entry === "rest") return { kind: "rest" };
-
-  const workout = plan.training.workouts.find((w) => w.id === entry);
-  if (!workout) return { kind: "rest" };
-
-  return {
-    kind: "workout",
-    workoutId: workout.id,
-    name: workout.name,
-    focus: workout.focus,
-    exerciseCount: workout.exercises.length,
-    muscles: workout.exercises.flatMap((e) => e.primaryMuscles),
-  };
-}
 
 /**
  * Rótulo de badge para um treino: o id só é exibível quando é curto e legível
