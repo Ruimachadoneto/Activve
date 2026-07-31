@@ -518,6 +518,40 @@ logo depois do merge da TASK-026.
   entrando como exercício e equipamento exótico ganhando desempate.
 - Gates: typecheck ✓ · lint ✓ · **244/244** ✓ · build ✓.
 
+### FEEDBACK DE USO REAL (2026-07-30/31) — 7 itens, 3 entregues
+
+O usuário levou o app para a academia e voltou com 7 pontos. Estado de cada um:
+
+| # | Item | Estado |
+|---|---|---|
+| 1 | Contador fora da realidade ao sair do app | ✅ **TASK-028**, mergeada `7364b93` |
+| 3 | Contador fechar sozinho ao terminar | ✅ **TASK-028** |
+| 4 | Avançar sozinho para o próximo exercício (com cancelar) | ✅ **TASK-028** |
+| 7 | **Treino preso ao dia da semana** | 📋 **TASK-029 ESPECIFICADA**, não iniciada — *a próxima* |
+| 2 | Rodar em background + notificação ao terminar | ⬜ precisa de PWA (manifest + SW); limite honesto registrado |
+| 6 | Sino de notificações sem função | ⬜ é a TASK-023 do roadmap, nunca construída |
+| 5 | Logo fraca | ⬜ |
+
+### TASK-028 — Modo Treino confiável (**MERGEADA em `main` `7364b93`, 2026-07-31**)
+Contrato: `docs/ai/tasks/TASK-028-treino-confiavel.md`.
+- **Por que a TASK-017 não bastou:** ela ancorou a contagem num instante absoluto, o que
+  resolve enquanto o componente segue MONTADO. No celular ele não segue — o sistema congela e
+  frequentemente **descarta** a página, o React remonta e a âncora (um `useRef`) some. A âncora
+  precisava sair da memória do React → `src/lib/storage/restTimer.ts` (localStorage, leitura
+  **síncrona** para não haver frame com o valor errado).
+- Volta restaurando **treino + exercício + tempo**: perder o lugar no treino já era parte do bug.
+- 2 ciclos de review Codex, 4 achados, todos do mesmo padrão: *"restaurei menos contexto do que o
+  usuário tinha"*.
+- ⚠️ **Bug que só a verificação no browser pegou:** a guarda de revive não era idempotente e o
+  **StrictMode** (que invoca o efeito 2×) reancorava com o tempo cheio na segunda passada. Nenhum
+  teste unitário pegaria — era ciclo de vida do React, não lógica.
+
+### Limite honesto do item 2 (registrado ANTES de prometer)
+App web **sem servidor de push** não garante notificação com a página congelada pelo sistema. Sem
+backend dá para: (a) contagem sempre correta ao voltar — **já entregue**; (b) notificação com o app
+em segundo plano mas vivo (cobre 60–120s com a tela ligada); (c) aviso de recuperação ao voltar.
+Garantia total exigiria Web Push + servidor (Fase 2, contraria o local-first do v1) ou app nativo.
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
 branch apagada. (Nota histórica daquele momento — o push só veio em 2026-07-30, ver acima.)
@@ -619,6 +653,8 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-013 | Estado de erro amigável p/ plano corrompido | MERGEADA | main (`2118ff0`) |
 | TASK-026 | Vivid Fase 2 (Corpo, conclusão de treino, Relatórios, editorial) | MERGEADA | main (`c725dc0`) |
 | TASK-027 | Cobertura de mídia (28%→100%) + escala do calendário | MERGEADA | main (`ddaf9ab`) |
+| TASK-028 | Modo Treino confiável (descanso persistido, auto-close, auto-avanço) | MERGEADA | main (`7364b93`) |
+| TASK-029 | Agenda por rotação (treino solto do dia da semana) | ESPECIFICADA | — |
 
 ---
 
