@@ -114,3 +114,41 @@ Toda task/feature com interface segue `docs/ai/VISUAL_QUALITY.md` (benchmark ant
 
 ## 17. Definição de pronto
 Critérios de aceite atendidos; escopo respeitado; validações relevantes passaram; testes cobrem o comportamento; revisão independente sem P0/P1; gate visual atendido quando houver UI; riscos residuais documentados; handoff e STATUS atualizados; humano aprovou merge/produção/decisão irreversível.
+
+## 18. Preferências de trabalho do usuário (Activve)
+
+Registradas aqui porque são **duráveis e recorrentes** — vinham se repetindo a cada sessão
+e se perdiam num `/clear`.
+
+### Ritmo e autonomia
+- **Execute o plano inteiro sem parar.** Não peça confirmação a cada passo.
+- **Peça aprovação a cada MERGE.** O usuário aprova cada um, um por um.
+- **Pare de auto-corrigir após 3 ciclos de review e consulte** (é o §13, reafirmado).
+- **Monitore a janela de contexto.** Ao se aproximar do limite: comite tudo, atualize o
+  checkpoint no `STATUS.md` e só então avise.
+
+### Ambição vs. integridade
+O usuário liberou explicitamente os limites de sobriedade da documentação:
+> *"não precisa se limitar ao padrão exigido na documentação ou demais limitações se isso
+> impedir avanços, sejam estéticos ou de funcionalidade."*
+
+Isso inclui **propor bump do `PLAN_SCHEMA`** quando a ideia exigir, em vez de encolher a
+ideia. **Intocáveis mesmo assim:** honestidade de dados, anti-culpa, o app não prescreve
+treino/dieta, e acessibilidade.
+
+### Verificação (não-negociável antes de dar algo como pronto)
+- No browser, **390×844**, e **sempre em aba nova** — o dev server acumula chunks obsoletos
+  de HMR que geram **erros de console falsos** numa aba velha.
+- Se o screenshot do preview falhar (a pane às vezes não composita), o **Chrome real**
+  (`claude-in-chrome`) é a segunda porta, não um substituto opcional: verificação por DOM
+  prova estrutura, contraste e overflow, mas **não** prova composição nem foco visual.
+- **Abra o storage e pergunte "quem escreveu isso?".** Os bugs mais caros das últimas tasks
+  não vieram de lógica, e sim de ciclo de vida (StrictMode invocando efeito 2×, efeito
+  gravando estado fantasma na montagem, restauração com menos contexto do que o usuário
+  tinha). Nenhum apareceu na suíte.
+
+### Semear dados no preview
+IndexedDB do preview é efêmero. `indexedDB.open("activve", 3)`; stores `plans` + `kv`
+(`activePlanId`) + `sessions` + `bodylog`. Peso é **`weight_kg`**, não `weight`. O
+`examples/plano-exemplo.json` **não é servido** — copiar para `public/` temporariamente é o
+caminho mais barato (e **apagar depois**).
