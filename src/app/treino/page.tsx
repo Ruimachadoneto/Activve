@@ -36,12 +36,20 @@ import {
   RPE_MIN,
   RPE_MAX,
   isoDate,
+  sessionIdFor,
   type WorkoutSession,
 } from "@/lib/plan/session";
 import { getSession, saveSession, getAllSessions } from "@/lib/storage/sessions";
 import { getDayOverride, setDayOverride, clearDayOverride } from "@/lib/storage/overrides";
+import { peekRestTimer } from "@/lib/storage/restTimer";
 
 const LOAD_STEP = 2.5;
+/**
+ * Janela para cancelar o avanço automático de exercício. Existe porque a última série
+ * pode ter sido marcada sem querer — o avanço é conveniência, não uma decisão que o app
+ * toma no lugar do usuário.
+ */
+const AUTO_NEXT_SECONDS = 5;
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export default function TreinoPage() {
@@ -49,12 +57,32 @@ export default function TreinoPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [stored, setStored] = useState<WorkoutSession | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [current, setCurrent] = useState(0);
+  /*
+   * Exercício em foco. `null` = "ainda não escolhi", e aí a posição vem do descanso
+   * salvo: descartado o app durante o descanso do 3º exercício, voltar no 1º perdia o
+   * lugar no treino e o overlay reaparecia sobre o card errado (achado do review Codex).
+   * Derivado em vez de sincronizado por efeito — `setState` em efeito é o que o lint
+   * proíbe, e a lição da TASK-010 é reestruturar.
+   */
+  const [current, setCurrent] = useState<number | null>(null);
+  /** Leitura única do disco (inicializador preguiçoso): só para reposicionar o treino. */
+  const [savedRest] = useState(peekRestTimer);
   const [restToken, setRestToken] = useState(0);
   const [restOpen, setRestOpen] = useState(false);
   const [allSetsOpen, setAllSetsOpen] = useState(false);
   /** Recorde pessoal recém-batido — controla o selo de celebração (some sozinho). */
   const [prCelebration, setPrCelebration] = useState<{ load: number; token: number } | null>(null);
+  /*
+   * Avanço automático para o próximo exercício depois que todas as séries do atual são
+   * feitas. Guarda o exercício que disparou para o contador não reaparecer quando o
+   * usuário voltar a um exercício já concluído — só a AÇÃO de concluir arma o avanço.
+   */
+  const [autoNext, setAutoNext] = useState<{
+    exerciseId: string;
+    left: number;
+    /** Índice de destino, fixado ao armar — o efeito não depende do foco corrente. */
+    toIndex: number;
+  } | null>(null);
   /*
    * Tela de conclusão. É estado LOCAL de propósito, e não `session.status === "done"`:
    * celebração é um MOMENTO, não uma propriedade da sessão. Derivar do status faria a
@@ -83,6 +111,13 @@ export default function TreinoPage() {
    * encerrado (achado do review Codex).
    */
   const restDelayRef = useRef<number | null>(null);
+  /*
+   * Descanso AGENDADO mas ainda não aberto (compasso de 1,6s do recorde). O avanço
+   * automático precisa esperar por ele: durante esse intervalo `restOpen` ainda é false,
+   * e a contagem de 5s começava antes de o descanso aparecer, comendo parte da janela de
+   * cancelar justamente no caminho "última série + recorde" (achado do review Codex).
+   */
+  const [restPending, setRestPending] = useState(false);
   useEffect(
     () => () => {
       if (restDelayRef.current != null) window.clearTimeout(restDelayRef.current);
@@ -102,7 +137,10 @@ export default function TreinoPage() {
       window.clearTimeout(restDelayRef.current);
       restDelayRef.current = null;
     }
+    setRestPending(false);
     setPrCelebration(null);
+    // Navegar na mão é uma decisão explícita: cancela o avanço automático pendente.
+    setAutoNext(null);
     mudar();
   }
   const [history, setHistory] = useState<WorkoutSession[]>([]);
@@ -134,8 +172,21 @@ export default function TreinoPage() {
   }, [planId]);
 
   const today = p ? getTodayWorkout(p, new Date(), override) : null;
+  /*
+   * Treino do descanso salvo, quando ele é de HOJE e deste plano. Sem isto, quem estava
+   * num treino escolhido à mão voltava do descarte no treino do dia: a sessão não batia,
+   * a posição não era restaurada e o cronômetro nunca revivia (achado do review Codex).
+   * A comparação usa o `sessionIdFor` canônico, não um parse do id composto.
+   */
+  const restoredWorkoutId =
+    savedRest &&
+    planId &&
+    savedRest.sessionId === sessionIdFor(planId, savedRest.workoutId, isoDate())
+      ? savedRest.workoutId
+      : null;
   const activeId =
     selected ??
+    restoredWorkoutId ??
     (today?.kind === "workout" ? today.workoutId : p?.training.workouts[0]?.id) ??
     null;
   const officialTodayId = today?.kind === "workout" ? today.workoutId : null;
@@ -183,6 +234,27 @@ export default function TreinoPage() {
   }, [stored?.sessionId]);
 
   const session = stored && draft && stored.sessionId === draft.sessionId ? stored : draft;
+
+  /*
+   * Contagem do avanço automático. Espera o descanso sair de cena: a sequência natural é
+   * última série → descanso → próximo exercício, e sobrepor as duas coisas faria o
+   * usuário perder o botão de cancelar atrás do overlay.
+   *
+   * Todo `setState` mora no callback do timeout, e a limpeza cancela o agendamento — a
+   * mesma disciplina do compasso do recorde, que é a classe de bug conhecida aqui.
+   */
+  useEffect(() => {
+    if (!autoNext || restOpen || restPending) return;
+    const id = window.setTimeout(() => {
+      if (autoNext.left <= 1) {
+        setAutoNext(null);
+        setCurrent(autoNext.toIndex);
+      } else {
+        setAutoNext({ ...autoNext, left: autoNext.left - 1 });
+      }
+    }, 1000);
+    return () => window.clearTimeout(id);
+  }, [autoNext, restOpen, restPending]);
 
   if (loading || overrideLoading) {
     return (
@@ -260,7 +332,15 @@ export default function TreinoPage() {
   }
 
   const total = workout.exercises.length;
-  const idx = Math.min(current, total - 1);
+  /*
+   * Sem escolha explícita, o foco cai no exercício do descanso salvo — é onde o usuário
+   * estava quando saiu do app.
+   */
+  const restoredIdx =
+    savedRest && savedRest.sessionId === session.sessionId
+      ? workout.exercises.findIndex((e) => e.id === savedRest.exerciseId)
+      : -1;
+  const idx = Math.min(current ?? (restoredIdx >= 0 ? restoredIdx : 0), total - 1);
   const ex = workout.exercises[idx];
   const log = session.exercises.find((e) => e.exerciseId === ex.id);
   const mov = resolveMovement(ex, log?.swappedToId);
@@ -334,6 +414,7 @@ export default function TreinoPage() {
   }
 
   function startRest() {
+    setRestPending(false);
     setRestToken((t) => t + 1);
     setRestOpen(true);
   }
@@ -384,11 +465,23 @@ export default function TreinoPage() {
     }
     patchSet(ex.id, activeSet, { done: true });
     /*
+     * Esta série fechou o exercício e existe um próximo? Arma o avanço automático.
+     *
+     * Só o CTA principal arma. Marcar o ✓ na tabela "Todas as séries" é uma ação de
+     * edição — quem está corrigindo um registro não está pedindo para mudar de
+     * exercício, e avançar dali seria o app decidindo no lugar do usuário.
+     */
+    const faltando = (log?.sets ?? []).filter((s, i) => !s.done && i !== activeSet).length;
+    if (faltando === 0 && nextEx) {
+      setAutoNext({ exerciseId: ex.id, left: AUTO_NEXT_SECONDS, toIndex: Math.min(total - 1, idx + 1) });
+    }
+    /*
      * O recorde merece seu compasso: sem o atraso, o overlay de descanso (E4) abria POR
      * CIMA do selo no mesmo frame e a celebração nunca era vista — pego na verificação
      * no browser, não em teste. 1,6s de selo em cena, depois o descanso.
      */
     if (bateuRecorde) {
+      setRestPending(true);
       restDelayRef.current = window.setTimeout(() => {
         restDelayRef.current = null;
         startRest();
@@ -412,6 +505,7 @@ export default function TreinoPage() {
       window.clearTimeout(restDelayRef.current);
       restDelayRef.current = null;
     }
+    setRestPending(false);
     // O overlay de descanso (E4) sobreviveria à troca de tela e ficaria por cima da
     // celebração — mesma classe do achado do compasso do recorde na TASK-025.
     setRestOpen(false);
@@ -745,10 +839,35 @@ export default function TreinoPage() {
 
       {/* Próximo exercício (mockup) ou fechamento do treino */}
       {nextMedia ? <PreloadImages urls={nextMedia.imageUrls} /> : null}
+      {/* Avanço automático: o app avisa o que vai fazer e deixa cancelar antes de fazer. */}
+      {autoNext && nextMov ? (
+        <div
+          className="mt-4 flex items-center justify-between gap-3 rounded-card border border-accent/40 bg-accent/[0.07] px-4 py-3"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="min-w-0 text-sm">
+            <span className="block truncate">
+              Próximo: <span className="font-medium">{nextMov.name}</span>
+            </span>
+            <span className="block text-xs text-muted">
+              em {autoNext.left}s · toque em cancelar para ficar aqui
+            </span>
+          </p>
+          <button
+            type="button"
+            onClick={() => setAutoNext(null)}
+            className="shrink-0 rounded-xl border border-line px-3 py-2 text-xs font-medium text-muted active:bg-surface2"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : null}
+
       {nextEx && nextMov ? (
         <button
           type="button"
-          onClick={() => navegar(() => setCurrent((c) => Math.min(total - 1, c + 1)))}
+          onClick={() => navegar(() => setCurrent(Math.min(total - 1, idx + 1)))}
           className="mt-4 flex w-full items-center gap-3 rounded-card border border-line bg-surface p-3 text-left active:bg-surface2"
         >
           <ExerciseThumb media={nextMedia} className="h-12 w-12 shrink-0" />
@@ -828,7 +947,7 @@ export default function TreinoPage() {
       <div className="mt-5 flex items-center justify-between text-sm">
         <button
           type="button"
-          onClick={() => navegar(() => setCurrent((c) => Math.max(0, c - 1)))}
+          onClick={() => navegar(() => setCurrent(Math.max(0, idx - 1)))}
           disabled={idx === 0}
           className="flex items-center gap-1 text-muted disabled:opacity-30"
         >
@@ -846,7 +965,7 @@ export default function TreinoPage() {
         ) : (
           <button
             type="button"
-            onClick={() => navegar(() => setCurrent((c) => Math.min(total - 1, c + 1)))}
+            onClick={() => navegar(() => setCurrent(Math.min(total - 1, idx + 1)))}
             className="flex items-center gap-1 text-muted"
           >
             Próximo <ChevronRight size={16} aria-hidden />
@@ -868,6 +987,9 @@ export default function TreinoPage() {
         onClose={() => setRestOpen(false)}
         seconds={ex.rest_s ?? 60}
         runToken={restToken}
+        sessionId={session.sessionId}
+        exerciseId={ex.id}
+        workoutId={workout.id}
       />
 
       <BottomNav active="treino" />
