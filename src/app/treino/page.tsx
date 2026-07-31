@@ -42,6 +42,12 @@ import { getSession, saveSession, getAllSessions } from "@/lib/storage/sessions"
 import { getDayOverride, setDayOverride, clearDayOverride } from "@/lib/storage/overrides";
 
 const LOAD_STEP = 2.5;
+/**
+ * Janela para cancelar o avanço automático de exercício. Existe porque a última série
+ * pode ter sido marcada sem querer — o avanço é conveniência, não uma decisão que o app
+ * toma no lugar do usuário.
+ */
+const AUTO_NEXT_SECONDS = 5;
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export default function TreinoPage() {
@@ -55,6 +61,12 @@ export default function TreinoPage() {
   const [allSetsOpen, setAllSetsOpen] = useState(false);
   /** Recorde pessoal recém-batido — controla o selo de celebração (some sozinho). */
   const [prCelebration, setPrCelebration] = useState<{ load: number; token: number } | null>(null);
+  /*
+   * Avanço automático para o próximo exercício depois que todas as séries do atual são
+   * feitas. Guarda o exercício que disparou para o contador não reaparecer quando o
+   * usuário voltar a um exercício já concluído — só a AÇÃO de concluir arma o avanço.
+   */
+  const [autoNext, setAutoNext] = useState<{ exerciseId: string; left: number } | null>(null);
   /*
    * Tela de conclusão. É estado LOCAL de propósito, e não `session.status === "done"`:
    * celebração é um MOMENTO, não uma propriedade da sessão. Derivar do status faria a
@@ -103,6 +115,8 @@ export default function TreinoPage() {
       restDelayRef.current = null;
     }
     setPrCelebration(null);
+    // Navegar na mão é uma decisão explícita: cancela o avanço automático pendente.
+    setAutoNext(null);
     mudar();
   }
   const [history, setHistory] = useState<WorkoutSession[]>([]);
@@ -183,6 +197,27 @@ export default function TreinoPage() {
   }, [stored?.sessionId]);
 
   const session = stored && draft && stored.sessionId === draft.sessionId ? stored : draft;
+
+  /*
+   * Contagem do avanço automático. Espera o descanso sair de cena: a sequência natural é
+   * última série → descanso → próximo exercício, e sobrepor as duas coisas faria o
+   * usuário perder o botão de cancelar atrás do overlay.
+   *
+   * Todo `setState` mora no callback do timeout, e a limpeza cancela o agendamento — a
+   * mesma disciplina do compasso do recorde, que é a classe de bug conhecida aqui.
+   */
+  useEffect(() => {
+    if (!autoNext || restOpen) return;
+    const id = window.setTimeout(() => {
+      if (autoNext.left <= 1) {
+        setAutoNext(null);
+        setCurrent((c) => c + 1);
+      } else {
+        setAutoNext({ ...autoNext, left: autoNext.left - 1 });
+      }
+    }, 1000);
+    return () => window.clearTimeout(id);
+  }, [autoNext, restOpen]);
 
   if (loading || overrideLoading) {
     return (
@@ -383,6 +418,15 @@ export default function TreinoPage() {
       window.setTimeout(() => setPrCelebration(null), 2800);
     }
     patchSet(ex.id, activeSet, { done: true });
+    /*
+     * Esta série fechou o exercício e existe um próximo? Arma o avanço automático.
+     *
+     * Só o CTA principal arma. Marcar o ✓ na tabela "Todas as séries" é uma ação de
+     * edição — quem está corrigindo um registro não está pedindo para mudar de
+     * exercício, e avançar dali seria o app decidindo no lugar do usuário.
+     */
+    const faltando = (log?.sets ?? []).filter((s, i) => !s.done && i !== activeSet).length;
+    if (faltando === 0 && nextEx) setAutoNext({ exerciseId: ex.id, left: AUTO_NEXT_SECONDS });
     /*
      * O recorde merece seu compasso: sem o atraso, o overlay de descanso (E4) abria POR
      * CIMA do selo no mesmo frame e a celebração nunca era vista — pego na verificação
@@ -745,6 +789,31 @@ export default function TreinoPage() {
 
       {/* Próximo exercício (mockup) ou fechamento do treino */}
       {nextMedia ? <PreloadImages urls={nextMedia.imageUrls} /> : null}
+      {/* Avanço automático: o app avisa o que vai fazer e deixa cancelar antes de fazer. */}
+      {autoNext && nextMov ? (
+        <div
+          className="mt-4 flex items-center justify-between gap-3 rounded-card border border-accent/40 bg-accent/[0.07] px-4 py-3"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="min-w-0 text-sm">
+            <span className="block truncate">
+              Próximo: <span className="font-medium">{nextMov.name}</span>
+            </span>
+            <span className="block text-xs text-muted">
+              em {autoNext.left}s · toque em cancelar para ficar aqui
+            </span>
+          </p>
+          <button
+            type="button"
+            onClick={() => setAutoNext(null)}
+            className="shrink-0 rounded-xl border border-line px-3 py-2 text-xs font-medium text-muted active:bg-surface2"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : null}
+
       {nextEx && nextMov ? (
         <button
           type="button"
@@ -868,6 +937,8 @@ export default function TreinoPage() {
         onClose={() => setRestOpen(false)}
         seconds={ex.rest_s ?? 60}
         runToken={restToken}
+        sessionId={session.sessionId}
+        exerciseId={ex.id}
       />
 
       <BottomNav active="treino" />
