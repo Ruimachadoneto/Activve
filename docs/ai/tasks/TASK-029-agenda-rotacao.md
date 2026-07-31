@@ -1,7 +1,11 @@
 # TASK-029 — Agenda por ROTAÇÃO (o treino deixa de ser preso ao dia da semana)
 
-> **Status: ESPECIFICADA, não iniciada.** É o item **7** do feedback de uso real
-> (2026-07-30) e o de maior impacto no dia a dia dos que restam.
+> **Status: IMPLEMENTADA e VERIFICADA no browser — ⚠️ NÃO passou por review Codex e NÃO
+> foi mergeada.** Branch `ai/TASK-029-agenda-rotacao-claude`, commit `c06f46b`, 4 commits
+> à frente de `main`. Item **7** do feedback de uso real (2026-07-30).
+>
+> **RETOMADA:** rodar `codex review --base main` (Git Bash, não PowerShell), corrigir
+> achados, depois pedir aprovação de merge ao usuário.
 
 ## O problema, nas palavras do usuário
 
@@ -84,6 +88,59 @@ sinal honesto de "hoje pede leveza".
 3. **`/treino`** — o treino padrão selecionado passa a ser o sugerido pela rotação.
 4. **`getTodayWorkout`** continua existindo? Provável: renomear/substituir por
    `suggestWorkout(plan, sessions, now, override)`. Os chamadores são `/` e `/treino`.
+
+## O que foi entregue
+
+**`src/lib/plan/rotation.ts`** (puro, **24 testes** em `rotation.test.ts`):
+`rotationOf`, `nextInRotation`, `consecutiveDaysUntilYesterday`, `completedThisWeek`,
+`suggestWorkout` e o adaptador `resolveToday` (devolve o `TodayResult` que as telas já
+consomem).
+
+**`getTodayWorkout` foi REMOVIDA** de `today.ts`, junto com os testes dela — eles
+codificavam a regra antiga. Manter as duas faria a mesma pergunta ter duas respostas.
+
+**Telas ligadas:** `/` (Hoje) e `/treino` chamam `resolveToday`. O `TodayResult` ganhou
+`doneToday` no ramo `workout` e `reason`/`nextWorkoutId`/`nextWorkoutName` no ramo `rest`.
+
+**Cuidados de carregamento (a parte que dá bug):**
+- a rotação lê só as sessões **deste plano** — um ciclo anterior contaria dias seguidos que
+  não são deste programa;
+- `/treino` **espera o histórico carregar** (`historyLoading`): resolver com a lista vazia
+  sugeriria o primeiro treino por um render e poderia abrir rascunho de sessão no treino
+  errado. É a corrida que a TASK-016 já pagou caro para aprender;
+- num dia de descanso, `/treino` abre no **próximo da rotação**, não no primeiro do plano.
+
+## Bug meu, pego inspecionando o storage (não por teste)
+
+O efeito de ancoragem do `RestTimer` roda na montagem, então **só abrir a tela de treino já
+gravava um descanso no disco** — e na montagem seguinte esse registro fantasma era revivido
+e **o overlay abria sozinho**, sem o usuário ter concluído série nenhuma. Corrigido com
+`if (!open) return;` no efeito. A suíte não pegaria: ela sempre inicia o descanso pelo
+botão, o único caminho em que `open` já é `true`.
+
+## Verificação no browser — feita em 31/07, que é uma SEXTA (o cenário exato do pedido)
+| Cenário semeado | Resultado |
+|---|---|
+| A na terça, nada quarta/quinta | Hoje sugere **"Treino B"** (a regra antiga diria A) ✅ |
+| A na quarta + B na quinta | **"Dia de descanso"**, com "Quero treinar mesmo assim" ✅ |
+| B na quarta + A na quinta | `/treino` abre em **B**, não no primeiro do plano ✅ |
+| Só montar `/treino` | não grava descanso nem abre overlay fantasma ✅ |
+Console limpo em todos.
+
+## Gates
+`typecheck` ✓ · `lint` ✓ · **274/274** testes ✓ · `build` ✓ (eram 257 antes da task).
+
+## ⚠️ RIPPLE AINDA NÃO TRATADO — decidir antes de fechar a task
+
+**`report.ts` → `workoutsScheduled`** continua contando dias agendados no `weekSchedule`
+dentro do período. É o **denominador da constância** no relatório ("8 de 17 treinos
+concluídos"). Com a agenda solta do calendário, esse denominador virou uma promessa que o
+app não faz mais.
+
+Opções: (a) derivar de `rotationOf(plan).weeklyTarget × semanas do período`; (b) trocar a
+métrica por algo que não precise de denominador (ex.: "8 treinos em 4 semanas"). A §9
+(honestidade) exige um denominador **verificável**, não estimado. **Não mexi** — muda um
+número já exibido ao usuário e merece decisão consciente.
 
 ## Estado de partida
 `main` = `7364b93` (TASK-028 mergeada e empurrada), 257 testes verdes.

@@ -552,6 +552,68 @@ backend dá para: (a) contagem sempre correta ao voltar — **já entregue**; (b
 em segundo plano mas vivo (cobre 60–120s com a tela ligada); (c) aviso de recuperação ao voltar.
 Garantia total exigiria Web Push + servidor (Fase 2, contraria o local-first do v1) ou app nativo.
 
+---
+
+# ⚠️ CHECKPOINT DE RETOMADA — 2026-07-31 (leia isto primeiro depois de um `/clear`)
+
+## Onde exatamente estamos
+
+- **`main` = `98e7c5c`**, em sincronia com `origin` (deploy do Vercel já disparado).
+  Contém TASK-026, TASK-027 e TASK-028.
+- **Branch `ai/TASK-029-agenda-rotacao-claude` = `c06f46b`**, 4 commits à frente da `main`,
+  **working tree limpo**. A TASK-029 está **implementada e verificada no browser**, mas
+  **NÃO passou por review Codex e NÃO foi mergeada**.
+
+## PRÓXIMA AÇÃO EXATA
+
+```bash
+git checkout ai/TASK-029-agenda-rotacao-claude
+codex review --base main      # no Git Bash; PowerShell trava no modo restrito
+```
+Corrigir os achados reais, recusar com evidência os que não procederem, parar de
+auto-corrigir após 3 ciclos, **e então pedir aprovação de merge ao usuário** (ele aprova
+cada merge). Contrato completo: `docs/ai/tasks/TASK-029-agenda-rotacao.md`.
+
+## Decisão pendente dentro da TASK-029 (não é bug esquecido)
+
+`report.ts` → `workoutsScheduled` ainda conta dias agendados no `weekSchedule`. É o
+denominador da constância no relatório, e com a agenda solta do calendário virou uma
+promessa que o app não faz mais. Opções e o critério de honestidade estão no contrato da
+task. **Não mexi de propósito:** muda um número já exibido ao usuário.
+
+## Feedback de uso real — 4 de 7 itens resolvidos
+
+| # | Item | Estado |
+|---|---|---|
+| 1 | Contador fora da realidade ao sair do app | ✅ TASK-028, em `main` |
+| 3 | Contador fechar sozinho | ✅ TASK-028, em `main` |
+| 4 | Avançar sozinho para o próximo exercício | ✅ TASK-028, em `main` |
+| 7 | Treino preso ao dia da semana | 🔶 TASK-029 pronta, **aguarda review + merge** |
+| 2 | Background + notificação | ⬜ precisa de PWA (manifest + Service Worker) |
+| 6 | Sino sem função | ⬜ é a TASK-023 do roadmap, nunca construída |
+| 5 | Logo fraca | ⬜ |
+
+**Ordem sugerida depois da 029:** 2 (PWA/notificação) → 6 (sino, que o PWA facilita) → 5 (logo).
+
+### Limite honesto do item 2 — registrado ANTES de prometer
+App web **sem servidor de push** não garante notificação com a página congelada pelo
+sistema. Sem backend dá para: (a) contagem sempre correta ao voltar (**já entregue** na
+TASK-028); (b) notificação com o app em segundo plano mas ainda vivo — cobre o caso comum
+de 60–120s com a tela ligada; (c) aviso de recuperação no instante em que volta. Garantia
+total exigiria Web Push + servidor (Fase 2, contraria o local-first do v1) ou app nativo.
+**Não prometer "roda perfeitamente em background".**
+
+## Padrão que se repetiu nas últimas 3 tasks (vale para a próxima sessão)
+
+Os bugs que mais custaram **não vieram de lógica** — vieram de **ciclo de vida e contexto**:
+- `StrictMode` invocando efeito 2× e desfazendo uma guarda que "consumia" flag;
+- efeito de ancoragem rodando na montagem e gravando estado fantasma;
+- restaurar menos contexto do que o usuário tinha (exercício sem o treino, treino sem a posição).
+
+Nenhum apareceu na suíte. Os três saíram de **inspecionar o storage e o DOM no browser**.
+Verificação por DOM prova estrutura; **abrir o storage e perguntar "quem escreveu isso?"**
+é o que pega esta classe.
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
 branch apagada. (Nota histórica daquele momento — o push só veio em 2026-07-30, ver acima.)
@@ -654,7 +716,7 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-026 | Vivid Fase 2 (Corpo, conclusão de treino, Relatórios, editorial) | MERGEADA | main (`c725dc0`) |
 | TASK-027 | Cobertura de mídia (28%→100%) + escala do calendário | MERGEADA | main (`ddaf9ab`) |
 | TASK-028 | Modo Treino confiável (descanso persistido, auto-close, auto-avanço) | MERGEADA | main (`7364b93`) |
-| TASK-029 | Agenda por rotação (treino solto do dia da semana) | ESPECIFICADA | — |
+| TASK-029 | Agenda por rotação (treino solto do dia da semana) | IMPLEMENTADA — aguarda review + merge | `ai/TASK-029-agenda-rotacao-claude` |
 
 ---
 
