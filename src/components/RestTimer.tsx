@@ -36,6 +36,7 @@ export function RestTimer({
   runToken = 0,
   sessionId,
   exerciseId,
+  workoutId,
 }: {
   open: boolean;
   onClose: () => void;
@@ -44,6 +45,7 @@ export function RestTimer({
   /** A que sessão/exercício este descanso pertence — escopo do estado persistido. */
   sessionId: string;
   exerciseId: string;
+  workoutId: string;
 }) {
   /*
    * Estado inicial vem do DISCO, não de `seconds`. É isto que corrige o "contador fora
@@ -85,7 +87,7 @@ export function RestTimer({
 
   /** Grava a âncora atual. Toda ação que mexe no tempo passa por aqui. */
   function persist(patch: { endAt: number; duration: number; pausedRemaining: number | null }) {
-    saveRestTimer({ ...patch, sessionId, exerciseId, alerted: vibratedRef.current });
+    saveRestTimer({ ...patch, sessionId, exerciseId, workoutId, alerted: vibratedRef.current });
   }
 
   const [prevToken, setPrevToken] = useState(runToken);

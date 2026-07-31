@@ -37,6 +37,7 @@ const base: RestTimerState = {
   pausedRemaining: null,
   sessionId: "p1:A:2026-07-30",
   exerciseId: "supino",
+  workoutId: "A",
   alerted: false,
 };
 

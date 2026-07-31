@@ -36,6 +36,7 @@ import {
   RPE_MIN,
   RPE_MAX,
   isoDate,
+  sessionIdFor,
   type WorkoutSession,
 } from "@/lib/plan/session";
 import { getSession, saveSession, getAllSessions } from "@/lib/storage/sessions";
@@ -110,6 +111,13 @@ export default function TreinoPage() {
    * encerrado (achado do review Codex).
    */
   const restDelayRef = useRef<number | null>(null);
+  /*
+   * Descanso AGENDADO mas ainda não aberto (compasso de 1,6s do recorde). O avanço
+   * automático precisa esperar por ele: durante esse intervalo `restOpen` ainda é false,
+   * e a contagem de 5s começava antes de o descanso aparecer, comendo parte da janela de
+   * cancelar justamente no caminho "última série + recorde" (achado do review Codex).
+   */
+  const [restPending, setRestPending] = useState(false);
   useEffect(
     () => () => {
       if (restDelayRef.current != null) window.clearTimeout(restDelayRef.current);
@@ -129,6 +137,7 @@ export default function TreinoPage() {
       window.clearTimeout(restDelayRef.current);
       restDelayRef.current = null;
     }
+    setRestPending(false);
     setPrCelebration(null);
     // Navegar na mão é uma decisão explícita: cancela o avanço automático pendente.
     setAutoNext(null);
@@ -163,8 +172,21 @@ export default function TreinoPage() {
   }, [planId]);
 
   const today = p ? getTodayWorkout(p, new Date(), override) : null;
+  /*
+   * Treino do descanso salvo, quando ele é de HOJE e deste plano. Sem isto, quem estava
+   * num treino escolhido à mão voltava do descarte no treino do dia: a sessão não batia,
+   * a posição não era restaurada e o cronômetro nunca revivia (achado do review Codex).
+   * A comparação usa o `sessionIdFor` canônico, não um parse do id composto.
+   */
+  const restoredWorkoutId =
+    savedRest &&
+    planId &&
+    savedRest.sessionId === sessionIdFor(planId, savedRest.workoutId, isoDate())
+      ? savedRest.workoutId
+      : null;
   const activeId =
     selected ??
+    restoredWorkoutId ??
     (today?.kind === "workout" ? today.workoutId : p?.training.workouts[0]?.id) ??
     null;
   const officialTodayId = today?.kind === "workout" ? today.workoutId : null;
@@ -222,7 +244,7 @@ export default function TreinoPage() {
    * mesma disciplina do compasso do recorde, que é a classe de bug conhecida aqui.
    */
   useEffect(() => {
-    if (!autoNext || restOpen) return;
+    if (!autoNext || restOpen || restPending) return;
     const id = window.setTimeout(() => {
       if (autoNext.left <= 1) {
         setAutoNext(null);
@@ -232,7 +254,7 @@ export default function TreinoPage() {
       }
     }, 1000);
     return () => window.clearTimeout(id);
-  }, [autoNext, restOpen]);
+  }, [autoNext, restOpen, restPending]);
 
   if (loading || overrideLoading) {
     return (
@@ -392,6 +414,7 @@ export default function TreinoPage() {
   }
 
   function startRest() {
+    setRestPending(false);
     setRestToken((t) => t + 1);
     setRestOpen(true);
   }
@@ -458,6 +481,7 @@ export default function TreinoPage() {
      * no browser, não em teste. 1,6s de selo em cena, depois o descanso.
      */
     if (bateuRecorde) {
+      setRestPending(true);
       restDelayRef.current = window.setTimeout(() => {
         restDelayRef.current = null;
         startRest();
@@ -481,6 +505,7 @@ export default function TreinoPage() {
       window.clearTimeout(restDelayRef.current);
       restDelayRef.current = null;
     }
+    setRestPending(false);
     // O overlay de descanso (E4) sobreviveria à troca de tela e ficaria por cima da
     // celebração — mesma classe do achado do compasso do recorde na TASK-025.
     setRestOpen(false);
@@ -964,6 +989,7 @@ export default function TreinoPage() {
         runToken={restToken}
         sessionId={session.sessionId}
         exerciseId={ex.id}
+        workoutId={workout.id}
       />
 
       <BottomNav active="treino" />

@@ -37,6 +37,15 @@ export type RestTimerState = {
   /** A que sessão/exercício este descanso pertence — não revive noutro treino. */
   sessionId: string;
   exerciseId: string;
+  /**
+   * Treino a que o descanso pertence, explícito.
+   *
+   * Está aqui em vez de ser extraído do `sessionId` porque a página precisa dele ANTES
+   * de montar a sessão: quem treinava um treino escolhido à mão (não o do dia) voltava
+   * do descarte no treino padrão, e aí nem a sessão batia — a posição não era restaurada
+   * e o cronômetro nunca revivia (achado do review Codex).
+   */
+  workoutId: string;
   /** Se a vibração/aviso de fim já foi disparado (não avisar duas vezes). */
   alerted: boolean;
 };
@@ -50,6 +59,7 @@ function isState(value: unknown): value is RestTimerState {
     typeof v.duration === "number" &&
     typeof v.sessionId === "string" &&
     typeof v.exerciseId === "string" &&
+    typeof v.workoutId === "string" &&
     typeof v.alerted === "boolean" &&
     (v.pausedRemaining === null || typeof v.pausedRemaining === "number")
   );
