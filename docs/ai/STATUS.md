@@ -314,11 +314,11 @@ em `report.ts`/`relatorios/page.tsx`, tem o raciocínio completo de 8 ciclos de 
   registro por planId, a revisão antiga é apagada de verdade do IndexedDB (não é bug de lookup da
   UI). Corrigir de verdade exige guardar histórico de revisões do plano (nova store ou chave
   composta `planId+importedAt`) — mudança de arquitetura, não um ajuste pontual.
-- **TASK-018 [P2]:** `planForDate`/`earliestKnown` (`report.ts`) comparam só a **data**
-  (`importedAt.slice(0,10)`), não o timestamp completo — se um plano novo for importado no MEIO do
-  dia (mesmo dia calendário do plano anterior), o dia inteiro cai pro plano novo em vez de
-  reconhecer a fronteira por horário. Como `workoutsScheduled` já opera em granularidade de DIA
-  (não hora), afeta no máximo 1 dia de fronteira, cenário raro. Não corrigido.
+- ~~**TASK-018 [P2]:** `planForDate`/`earliestKnown` comparavam só a data, não o timestamp.~~
+  **EXTINTA na TASK-029 (2026-08-01):** as duas funções foram removidas junto com
+  `workoutsScheduled` — sem denominador de período, não há mais nada que resolva plano por
+  DATA. O histórico cross-plano usa `planForSession`, que casa pelo `planId` da própria
+  sessão (fato registrado, não inferência por data).
 - **Dívida de teste (desde TASK-008):** faltam testes de UI/interação pra `/treino`, `RestTimer`,
   `/relatorios` (infra Vitest é node-only; exigiria RTL/jsdom — nunca configurado).
 
@@ -576,23 +576,39 @@ Gates: typecheck ✓ · lint ✓ · **282/282** ✓ · build ✓ (eram 274 no fi
 
 **Faltam só as DUAS decisões humanas abaixo + gate visual + aprovação de merge.**
 
-## Decisões pendentes da TASK-029 (nenhuma é bug esquecido)
+## Decisões da TASK-029 — TOMADAS pelo usuário em 2026-08-01
 
-**1 — `report.ts` → `workoutsScheduled`.** Ainda conta dias agendados no `weekSchedule`
-dentro do período; é o denominador do "X de Y treinos concluídos" no relatório
-(`ReportView.tsx:48`, mais a barra de progresso na linha 57). Com a agenda solta do
-calendário, esse Y virou promessa que o app não faz mais. Opções: (a) `weeklyTarget ×
-semanas do período` — projeção, gera fração em mês (4,43 semanas); (b) tirar o
-denominador e mostrar o que aconteceu + a meta semanal declarada no plano como
-comparação. A §9 exige denominador **verificável**, não estimado.
-⚠️ `workoutsScheduled` é campo do **REPORT_SCHEMA 1.0**, que o coach re-ingere — mudar a
-semântica pede bump ou nota no schema.
+**1 — Constância sem denominador de período. `REPORT_SCHEMA` 1.0 → 1.1.**
+`adherence.workoutsScheduled` foi **removido**: contava dias marcados como treino no
+`weekSchedule`, medindo o usuário contra um calendário que o app parou de seguir. Entraram
+`weeklyTarget` (declarado no plano) e `periodWeeks`. `constancyView` (`report.ts`) é a
+fonte única do relatório visual e do Markdown: **até uma semana compara treinos com a meta
+semanal; acima disso, ritmo por semana**. A divisão por fração de semana foi barrada
+porque extrapolava (4 treinos em 6 dias = "4,7 por semana"; 1 treino na segunda = "7,0").
+⚠️ O coach re-ingere este contrato — a mudança está documentada em `REPORT_SCHEMA.md` §3.2
+e §4. **Não existe mais "treino perdido" derivável do relatório.**
 
-**2 — `CICLO_EM_DIAS = 2` fixo** (achado [P1] do ciclo 3, **não corrigido de propósito**).
-A regra veio ditada pelo usuário para o próprio plano upper/lower. Não generaliza: num
-split A/B/C o app sugeriria descanso depois de A+B em vez de C. Alternativa é derivar a
-cadência do próprio `weekSchedule` (maior sequência de treinos consecutivos) — que dá
-**2 para o plano do usuário**, ou seja, sem mudança de comportamento hoje.
+**2 — `CICLO_EM_DIAS = 2` virou `cycleLengthOf(plan)`**, derivado da maior sequência de
+treinos consecutivos do próprio `weekSchedule`, conforme a regra do usuário (*"vai variar
+do plano... A+B+C descansa ao fim do ciclo; upper/lower descansa ao fim do A/B"*). No
+plano do usuário dá **2 — comportamento inalterado**; num split A/B/C agora sugere C na
+quarta em vez de descanso.
+
+**Efeitos colaterais registrados:**
+- `planForDate` foi **removida** (era a única consumidora do denominador). Isso
+  **extingue a dívida técnica [P2] da TASK-018** — a fronteira de troca de plano no mesmo
+  dia calendário vivia exatamente nessa comparação por data. O histórico cross-plano
+  segue inteiro via `planForSession` (casa pelo `planId` da sessão, um fato registrado).
+- `rotationOf`/`cycleLengthOf` tiveram de virar **funções totais**: `report.ts` passou a
+  chamá-las com planos HISTÓRICOS, que só passaram pela guarda estrutural da TASK-013.
+  Um elemento nulo em `workouts` derrubava o relatório inteiro (regressão minha, pega
+  pela suíte).
+- **Bug pré-existente da TASK-021 corrigido de passagem:** `sr-only` estava na `<table>`
+  do `LineChart` e `width:1px` não encolhe tabela (nunca vai abaixo do min-content).
+  Medido: `scrollWidth` 429 contra 390 de viewport — **39px de rolagem horizontal** na
+  tela cuja tarefa é LER. O `sr-only` foi para um `div` em volta.
+
+**Gates finais da TASK-029:** typecheck ✓ · lint ✓ · **292/292** ✓ · build ✓.
 
 ## Feedback de uso real — 4 de 7 itens resolvidos
 

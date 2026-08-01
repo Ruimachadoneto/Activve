@@ -4,9 +4,8 @@
 > mergeada.** Branch `ai/TASK-029-agenda-rotacao-claude`. Item **7** do feedback de uso
 > real (2026-07-30).
 >
-> **Faltam DUAS decisões humanas** (nenhuma é bug esquecido): o denominador de
-> `workoutsScheduled` no relatório e o `CICLO_EM_DIAS = 2` fixo. Ver as duas seções no
-> fim deste arquivo. Depois delas: gate visual + aprovação de merge.
+> **As duas decisões humanas foram TOMADAS em 2026-08-01 e implementadas** (ver o fim do
+> arquivo). Falta só: **gate visual + aprovação humana de merge**.
 
 ## O problema, nas palavras do usuário
 
@@ -209,19 +208,55 @@ Alternativa: derivar o ciclo do próprio `weekSchedule` — a maior sequência d
 treino consecutivas. Para o plano do usuário (`A,B,rest,A,B,rest,rest`) isso dá **2**, ou
 seja, **o comportamento atual não muda**; para `A,B,C,rest,…` daria 3.
 
-**Não mexi:** é regra de produto ditada à mão, e §13 manda parar no 3º ciclo.
+**Decidido: derivar do plano.** Regra do usuário: *"vai variar do plano e dos músculos
+utilizados. Se o treino é A+B+C onde cada dia tem um foco, o descanso é após o fim do
+ciclo. Se é Upper/Lower A/B — C/D, o descanso é ao fim do ciclo upper/lower e com base na
+quantidade de treinos por semana."* → `cycleLengthOf(plan)` lê a maior sequência de
+treinos consecutivos do `weekSchedule`. **No plano do usuário dá 2: nada muda hoje.**
 
-## ⚠️ RIPPLE AINDA NÃO TRATADO — decidir antes de fechar a task
+A leitura NÃO envolve a virada da semana de propósito: juntar fim e começo do array
+transformaria `A,rest,rest,rest,rest,rest,A` (2× por semana, espaçado) num ciclo de 2,
+quando o que o plano diz é treinar um dia e descansar.
+
+**Efeito colateral que a suíte pegou:** `report.ts` passou a chamar `rotationOf`, e lá
+entram planos HISTÓRICOS que só passaram pela guarda estrutural da TASK-013 — um elemento
+nulo em `workouts` derrubava o relatório inteiro. `workoutsOf` tornou a leitura total.
+Terceira vez que a mesma lição aparece (TASK-013, TASK-027, agora esta): **quem lê plano
+histórico assume que qualquer campo pode estar quebrado.**
+
+## Bug pré-existente corrigido de passagem (TASK-021)
+
+`sr-only` estava na própria `<table>` do `LineChart`. `width: 1px` **não encolhe tabela** —
+o algoritmo de layout de tabela nunca vai abaixo do min-content, então ela ficava com a
+largura real do conteúdo: invisível (o `clip-path` esconde) mas ocupando layout. Medido em
+390px na tela de relatórios: `scrollWidth` **429 com as tabelas, 390 sem** — 39px de
+rolagem horizontal justamente na tela cuja tarefa é LER. O `sr-only` foi para um `div` em
+volta. *Regra que fica: utilitário de ocultação por dimensão não funciona em `<table>`.*
+
+## Gates finais
+`typecheck` ✓ · `lint` ✓ · **292/292** ✓ · `build` ✓ (eram 257 antes da task).
+
+## ✅ RIPPLE TRATADO — decisão do usuário em 2026-08-01
 
 **`report.ts` → `workoutsScheduled`** continua contando dias agendados no `weekSchedule`
 dentro do período. É o **denominador da constância** no relatório ("8 de 17 treinos
 concluídos"). Com a agenda solta do calendário, esse denominador virou uma promessa que o
 app não faz mais.
 
-Opções: (a) derivar de `rotationOf(plan).weeklyTarget × semanas do período`; (b) trocar a
-métrica por algo que não precise de denominador (ex.: "8 treinos em 4 semanas"). A §9
-(honestidade) exige um denominador **verificável**, não estimado. **Não mexi** — muda um
-número já exibido ao usuário e merece decisão consciente.
+**Decidido: opção (b) — tirar o denominador.** `REPORT_SCHEMA` foi para **1.1** e
+`adherence.workoutsScheduled` saiu; entraram `weeklyTarget` e `periodWeeks`.
+A opção (a) foi descartada por inventar precisão: um mês tem 4,43 semanas.
+
+**O que a implementação acrescentou à decisão** (achado na verificação, não no papel):
+dividir por uma FRAÇÃO de semana extrapola tão mal quanto projetar. O período "Esta
+semana" termina hoje, então quase sempre é parcial — 4 treinos em 6 dias viravam "4,7 por
+semana", e 1 treino na segunda viraria "7,0 por semana", uma taxa inventada a partir de um
+ponto só. Por isso `constancyView` tem dois regimes: **até uma semana compara TREINOS com
+a meta semanal** (os dois números existem, nenhum é projetado); **acima de uma semana**,
+ritmo. É fonte única do visual e do Markdown, pra os dois não contarem diferente.
+
+**Removida junto:** `planForDate` (única consumidora) — o que **extingue a dívida técnica
+[P2] da TASK-018**, que vivia na comparação por data dessa função.
 
 ## Estado de partida
 `main` = `7364b93` (TASK-028 mergeada e empurrada), 257 testes verdes.
