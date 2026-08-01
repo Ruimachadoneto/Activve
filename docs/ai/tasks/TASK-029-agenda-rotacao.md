@@ -233,8 +233,34 @@ largura real do conteúdo: invisível (o `clip-path` esconde) mas ocupando layou
 rolagem horizontal justamente na tela cuja tarefa é LER. O `sr-only` foi para um `div` em
 volta. *Regra que fica: utilitário de ocultação por dimensão não funciona em `<table>`.*
 
+## ⚠️ LIMITAÇÃO CONHECIDA — plano que repete o MESMO treino em dias seguidos
+
+Achado na passada de confirmação do Codex (2026-08-01), **não corrigido — precisa de
+decisão**, não de ajuste.
+
+`rotationOf` faz `dedupe` do `weekSchedule` (regra escrita neste contrato e aprovada).
+Para `A,B,rest,A,B,rest,rest` isso é exatamente certo: o ciclo é A→B. Mas para um plano
+que repete o mesmo treino em sequência — `A,A,B,…` — o dedupe vira `[A,B]` e, depois do
+primeiro A, a sugestão pula para B em vez de pedir o segundo A.
+
+**Por que não é um remendo:** `nextInRotation` responde "qual vem depois do ÚLTIMO
+concluído". Com repetição, `indexOf` sempre casaria a primeira ocorrência, então suportar
+isso exige saber **em que posição do ciclo o usuário está** — o que fica ambíguo assim que
+um dia é pulado, que é justamente o cenário que originou a task. O volume extra continua
+representado: `weeklyTarget` **conta as repetições** (um `A,A,B` conta 3).
+
+**Impacto hoje: nenhum.** O plano do usuário não tem repetição em sequência, e o override
+da TASK-016 resolve caso apareça. Fica como decisão futura: ou o app rastreia posição no
+ciclo, ou o `PLAN_SCHEMA` passa a expressar a repetição explicitamente.
+
 ## Gates finais
 `typecheck` ✓ · `lint` ✓ · **292/292** ✓ · `build` ✓ (eram 257 antes da task).
+
+## Review Codex — passada de confirmação (pós-decisões)
+Rodada depois de implementar as duas decisões (schema 1.1, `cycleLengthOf`, remoção de
+`planForDate`). **Nenhum achado no que foi decidido/implementado** — *"aside from that,
+the rest of the patch looks coherent"*. O único comentário foi a limitação do dedupe
+registrada acima.
 
 ## ✅ RIPPLE TRATADO — decisão do usuário em 2026-08-01
 

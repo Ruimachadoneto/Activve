@@ -609,6 +609,14 @@ quarta em vez de descanso.
   tela cuja tarefa é LER. O `sr-only` foi para um `div` em volta.
 
 **Gates finais da TASK-029:** typecheck ✓ · lint ✓ · **292/292** ✓ · build ✓.
+Passada de confirmação do Codex depois das decisões: **nada a corrigir no que foi
+implementado**.
+
+⚠️ **Limitação conhecida registrada (não é bug esquecido):** plano que repete o MESMO
+treino em dias seguidos (`A,A,B,…`) tem o dedupe da rotação pulando a repetição — depois
+do primeiro A a sugestão vai para B. Suportar isso exige rastrear **posição no ciclo**,
+que fica ambíguo justamente quando um dia é pulado (o cenário da task). **Impacto hoje:
+nenhum** — o plano do usuário não tem repetição em sequência. Detalhe no contrato.
 
 ## Feedback de uso real — 4 de 7 itens resolvidos
 
