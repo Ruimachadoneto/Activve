@@ -560,26 +560,39 @@ Garantia total exigiria Web Push + servidor (Fase 2, contraria o local-first do 
 
 - **`main` = `98e7c5c`**, em sincronia com `origin` (deploy do Vercel já disparado).
   Contém TASK-026, TASK-027 e TASK-028.
-- **Branch `ai/TASK-029-agenda-rotacao-claude` = `c06f46b`**, 4 commits à frente da `main`,
-  **working tree limpo**. A TASK-029 está **implementada e verificada no browser**, mas
-  **NÃO passou por review Codex e NÃO foi mergeada**.
+- **Branch `ai/TASK-029-agenda-rotacao-claude`**, à frente da `main`, **working tree
+  limpo**. A TASK-029 está **implementada, revisada (3 ciclos Codex) e verificada no
+  browser** — **NÃO mergeada**.
 
 ## PRÓXIMA AÇÃO EXATA
 
-```bash
-git checkout ai/TASK-029-agenda-rotacao-claude
-codex review --base main      # no Git Bash; PowerShell trava no modo restrito
-```
-Corrigir os achados reais, recusar com evidência os que não procederem, parar de
-auto-corrigir após 3 ciclos, **e então pedir aprovação de merge ao usuário** (ele aprova
-cada merge). Contrato completo: `docs/ai/tasks/TASK-029-agenda-rotacao.md`.
+**Review Codex concluído em 2026-08-01: 3 ciclos, 6 achados reais, todos corrigidos**
+(1 [P1] de corrida de carregamento no `/`, 3 [P2] no ciclo 2, 2 [P2] no ciclo 3). Uma
+consequência descrita pelo revisor foi **recusada com evidência** (o CTA do Hoje não
+carrega id de treino, então não levava ao treino errado). Detalhe ciclo a ciclo no
+contrato: `docs/ai/tasks/TASK-029-agenda-rotacao.md`.
 
-## Decisão pendente dentro da TASK-029 (não é bug esquecido)
+Gates: typecheck ✓ · lint ✓ · **282/282** ✓ · build ✓ (eram 274 no fim da implementação).
 
-`report.ts` → `workoutsScheduled` ainda conta dias agendados no `weekSchedule`. É o
-denominador da constância no relatório, e com a agenda solta do calendário virou uma
-promessa que o app não faz mais. Opções e o critério de honestidade estão no contrato da
-task. **Não mexi de propósito:** muda um número já exibido ao usuário.
+**Faltam só as DUAS decisões humanas abaixo + gate visual + aprovação de merge.**
+
+## Decisões pendentes da TASK-029 (nenhuma é bug esquecido)
+
+**1 — `report.ts` → `workoutsScheduled`.** Ainda conta dias agendados no `weekSchedule`
+dentro do período; é o denominador do "X de Y treinos concluídos" no relatório
+(`ReportView.tsx:48`, mais a barra de progresso na linha 57). Com a agenda solta do
+calendário, esse Y virou promessa que o app não faz mais. Opções: (a) `weeklyTarget ×
+semanas do período` — projeção, gera fração em mês (4,43 semanas); (b) tirar o
+denominador e mostrar o que aconteceu + a meta semanal declarada no plano como
+comparação. A §9 exige denominador **verificável**, não estimado.
+⚠️ `workoutsScheduled` é campo do **REPORT_SCHEMA 1.0**, que o coach re-ingere — mudar a
+semântica pede bump ou nota no schema.
+
+**2 — `CICLO_EM_DIAS = 2` fixo** (achado [P1] do ciclo 3, **não corrigido de propósito**).
+A regra veio ditada pelo usuário para o próprio plano upper/lower. Não generaliza: num
+split A/B/C o app sugeriria descanso depois de A+B em vez de C. Alternativa é derivar a
+cadência do próprio `weekSchedule` (maior sequência de treinos consecutivos) — que dá
+**2 para o plano do usuário**, ou seja, sem mudança de comportamento hoje.
 
 ## Feedback de uso real — 4 de 7 itens resolvidos
 

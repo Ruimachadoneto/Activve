@@ -1,11 +1,12 @@
 # TASK-029 — Agenda por ROTAÇÃO (o treino deixa de ser preso ao dia da semana)
 
-> **Status: IMPLEMENTADA e VERIFICADA no browser — ⚠️ NÃO passou por review Codex e NÃO
-> foi mergeada.** Branch `ai/TASK-029-agenda-rotacao-claude`, commit `c06f46b`, 4 commits
-> à frente de `main`. Item **7** do feedback de uso real (2026-07-30).
+> **Status: IMPLEMENTADA, REVISADA (3 ciclos Codex) e VERIFICADA no browser — NÃO
+> mergeada.** Branch `ai/TASK-029-agenda-rotacao-claude`. Item **7** do feedback de uso
+> real (2026-07-30).
 >
-> **RETOMADA:** rodar `codex review --base main` (Git Bash, não PowerShell), corrigir
-> achados, depois pedir aprovação de merge ao usuário.
+> **Faltam DUAS decisões humanas** (nenhuma é bug esquecido): o denominador de
+> `workoutsScheduled` no relatório e o `CICLO_EM_DIAS = 2` fixo. Ver as duas seções no
+> fim deste arquivo. Depois delas: gate visual + aprovação de merge.
 
 ## O problema, nas palavras do usuário
 
@@ -128,7 +129,87 @@ botão, o único caminho em que `open` já é `true`.
 Console limpo em todos.
 
 ## Gates
-`typecheck` ✓ · `lint` ✓ · **274/274** testes ✓ · `build` ✓ (eram 257 antes da task).
+`typecheck` ✓ · `lint` ✓ · **282/282** testes ✓ · `build` ✓ (eram 257 antes da task).
+
+## Review Codex — 3 ciclos, 6 achados reais, todos corrigidos
+
+**Ciclo 1 — 1 [P1] + 1 [P2].**
+- **[P1] `/` resolvia a sugestão antes do histórico carregar.** Desde a rotação, lista
+  vazia não é "menos informação", é **outra resposta**: `resolveToday` sugeria o primeiro
+  da rotação até o fetch chegar. O `/treino` já pagava o guard `historyLoading`; o `/`
+  ficou sem ele no mesmo patch. Corrigido com o mesmo estado derivado.
+  ⚠️ **Recusei a consequência que o revisor descreveu**, não o achado: ele afirmou que o
+  usuário podia "ser levado ao treino errado" ao tocar em *Começar treino*. Não procede —
+  o CTA é `<Link href="/treino">` **sem id**, e o `/treino` resolve a própria sugestão
+  depois de esperar o histórico. O dano real é a tela de DECISÃO afirmar um treino e
+  trocar depois.
+  ⚠️ **Não consegui reproduzir o flash**: 5 execuções com `MutationObserver` sobre
+  navegação client-side, inclusive com **603 sessões semeadas** pra encarecer o
+  `getAllFromIndex` — a leitura de sessões venceu a do override em todas. A ordem é
+  **incidental** (microtasks + duas transações readonly em stores distintos), não
+  garantida. O guard troca sorte por invariante.
+- **[P2] `report.ts` → `workoutsScheduled`** — é a decisão pendente já registrada abaixo.
+  **Não corrigido de propósito.**
+
+**Ciclo 2 — 3 [P2], todos reais.**
+- **Mistura de unidades na meta semanal.** `completedThisWeek` contava DIAS com treino;
+  `weeklyTarget` conta TREINOS (4 num upper/lower 2×). Quem juntasse A+B na segunda e
+  A+B na quarta somava 2 contra meta 4 e a semana nunca fechava — apesar dos 4 feitos.
+  Juntar treinos no mesmo dia é justamente o que a rotação passou a permitir.
+- **Duas leituras de "a última sessão" na mesma função.** `nextInRotation` ordenava e
+  pegava a última; `suggestWorkout` usava `find`, que para na PRIMEIRA do dia. Com A e B
+  no mesmo dia a função dizia "você fez A" e "o próximo é A", e o `/treino` reabria o
+  treino já encerrado. → fonte única `concluidasEmOrdem`.
+- **`doneToday` era escrito e nunca lido.** O próprio JSDoc do tipo prometia *"a tela
+  mostra fechamento, não convite"* e o Hoje seguia com o CTA cheio "Começar treino" um
+  minuto depois de o usuário terminar. → card vira fechamento (rótulo, "Treino
+  concluído", o próximo da rotação como informação, botão secundário). **Não virou
+  celebração**: comemorar é um MOMENTO (tela de conclusão da TASK-026), nunca um estado
+  rederivado a cada reabertura (§0.2 do design system).
+
+**Ciclo 3 — 1 [P1] levado à decisão humana + 2 [P2] corrigidos.**
+- **[P2] o `override` resolvia antes da checagem de "feito hoje"** — concluir o treino
+  escolhido à mão deixava o card em "Começar treino" para sempre. O override diz QUAL é o
+  treino de hoje, não que ele siga pendente.
+- **[P2] o contador "X de Y treinos" do Hoje** contava DIAS com check contra um
+  denominador que conta TREINOS. Mesmo defeito de unidade do ciclo 2, na camada de UI —
+  e o comentário do próprio arquivo já avisava que duas contas separadas para o mesmo
+  conceito divergem. → numerador passou a vir de `completedThisWeek`.
+- **[P1] `CICLO_EM_DIAS = 2` fixo** — levado à decisão humana (§13). Ver abaixo.
+
+**Padrão dos 6 achados:** nenhum era erro de cálculo. Cinco eram **a mesma pergunta
+respondida em dois lugares com réguas diferentes** (dias × treinos, primeira × última
+sessão, tela que espera × tela que não espera, campo escrito × campo lido). A lição da
+TASK-013 e da TASK-027 de novo: fechar a classe é ter **uma fonte só**, não acertar cada
+ponto.
+
+**Verificação no browser (390×844, aba nova a cada rodada):**
+| Cenário semeado | Resultado |
+|---|---|
+| B concluído hoje | "VOCÊ TREINOU HOJE" · "Treino concluído" · "A seguir na rotação: Treino A" · botão secundário 46px ✅ |
+| A+B na quarta e A+B na sexta | **"4 de 4 treinos"** + "Dia de descanso" (antes diria "2 de 4") ✅ |
+| A na terça, nada quarta/quinta, sexta | "Treino B — Puxar e pernas" ✅ |
+| Sessões com logs reais de série | prontidão cai a **5%**, "Corpo ainda se recuperando" ✅ |
+Console limpo e `overflowPx: 0` em todas. ⚠️ O screenshot da pane segue falhando nesta
+máquina; a verificação foi por DOM. **Nenhuma composição nova foi introduzida** — o
+fechamento reusa tipografia, ícone e espaçamento do card que já passou pelo gate visual —
+mas o gate visual de olho humano continua pendente.
+
+## ⚠️ DECISÃO HUMANA 2 — `CICLO_EM_DIAS = 2` fixo (achado [P1] do ciclo 3)
+
+A regra de descanso foi ditada pelo usuário para o **próprio plano** (upper/lower):
+*"somente depois de 2 dias seguidos ou ciclo completo de (a-b-descanso-c-d)"*. A constante
+está correta para esse plano.
+
+O revisor apontou que ela **não generaliza**: `rotationOf` já suporta planos com 3–4
+treinos distintos (tem teste), e num split A/B/C o app passaria a sugerir descanso depois
+de A+B, na quarta, em vez de C — o usuário teria de dar override toda semana.
+
+Alternativa: derivar o ciclo do próprio `weekSchedule` — a maior sequência de entradas de
+treino consecutivas. Para o plano do usuário (`A,B,rest,A,B,rest,rest`) isso dá **2**, ou
+seja, **o comportamento atual não muda**; para `A,B,C,rest,…` daria 3.
+
+**Não mexi:** é regra de produto ditada à mão, e §13 manda parar no 3º ciclo.
 
 ## ⚠️ RIPPLE AINDA NÃO TRATADO — decidir antes de fechar a task
 
