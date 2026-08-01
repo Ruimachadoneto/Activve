@@ -18,6 +18,13 @@ export type TodayResult =
       muscles: Muscle[];
       /** Este treino já foi CONCLUÍDO hoje — a tela mostra fechamento, não convite. */
       doneToday: boolean;
+      /**
+       * Só com `doneToday`: o que vem a seguir na rotação. É INFORMAÇÃO de fechamento
+       * ("amanhã seria o B"), nunca convite a emendar outro treino — o app não prescreve.
+       * `null` quando o treino ainda não foi feito hoje.
+       */
+      nextWorkoutId: string | null;
+      nextWorkoutName: string | null;
     };
 
 /*

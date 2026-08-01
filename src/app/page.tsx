@@ -318,7 +318,9 @@ export default function HojePage() {
                     {badge}
                   </span>
                 ) : null}
-                <p className="text-[11px] uppercase tracking-wider text-faint">Seu treino de hoje</p>
+                <p className="text-[11px] uppercase tracking-wider text-faint">
+                  {today.doneToday ? "Você treinou hoje" : "Seu treino de hoje"}
+                </p>
               </div>
               <h2 className="mt-2 text-[22px] font-medium leading-tight tracking-tight">
                 {today.name}
@@ -336,12 +338,40 @@ export default function HojePage() {
                   <Gauge size={16} aria-hidden /> {experienceLabel(p.profile.experience)}
                 </span>
               </div>
-              <Link
-                href="/treino"
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-medium text-on-accent transition-all hover:bg-accent-press active:scale-[0.98]"
-              >
-                <Play size={15} aria-hidden /> Começar treino
-              </Link>
+              {/*
+                Treino já concluído hoje vira FECHAMENTO, não convite: o card mantinha o
+                CTA cheio de "Começar treino" e a tela parecia não ter registrado o que o
+                usuário acabou de fazer (achado do review Codex). O teal é a cor da "ação
+                disponível agora" (§2.1) — depois de treinar, a ação disponível não é a
+                protagonista, então o botão desce para o registro secundário. Não é
+                celebração: comemorar é um MOMENTO (a tela de conclusão da TASK-026),
+                nunca um estado derivado de `status === "done"` a cada reabertura.
+              */}
+              {today.doneToday ? (
+                <>
+                  <p className="mt-4 flex items-center gap-2 text-sm font-medium text-accent">
+                    <Check size={16} aria-hidden /> Treino concluído
+                  </p>
+                  {today.nextWorkoutName ? (
+                    <p className="mt-1.5 text-xs leading-relaxed text-faint">
+                      A seguir na rotação: {today.nextWorkoutName}
+                    </p>
+                  ) : null}
+                  <Link
+                    href="/treino"
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl border border-line px-5 py-3 text-sm font-medium text-ink transition-colors hover:border-accent/40"
+                  >
+                    Abrir o treino
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  href="/treino"
+                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-medium text-on-accent transition-all hover:bg-accent-press active:scale-[0.98]"
+                >
+                  <Play size={15} aria-hidden /> Começar treino
+                </Link>
+              )}
               {/*
                 Único sobrevivente da lista de exercícios removida: "o que preciso levar
                 hoje" não está agregado em nenhuma outra tela (o /treino mostra o

@@ -3,6 +3,7 @@ import {
   completedThisWeek,
   consecutiveDaysUntilYesterday,
   nextInRotation,
+  resolveToday,
   rotationOf,
   suggestWorkout,
 } from "./rotation";
@@ -118,6 +119,24 @@ describe("completedThisWeek", () => {
   it("não conta semana anterior", () => {
     expect(completedThisWeek([sessao("2026-07-26", "A")], dia(TER))).toBe(0);
   });
+
+  it("dois treinos no mesmo dia contam DOIS, não um", () => {
+    /*
+     * A unidade tem que bater com a de `weeklyTarget`, que conta entradas do
+     * weekSchedule (4). Contando DIAS, A+B na segunda e A+B na quarta somavam 2 contra
+     * uma meta de 4: a semana nunca fechava apesar dos 4 treinos (review Codex, ciclo 2).
+     */
+    const s = [sessao(SEG, "A"), sessao(SEG, "B"), sessao(QUA, "A"), sessao(QUA, "B")];
+    expect(completedThisWeek(s, dia(QUI))).toBe(4);
+  });
+
+  it("juntar os 4 treinos em 2 dias fecha a semana", () => {
+    const s = [sessao(SEG, "A"), sessao(SEG, "B"), sessao(QUA, "A"), sessao(QUA, "B")];
+    // Quinta: ontem (quarta) teve treino mas terça não, então a sequência é 1 — quem
+    // manda aqui é a meta semanal, não o ciclo.
+    expect(consecutiveDaysUntilYesterday(s, dia(QUI))).toBe(1);
+    expect(suggestWorkout(plano(), s, dia(QUI))).toMatchObject({ kind: "rest", reason: "week" });
+  });
 });
 
 describe("suggestWorkout — a regra de descanso definida pelo usuário", () => {
@@ -161,6 +180,20 @@ describe("suggestWorkout — a regra de descanso definida pelo usuário", () => 
     expect(suggestWorkout(plano(), [], dia(SEG))).toEqual({ kind: "workout", workoutId: "A" });
   });
 
+  it("dois treinos hoje: fecha o dia com o ÚLTIMO, não com o primeiro registrado", () => {
+    /*
+     * `find` parava na primeira sessão do dia enquanto `next` já vinha da última: a mesma
+     * função dizia "você fez A" e "o próximo é A" (review Codex, ciclo 2). A ordem do
+     * array não pode decidir — quem decide é `completedAt`.
+     */
+    const cedo = { ...sessao(QUI, "A"), completedAt: `${QUI}T08:00:00.000Z` };
+    const tarde = { ...sessao(QUI, "B"), completedAt: `${QUI}T19:00:00.000Z` };
+    const esperado = { kind: "done_today", workoutId: "B", next: "A" };
+    expect(suggestWorkout(plano(), [cedo, tarde], dia(QUI))).toEqual(esperado);
+    // Mesma resposta com o array na ordem inversa.
+    expect(suggestWorkout(plano(), [tarde, cedo], dia(QUI))).toEqual(esperado);
+  });
+
   it("o descanso informa qual seria o próximo — não é um beco sem saída", () => {
     const s = [sessao(SEG, "A"), sessao(TER, "B")];
     const r = suggestWorkout(plano(), s, dia(QUA));
@@ -184,6 +217,42 @@ describe("suggestWorkout — o override do usuário vence a sugestão", () => {
     expect(suggestWorkout(plano(), [], dia(SEG), "SUMIU")).toEqual({
       kind: "workout",
       workoutId: "A",
+    });
+  });
+});
+
+describe("resolveToday — o que as telas consomem", () => {
+  it("treino pendente não carrega 'próximo': seria empurrão para emendar outro", () => {
+    const r = resolveToday(plano(), [], dia(SEG));
+    expect(r).toMatchObject({
+      kind: "workout",
+      workoutId: "A",
+      doneToday: false,
+      nextWorkoutId: null,
+      nextWorkoutName: null,
+    });
+  });
+
+  it("treino concluído hoje expõe o fechamento E o que vem a seguir", () => {
+    // Sem isto o `doneToday` era escrito e nunca lido: a tela Hoje seguia convidando a
+    // "Começar treino" um minuto depois de o usuário terminar (review Codex, ciclo 2).
+    const r = resolveToday(plano(), [sessao(QUI, "A")], dia(QUI));
+    expect(r).toMatchObject({
+      kind: "workout",
+      workoutId: "A",
+      doneToday: true,
+      nextWorkoutId: "B",
+      nextWorkoutName: "Treino B",
+    });
+  });
+
+  it("no descanso, informa o próximo pelo nome", () => {
+    const s = [sessao(SEG, "A"), sessao(TER, "B")];
+    expect(resolveToday(plano(), s, dia(QUA))).toMatchObject({
+      kind: "rest",
+      reason: "cycle",
+      nextWorkoutId: "A",
+      nextWorkoutName: "Treino A",
     });
   });
 });

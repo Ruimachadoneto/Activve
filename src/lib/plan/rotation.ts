@@ -64,6 +64,25 @@ export function rotationOf(plan: PlanFile): Rotation {
 /** Só sessões concluídas contam — a mesma régua de `recovery.ts` e do relatório. */
 const concluidas = (sessions: WorkoutSession[]) => sessions.filter((s) => s.status === "done");
 
+/**
+ * Concluídas em ordem cronológica (data e, dentro do dia, `completedAt`).
+ *
+ * Fonte ÚNICA de "qual foi a última". Antes, `nextInRotation` ordenava e pegava a última
+ * enquanto `suggestWorkout` usava um `find` que parava na PRIMEIRA do dia: com dois
+ * treinos no mesmo dia (que a rotação passou a permitir pra recuperar atraso), a mesma
+ * função dava duas respostas — dizia "você fez A" e "o próximo é A" ao mesmo tempo, e o
+ * `/treino` reabria o treino já encerrado (achado do review Codex).
+ */
+function concluidasEmOrdem(sessions: WorkoutSession[]): WorkoutSession[] {
+  return concluidas(sessions)
+    .slice()
+    .sort((a, b) =>
+      a.date === b.date
+        ? (a.completedAt ?? "").localeCompare(b.completedAt ?? "")
+        : a.date.localeCompare(b.date),
+    );
+}
+
 /** Data (yyyy-mm-dd) de `dias` atrás, no fuso local. */
 function diaAtras(now: Date, dias: number): string {
   return isoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - dias));
@@ -89,36 +108,27 @@ export function consecutiveDaysUntilYesterday(
   return streak;
 }
 
-/** Sessões concluídas na semana corrente (segunda → domingo, como o resto do app). */
+/**
+ * Treinos concluídos na semana corrente (segunda → hoje, como o resto do app).
+ *
+ * Conta SESSÕES, não dias com treino. `weeklyTarget` conta entradas do `weekSchedule`
+ * (4 num upper/lower 2×), então comparar os dois exige a mesma unidade: contando dias,
+ * quem juntasse A+B na segunda e A+B na quarta somava 2 contra uma meta de 4 e a semana
+ * nunca fechava, apesar dos 4 treinos feitos (achado do review Codex). Juntar treinos no
+ * mesmo dia é justamente o que a rotação passou a permitir pra recuperar atraso.
+ */
 export function completedThisWeek(sessions: WorkoutSession[], now: Date = new Date()): number {
   const segunda = diaAtras(now, (now.getDay() + 6) % 7);
-  const dias = new Set(concluidas(sessions).map((s) => s.date));
-  let total = 0;
-  for (let i = 0; i < 7; i++) {
-    const d = isoDate(
-      new Date(
-        Number(segunda.slice(0, 4)),
-        Number(segunda.slice(5, 7)) - 1,
-        Number(segunda.slice(8, 10)) + i,
-      ),
-    );
-    if (dias.has(d)) total += 1;
-    if (d === isoDate(now)) break; // não conta dia futuro
-  }
-  return total;
+  const hoje = isoDate(now);
+  // `yyyy-mm-dd` compara lexicograficamente = cronologicamente. Dia futuro não conta.
+  return concluidas(sessions).filter((s) => s.date >= segunda && s.date <= hoje).length;
 }
 
 /** Próximo treino da rotação depois do último concluído. */
 export function nextInRotation(plan: PlanFile, sessions: WorkoutSession[]): string | null {
   const { order } = rotationOf(plan);
   if (order.length === 0) return null;
-  const feitas = concluidas(sessions)
-    .slice()
-    .sort((a, b) =>
-      a.date === b.date
-        ? (a.completedAt ?? "").localeCompare(b.completedAt ?? "")
-        : a.date.localeCompare(b.date),
-    );
+  const feitas = concluidasEmOrdem(sessions);
   const ultimo = feitas[feitas.length - 1];
   if (!ultimo) return order[0];
   const i = order.indexOf(ultimo.workoutId);
@@ -165,7 +175,10 @@ export function suggestWorkout(
   }
 
   const hoje = isoDate(now);
-  const feitoHoje = concluidas(sessions).find((s) => s.date === hoje);
+  // O ÚLTIMO concluído hoje, não o primeiro: com A e B no mesmo dia, o que fecha o dia é
+  // o mais recente — e é ele que precisa concordar com `proximo` (mesma ordenação).
+  const doHoje = concluidasEmOrdem(sessions).filter((s) => s.date === hoje);
+  const feitoHoje = doHoje[doHoje.length - 1];
   if (feitoHoje) return { kind: "done_today", workoutId: feitoHoje.workoutId, next: proximo };
 
   if (consecutiveDaysUntilYesterday(sessions, now) >= CICLO_EM_DIAS) {
@@ -197,20 +210,22 @@ export function resolveToday(
   const s = suggestWorkout(plan, sessions, now, override);
   const workoutId = s.kind === "rest" ? null : s.workoutId;
   const workout = workoutId ? plan.training.workouts.find((w) => w.id === workoutId) : undefined;
+  const nomeDe = (id: string | null) =>
+    id ? (plan.training.workouts.find((w) => w.id === id)?.name ?? null) : null;
 
   if (!workout) {
     const next = s.kind === "rest" ? s.next : null;
-    const nextName = next
-      ? (plan.training.workouts.find((w) => w.id === next)?.name ?? null)
-      : null;
     return {
       kind: "rest",
       reason: s.kind === "rest" ? s.reason : "cycle",
       nextWorkoutId: next,
-      nextWorkoutName: nextName,
+      nextWorkoutName: nomeDe(next),
     };
   }
 
+  // O "próximo" só acompanha um treino JÁ CONCLUÍDO: num treino pendente ele seria ruído
+  // (e um empurrão para emendar outro), o que a regra de descanso existe pra evitar.
+  const next = s.kind === "done_today" ? s.next : null;
   return {
     kind: "workout",
     workoutId: workout.id,
@@ -219,5 +234,7 @@ export function resolveToday(
     exerciseCount: workout.exercises.length,
     muscles: workout.exercises.flatMap((e) => e.primaryMuscles),
     doneToday: s.kind === "done_today",
+    nextWorkoutId: next,
+    nextWorkoutName: nomeDe(next),
   };
 }
