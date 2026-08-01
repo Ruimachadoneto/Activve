@@ -166,18 +166,29 @@ export function suggestWorkout(
   override?: string | null,
 ): Suggestion {
   const proximo = nextInRotation(plan, sessions);
-
-  if (override) {
-    if (override === "rest") return { kind: "rest", reason: "cycle", next: proximo };
-    const existe = plan.training.workouts.some((w) => w.id === override);
-    if (existe) return { kind: "workout", workoutId: override };
-    // Override órfão (plano trocado): ignora e segue a rotação, sem travar em descanso.
-  }
-
   const hoje = isoDate(now);
   // O ÚLTIMO concluído hoje, não o primeiro: com A e B no mesmo dia, o que fecha o dia é
   // o mais recente — e é ele que precisa concordar com `proximo` (mesma ordenação).
   const doHoje = concluidasEmOrdem(sessions).filter((s) => s.date === hoje);
+
+  if (override) {
+    if (override === "rest") return { kind: "rest", reason: "cycle", next: proximo };
+    const existe = plan.training.workouts.some((w) => w.id === override);
+    if (existe) {
+      /*
+       * O override diz QUAL é o treino de hoje, não que ele siga pendente. Sem esta
+       * checagem, concluir o treino escolhido à mão deixava o card em "Começar treino"
+       * para sempre — o mesmo convite fora de hora que o `doneToday` existe pra evitar,
+       * escapando pelo caminho do override (achado do review Codex, ciclo 3).
+       */
+      const feito = doHoje.some((s) => s.workoutId === override);
+      return feito
+        ? { kind: "done_today", workoutId: override, next: proximo }
+        : { kind: "workout", workoutId: override };
+    }
+    // Override órfão (plano trocado): ignora e segue a rotação, sem travar em descanso.
+  }
+
   const feitoHoje = doHoje[doHoje.length - 1];
   if (feitoHoje) return { kind: "done_today", workoutId: feitoHoje.workoutId, next: proximo };
 

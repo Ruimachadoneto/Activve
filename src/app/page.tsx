@@ -10,7 +10,7 @@ import { Logo } from "@/components/Logo";
 import { PlanErrorState } from "@/components/PlanErrorState";
 import { equipmentLabel } from "@/lib/plan/labels";
 import { hasDietContent, hasDietTargets } from "@/lib/plan/diet";
-import { resolveToday, rotationOf } from "@/lib/plan/rotation";
+import { completedThisWeek, resolveToday, rotationOf } from "@/lib/plan/rotation";
 import {
   estimateWorkoutMinutes,
   experienceLabel,
@@ -187,7 +187,15 @@ export default function HojePage() {
   const today = resolveToday(p, sessions, new Date(), override);
   const ti = todayIndex();
   const week = weekDates();
-  const doneThisWeek = week.filter((d) => doneDates.has(d)).length;
+  /*
+   * Conta SESSÕES, pela mesma função que decide o descanso da semana — não os dias com
+   * check na faixa. `trainingDays` abaixo vem de `weeklyTarget`, que conta entradas do
+   * weekSchedule (4): contar dias no numerador e treinos no denominador mostrava
+   * "2 de 4 treinos" para quem tinha feito os 4 juntando A+B em dois dias, enquanto a
+   * rotação já considerava a semana fechada (achado do review Codex, ciclo 3).
+   * `doneDates` continua servindo à FAIXA, que é sobre dias mesmo.
+   */
+  const doneThisWeek = completedThisWeek(sessions, new Date());
   /*
    * Meta semanal vem da ROTAÇÃO, não da contagem de dias não-"rest" do calendário
    * (TASK-029). São o mesmo número hoje, mas a fonte passou a ser a mesma que decide a

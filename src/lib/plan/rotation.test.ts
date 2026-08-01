@@ -212,6 +212,24 @@ describe("suggestWorkout — o override do usuário vence a sugestão", () => {
     expect(suggestWorkout(plano(), [], dia(SEG), "rest")).toMatchObject({ kind: "rest" });
   });
 
+  it("concluir o treino escolhido à mão fecha o dia, em vez de seguir convidando", () => {
+    // O override diz QUAL treino é o de hoje, não que ele siga pendente (review Codex,
+    // ciclo 3): sem isto, o card ficava em "Começar treino" para sempre nesse caminho.
+    expect(suggestWorkout(plano(), [sessao(QUA, "A")], dia(QUA), "A")).toEqual({
+      kind: "done_today",
+      workoutId: "A",
+      next: "B",
+    });
+  });
+
+  it("override ainda pendente continua sendo convite, mesmo com OUTRO treino feito hoje", () => {
+    // Fez B hoje e escolheu A à mão: A ainda não foi feito, então segue pendente.
+    expect(suggestWorkout(plano(), [sessao(QUA, "B")], dia(QUA), "A")).toEqual({
+      kind: "workout",
+      workoutId: "A",
+    });
+  });
+
   it("override órfão (plano trocado) não trava a tela em descanso", () => {
     // Cai na rotação normal em vez de virar "rest" por um id que não existe mais.
     expect(suggestWorkout(plano(), [], dia(SEG), "SUMIU")).toEqual({
