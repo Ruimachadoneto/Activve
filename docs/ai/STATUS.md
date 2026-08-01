@@ -554,27 +554,52 @@ Garantia total exigiria Web Push + servidor (Fase 2, contraria o local-first do 
 
 ---
 
-# ⚠️ CHECKPOINT DE RETOMADA — 2026-07-31 (leia isto primeiro depois de um `/clear`)
+# ⚠️ CHECKPOINT DE RETOMADA — 2026-08-01 (leia isto primeiro depois de um `/clear`)
 
 ## Onde exatamente estamos
 
-- **`main` = `98e7c5c`**, em sincronia com `origin` (deploy do Vercel já disparado).
-  Contém TASK-026, TASK-027 e TASK-028.
-- **Branch `ai/TASK-029-agenda-rotacao-claude`**, à frente da `main`, **working tree
-  limpo**. A TASK-029 está **implementada, revisada (3 ciclos Codex) e verificada no
-  browser** — **NÃO mergeada**.
+- **`main` = `afe80aa`, em sincronia com `origin`** — push feito, **deploy do Vercel
+  disparado**. Contém TASK-026, 027, 028 e **029**.
+- **Nenhuma branch de trabalho aberta.** Working tree limpo.
+- **TASK-029 MERGEADA** (`--no-ff`), gates revalidados na `main` (**292/292**), branch
+  apagada local e remotamente.
 
 ## PRÓXIMA AÇÃO EXATA
 
-**Review Codex concluído em 2026-08-01: 3 ciclos, 6 achados reais, todos corrigidos**
-(1 [P1] de corrida de carregamento no `/`, 3 [P2] no ciclo 2, 2 [P2] no ciclo 3). Uma
-consequência descrita pelo revisor foi **recusada com evidência** (o CTA do Hoje não
-carrega id de treino, então não levava ao treino errado). Detalhe ciclo a ciclo no
-contrato: `docs/ai/tasks/TASK-029-agenda-rotacao.md`.
+**Feedback de uso real, item 2 — PWA:** `manifest.json` + Service Worker + notificação de
+fim de descanso. Criar branch `ai/TASK-019-pwa-claude` + contrato, e seguir o fluxo
+(contrato → gates → browser 390×844 em aba nova → review Codex → gate visual → merge).
 
-Gates: typecheck ✓ · lint ✓ · **282/282** ✓ · build ✓ (eram 274 no fim da implementação).
+⚠️ **Ler o "Limite honesto do item 2" antes de escrever qualquer linha** (seção logo
+abaixo). Não prometer "roda perfeitamente em background".
 
-**Faltam só as DUAS decisões humanas abaixo + gate visual + aprovação de merge.**
+Depois: **item 6** (sino de avisos = TASK-023 do roadmap, nunca construída) e **item 5**
+(logo — o usuário quer repensar, achou fraca).
+
+## Feedback de uso real — 5 de 7 itens resolvidos
+
+| # | Item | Estado |
+|---|---|---|
+| 1 | Contador fora da realidade ao sair do app | ✅ TASK-028, em `main` |
+| 3 | Contador fechar sozinho | ✅ TASK-028, em `main` |
+| 4 | Avançar sozinho para o próximo exercício | ✅ TASK-028, em `main` |
+| 7 | Treino preso ao dia da semana | ✅ **TASK-029, em `main` e em produção** |
+| 2 | Background + notificação | ⬜ **a próxima** — PWA (manifest + Service Worker) |
+| 6 | Sino sem função | ⬜ é a TASK-023 do roadmap, nunca construída |
+| 5 | Logo fraca | ⬜ |
+
+## Padrão que se repetiu (vale para a próxima sessão)
+
+Os 7 achados da TASK-029 **não vieram de erro de cálculo**. Cinco eram *a mesma pergunta
+respondida em dois lugares com réguas diferentes*: dias × treinos, primeira × última
+sessão do dia, tela que espera o histórico × tela que não espera, campo escrito × campo
+lido. **Fechar a classe é ter uma fonte só, não acertar cada ponto** — mesma lição da
+TASK-013 e da TASK-027.
+
+Somado ao que já valia desde a TASK-028: os bugs mais caros são de **ciclo de vida e
+contexto**, não de lógica, e saem de **inspecionar storage e DOM no browser**, não da
+suíte. Nesta sessão dois casos vieram só do browser: a extrapolação do ritmo em período
+parcial e os 39px de rolagem horizontal do `sr-only` numa `<table>`.
 
 ## Decisões da TASK-029 — TOMADAS pelo usuário em 2026-08-01
 
@@ -753,7 +778,7 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-026 | Vivid Fase 2 (Corpo, conclusão de treino, Relatórios, editorial) | MERGEADA | main (`c725dc0`) |
 | TASK-027 | Cobertura de mídia (28%→100%) + escala do calendário | MERGEADA | main (`ddaf9ab`) |
 | TASK-028 | Modo Treino confiável (descanso persistido, auto-close, auto-avanço) | MERGEADA | main (`7364b93`) |
-| TASK-029 | Agenda por rotação (treino solto do dia da semana) | IMPLEMENTADA — aguarda review + merge | `ai/TASK-029-agenda-rotacao-claude` |
+| TASK-029 | Agenda por rotação + constância sem denominador (REPORT_SCHEMA 1.1) | MERGEADA | main (`afe80aa`) |
 
 ---
 
