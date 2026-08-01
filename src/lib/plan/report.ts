@@ -1,14 +1,18 @@
 /**
  * Relatório de período (semana/mês) — camada pura, sem IndexedDB/React aqui.
- * Espelha `docs/ai/REPORT_SCHEMA.md` (schemaVersion 1.0): é o que o app exporta e o
+ * Espelha `docs/ai/REPORT_SCHEMA.md` (schemaVersion 1.1): é o que o app exporta e o
  * coach (Claude Project) re-ingere pra fechar o ciclo (ADR-002).
  *
  * Simplificações honestas do v1 (documentadas — "reporta só o que foi registrado",
  * nunca inventa): `training.flags` sempre vazio (detecção de dor/pulado por texto
  * livre é NLP, fora de escopo); `goal.paceVsTarget` sempre "na" (é um julgamento, sem
  * cálculo ainda); `diet.adherencePct`/`mealsCheckedPct` sempre 0 (app não rastreia
- * dieta ainda — Fase 1 do PRODUCT_VISION.md); `adherence.workoutsScheduled` usa o
- * `weekSchedule` do plano, sem considerar overrides do dia (TASK-016).
+ * dieta ainda — Fase 1 do PRODUCT_VISION.md).
+ *
+ * **1.1 (TASK-029):** `adherence.workoutsScheduled` saiu. Ele contava dias marcados como
+ * treino no `weekSchedule` do período — um denominador que o app parou de prometer
+ * quando a agenda virou rotação. No lugar entraram `weeklyTarget` (meta declarada no
+ * plano) e `periodWeeks`, que permitem comparar RITMO sem projetar um total de período.
  */
 
 import type { Muscle, PlanFile } from "./schema";
@@ -16,11 +20,12 @@ import type { WorkoutSession } from "./session";
 import type { BodyEntry } from "./body";
 import { weightSeries } from "./body";
 import { buildExerciseMuscles } from "./recovery";
+import { rotationOf } from "./rotation";
 
 export type ReportPeriod = { from: string; to: string }; // yyyy-mm-dd, inclusive
 
 export type ReportFile = {
-  schemaVersion: "1.0";
+  schemaVersion: "1.1";
   meta: {
     reportId: string;
     generatedAt: string;
@@ -30,7 +35,19 @@ export type ReportFile = {
     period: ReportPeriod;
   };
   adherence: {
-    workoutsScheduled: number;
+    /**
+     * Meta de treinos por SEMANA declarada no plano ativo (`rotationOf().weeklyTarget`).
+     *
+     * Substituiu `workoutsScheduled` no schema 1.1 (TASK-029): aquele campo contava os
+     * dias que o `weekSchedule` marcava como treino dentro do período, e desde a agenda
+     * por rotação o app não promete mais treino em dia nenhum da semana. Um denominador
+     * de período teria de ser PROJETADO (meta × semanas, com fração em mês) — a §9 exige
+     * denominador verificável. A meta semanal está escrita no plano; o resto do relatório
+     * conta o que aconteceu.
+     */
+    weeklyTarget: number;
+    /** Semanas cobertas pelo período (dias ÷ 7), pra ler o ritmo. Não é inteiro. */
+    periodWeeks: number;
     workoutsCompleted: number;
     workoutsPartial: number;
     mealsCheckedPct: number;
@@ -75,6 +92,62 @@ export type ReportFile = {
 };
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** Número pt-BR com no máximo 1 casa, sem casa quando é inteiro ("4", "4,4"). */
+function num1(n: number): string {
+  const r = round1(n);
+  return Number.isInteger(r) ? String(r) : r.toFixed(1).replace(".", ",");
+}
+
+/**
+ * Extensão do período em semanas: "1 semana", "4 semanas", "4,4 semanas".
+ *
+ * Um mês tem 4,4 semanas e o texto diz 4,4 — arredondar para "4" encolheria o
+ * denominador do ritmo e faria a média parecer melhor do que foi (§9).
+ */
+export function formatWeeks(weeks: number): string {
+  const r = round1(weeks);
+  return `${num1(weeks)} ${r === 1 ? "semana" : "semanas"}`;
+}
+
+/** Treinos por semana no período. Período vazio não vira divisão por zero. */
+export function formatRate(completed: number, weeks: number): string {
+  return weeks > 0 ? num1(completed / weeks) : "—";
+}
+
+/**
+ * Como apresentar a constância — fonte única do relatório VISUAL e do Markdown, pra os
+ * dois não contarem a mesma coisa de jeitos diferentes.
+ *
+ * **Período de até uma semana compara TREINOS, não ritmo.** Dividir por uma fração de
+ * semana extrapola: 4 treinos em 6 dias viram "4,7 por semana", e 1 treino na segunda
+ * vira "7,0 por semana" — precisão inventada a partir de um ponto só, exatamente o que a
+ * §9 proíbe. Dentro de uma semana, `workoutsCompleted` contra `weeklyTarget` é uma
+ * comparação real: os dois números existem, nenhum é projetado.
+ *
+ * Acima de uma semana o ritmo volta a fazer sentido, porque aí a média tem base.
+ */
+export function constancyView(a: ReportFile["adherence"]): {
+  extent: string;
+  comparison: string;
+  fillPct: number;
+  ariaLabel: string;
+} {
+  const parcial = a.periodWeeks <= 1;
+  const extent = parcial
+    ? `${a.totalDays} ${a.totalDays === 1 ? "dia" : "dias"}`
+    : formatWeeks(a.periodWeeks);
+  const rate = formatRate(a.workoutsCompleted, a.periodWeeks);
+  const comparison = parcial
+    ? `meta da semana: ${a.weeklyTarget} ${a.weeklyTarget === 1 ? "treino" : "treinos"}`
+    : `${rate} por semana — o plano prevê ${a.weeklyTarget}`;
+  const valor = parcial ? a.workoutsCompleted : a.workoutsCompleted / a.periodWeeks;
+  const fillPct = a.weeklyTarget > 0 ? Math.min(100, (valor / a.weeklyTarget) * 100) : 0;
+  const ariaLabel = parcial
+    ? `${a.workoutsCompleted} de ${a.weeklyTarget} treinos previstos para a semana.`
+    : `Ritmo de ${rate} treinos por semana, contra a meta de ${a.weeklyTarget} do plano.`;
+  return { extent, comparison, fillPct, ariaLabel };
+}
 
 /** Datas (yyyy-mm-dd) do período, inclusive em ambas as pontas. */
 function datesInPeriod(period: ReportPeriod): string[] {
@@ -137,21 +210,17 @@ function label(value: unknown): string | undefined {
  * definição valia numa data específica (histórico cruza planos, TASK-018). */
 export type KnownPlan = { planId: string; importedAt: string; plan: PlanFile };
 
-/**
- * Plano vigente numa data: o mais recente entre os que já existiam nela
- * (`importedAt <= date`). Sem nenhum candidato (data anterior a todo histórico
- * conhecido), cai no mais antigo conhecido — melhor aproximação disponível; sem
- * nenhum plano conhecido, cai no `fallback` (o ativo). **Não decide sozinho se o dia
- * "conta" como agendado** — isso é responsabilidade de quem chama (ver `earliestKnown`
- * em `buildReport`: dias antes do primeiro plano nunca deveriam ter agenda nenhuma).
+/*
+ * `planForDate` (qual plano valia numa DATA) foi removida na TASK-029 junto com
+ * `workoutsScheduled` — era a única consumidora. Resolver plano por data só fazia falta
+ * pra dizer se um dia "estava agendado"; sem denominador de período, a pergunta deixou
+ * de existir. O histórico cross-plano continua inteiro: nome de exercício e músculos
+ * seguem resolvidos por `planForSession`, que casa pelo `planId` da própria sessão — um
+ * fato registrado, não uma inferência por data.
+ *
+ * Isso também extingue a dívida técnica [P2] da TASK-018 (fronteira de troca de plano no
+ * mesmo dia calendário): ela vivia exatamente na comparação por data que saiu daqui.
  */
-function planForDate(knownPlans: KnownPlan[], date: string, fallback: PlanFile): PlanFile {
-  if (knownPlans.length === 0) return fallback;
-  const sorted = [...knownPlans].sort((a, b) => a.importedAt.localeCompare(b.importedAt));
-  const candidates = sorted.filter((p) => p.importedAt.slice(0, 10) <= date);
-  if (candidates.length > 0) return candidates[candidates.length - 1].plan; // mais recente válido
-  return sorted[0].plan; // nenhum existia ainda: mais antigo conhecido
-}
 
 /** Plano de uma sessão pelo `planId` dela — histórico real, não o ativo (TASK-018). */
 function planForSession(knownPlans: KnownPlan[], planId: string, fallback: PlanFile): PlanFile {
@@ -184,27 +253,20 @@ export function buildReport(
   const days = datesInPeriod(period);
   const sessions = allSessions.filter((s) => inPeriod(s.date, period));
 
-  // ---- adherence ----
-  // Dia ANTES de qualquer plano ter existido não "conta" como agendado — não dá pra
-  // ter perdido um treino de um app que a pessoa nem tinha ainda (achado do review
-  // Codex: sem isso, exportar um período que começa antes do primeiro plano inventava
-  // agenda pra dias em que não havia plano nenhum, usando o mais antigo por engano).
-  const earliestKnown =
-    knownPlans.length > 0
-      ? [...knownPlans].sort((a, b) => a.importedAt.localeCompare(b.importedAt))[0].importedAt.slice(0, 10)
-      : null;
-  const workoutsScheduled = days.filter((date) => {
-    if (earliestKnown != null && date < earliestKnown) return false;
-    const p = planForDate(knownPlans, date, activePlan);
-    const idx = (new Date(`${date}T12:00:00`).getDay() + 6) % 7; // 0 = segunda
-    // Plano histórico pode ter passado só pela guarda estrutural (TASK-013), que não
-    // exige `weekSchedule`. Sem agenda legível não dá pra afirmar que o dia era de
-    // treino — e inventar "agendado" faria a constância parecer PIOR do que foi, o que
-    // viola o princípio anti-culpa. Na dúvida, o dia não conta.
-    const schedule = p.training?.weekSchedule;
-    if (!Array.isArray(schedule)) return false;
-    return schedule[idx] !== "rest";
-  }).length;
+  /*
+   * ---- adherence ----
+   *
+   * A constância deixou de ter DENOMINADOR DE PERÍODO (TASK-029, decisão do usuário).
+   * Até aqui `workoutsScheduled` contava os dias que o `weekSchedule` marcava como treino
+   * dentro do período — ou seja, media o usuário contra um calendário que o app parou de
+   * seguir quando a agenda virou rotação. As duas saídas eram projetar a meta sobre o
+   * período (meta × semanas dá 17,7 num mês: precisão inventada) ou relatar o que
+   * aconteceu e deixar a meta semanal do plano como comparação. A §9 pede denominador
+   * verificável, então ficou a segunda: todo número daqui pra frente ou aconteceu, ou
+   * está escrito no plano.
+   */
+  const weeklyTarget = rotationOf(activePlan).weeklyTarget;
+  const periodWeeks = days.length / 7;
   const workoutsCompleted = sessions.filter((s) => s.status === "done").length;
   const workoutsPartial = sessions.filter((s) => s.status === "in_progress").length;
   const activeDays = new Set(sessions.map((s) => s.date)).size;
@@ -356,7 +418,7 @@ export function buildReport(
   const currentWeight_kg = weightLatest ?? overallWeight[overallWeight.length - 1]?.weight ?? activePlan.profile.weight_kg;
 
   return {
-    schemaVersion: "1.0",
+    schemaVersion: "1.1",
     meta: {
       // Inclui `now` (epoch base36) — `REPORT_SCHEMA.md` exige id ÚNICO; só período colidiria
       // se o usuário exportasse a mesma semana/mês duas vezes (achado do review Codex).
@@ -368,7 +430,8 @@ export function buildReport(
       period,
     },
     adherence: {
-      workoutsScheduled,
+      weeklyTarget,
+      periodWeeks,
       workoutsCompleted,
       workoutsPartial,
       mealsCheckedPct: 0,
@@ -406,8 +469,11 @@ export function reportToMarkdown(report: ReportFile): string {
   lines.push("");
   lines.push("## Constância");
   lines.push(
-    `- Treinos: ${report.adherence.workoutsCompleted} concluídos de ${report.adherence.workoutsScheduled} agendados` +
+    `- Treinos concluídos: ${report.adherence.workoutsCompleted} em ${constancyView(report.adherence).extent}` +
       (report.adherence.workoutsPartial ? ` (+${report.adherence.workoutsPartial} em andamento)` : ""),
+  );
+  lines.push(
+    `- Constância: ${constancyView(report.adherence).comparison}`,
   );
   lines.push(`- Dias ativos: ${report.adherence.activeDays} de ${report.adherence.totalDays}`);
   lines.push("");

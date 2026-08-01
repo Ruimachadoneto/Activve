@@ -10,10 +10,10 @@ import { Logo } from "@/components/Logo";
 import { PlanErrorState } from "@/components/PlanErrorState";
 import { equipmentLabel } from "@/lib/plan/labels";
 import { hasDietContent, hasDietTargets } from "@/lib/plan/diet";
+import { completedThisWeek, resolveToday, rotationOf } from "@/lib/plan/rotation";
 import {
   estimateWorkoutMinutes,
   experienceLabel,
-  getTodayWorkout,
   greeting,
   todayIndex,
   weekDates,
@@ -65,6 +65,16 @@ export default function HojePage() {
   const planId = plan?.planId ?? null;
   const overrideLoading = overrideFetch.planId !== planId;
   const override = overrideLoading ? null : overrideFetch.value;
+  /*
+   * Enquanto o histórico não chegar, a lista é vazia — e desde a TASK-029 lista vazia não
+   * é só "menos informação", é OUTRA RESPOSTA: `resolveToday` sugeriria o primeiro da
+   * rotação (ou um treino onde o certo era descanso) até o fetch resolver. A tela Hoje é
+   * onde o usuário DECIDE; ela não pode afirmar "Treino A" e trocar para "Treino B" um
+   * instante depois. Por isso o mesmo guard derivado que o `/treino` já paga
+   * (`historyLoading`), e não um booleano solto — comparar o planId do fetch com o atual
+   * reancora sozinho quando o plano troca (achado do review Codex na TASK-016, ciclo 4).
+   */
+  const historyLoading = sessionsFetch.planId !== planId;
   // Estado DERIVADO: enquanto o fetch não corresponder ao plano atual, a lista é vazia —
   // nunca a do plano anterior. Memoizado porque o `[]` literal criaria um array novo a
   // cada render e invalidaria os memos abaixo sem necessidade.
@@ -144,7 +154,7 @@ export default function HojePage() {
     setOverrideFetch({ planId: plan.planId, value: null });
   }
 
-  if (loading || overrideLoading) {
+  if (loading || overrideLoading || historyLoading) {
     return (
       <main className="mx-auto flex w-full max-w-[440px] flex-1 items-center justify-center px-5">
         <p className="text-sm text-muted">Carregando…</p>
@@ -174,11 +184,24 @@ export default function HojePage() {
   }
 
   const p = plan.plan;
-  const today = getTodayWorkout(p, new Date(), override);
+  const today = resolveToday(p, sessions, new Date(), override);
   const ti = todayIndex();
   const week = weekDates();
-  const doneThisWeek = week.filter((d) => doneDates.has(d)).length;
-  const trainingDays = p.training.weekSchedule.filter((d) => d !== "rest").length;
+  /*
+   * Conta SESSÕES, pela mesma função que decide o descanso da semana — não os dias com
+   * check na faixa. `trainingDays` abaixo vem de `weeklyTarget`, que conta entradas do
+   * weekSchedule (4): contar dias no numerador e treinos no denominador mostrava
+   * "2 de 4 treinos" para quem tinha feito os 4 juntando A+B em dois dias, enquanto a
+   * rotação já considerava a semana fechada (achado do review Codex, ciclo 3).
+   * `doneDates` continua servindo à FAIXA, que é sobre dias mesmo.
+   */
+  const doneThisWeek = completedThisWeek(sessions, new Date());
+  /*
+   * Meta semanal vem da ROTAÇÃO, não da contagem de dias não-"rest" do calendário
+   * (TASK-029). São o mesmo número hoje, mas a fonte passou a ser a mesma que decide a
+   * sugestão — duas contas separadas para o mesmo conceito acabam divergindo.
+   */
+  const trainingDays = rotationOf(p).weeklyTarget;
   const mealsCount = p.diet.meals.length;
   // Plano só com metas, ou só com compras/preparo, também tem o que mostrar (review Codex).
   const temDieta = hasDietContent(p.diet);
@@ -303,7 +326,9 @@ export default function HojePage() {
                     {badge}
                   </span>
                 ) : null}
-                <p className="text-[11px] uppercase tracking-wider text-faint">Seu treino de hoje</p>
+                <p className="text-[11px] uppercase tracking-wider text-faint">
+                  {today.doneToday ? "Você treinou hoje" : "Seu treino de hoje"}
+                </p>
               </div>
               <h2 className="mt-2 text-[22px] font-medium leading-tight tracking-tight">
                 {today.name}
@@ -321,12 +346,40 @@ export default function HojePage() {
                   <Gauge size={16} aria-hidden /> {experienceLabel(p.profile.experience)}
                 </span>
               </div>
-              <Link
-                href="/treino"
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-medium text-on-accent transition-all hover:bg-accent-press active:scale-[0.98]"
-              >
-                <Play size={15} aria-hidden /> Começar treino
-              </Link>
+              {/*
+                Treino já concluído hoje vira FECHAMENTO, não convite: o card mantinha o
+                CTA cheio de "Começar treino" e a tela parecia não ter registrado o que o
+                usuário acabou de fazer (achado do review Codex). O teal é a cor da "ação
+                disponível agora" (§2.1) — depois de treinar, a ação disponível não é a
+                protagonista, então o botão desce para o registro secundário. Não é
+                celebração: comemorar é um MOMENTO (a tela de conclusão da TASK-026),
+                nunca um estado derivado de `status === "done"` a cada reabertura.
+              */}
+              {today.doneToday ? (
+                <>
+                  <p className="mt-4 flex items-center gap-2 text-sm font-medium text-accent">
+                    <Check size={16} aria-hidden /> Treino concluído
+                  </p>
+                  {today.nextWorkoutName ? (
+                    <p className="mt-1.5 text-xs leading-relaxed text-faint">
+                      A seguir na rotação: {today.nextWorkoutName}
+                    </p>
+                  ) : null}
+                  <Link
+                    href="/treino"
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl border border-line px-5 py-3 text-sm font-medium text-ink transition-colors hover:border-accent/40"
+                  >
+                    Abrir o treino
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  href="/treino"
+                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-medium text-on-accent transition-all hover:bg-accent-press active:scale-[0.98]"
+                >
+                  <Play size={15} aria-hidden /> Começar treino
+                </Link>
+              )}
               {/*
                 Único sobrevivente da lista de exercícios removida: "o que preciso levar
                 hoje" não está agregado em nenhuma outra tela (o /treino mostra o

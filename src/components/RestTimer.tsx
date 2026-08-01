@@ -116,6 +116,15 @@ export function RestTimer({
      * disco entra já marcado como ancorado: o `runToken` da montagem não representa uma
      * série nova.
      */
+    /*
+     * Fechado não ancora NADA. Sem esta guarda, só montar a tela de treino já gravava um
+     * descanso no disco (o efeito roda na montagem, com `runToken` inicial), e na
+     * montagem seguinte esse registro fantasma era revivido e o overlay ABRIA SOZINHO,
+     * sem o usuário ter concluído série nenhuma. Pego inspecionando o storage durante a
+     * verificação da TASK-029, não por teste: a suíte sempre iniciava o descanso pelo
+     * botão, que é o único caminho em que `open` já é true.
+     */
+    if (!open) return;
     if (anchoredTokenRef.current === runToken) return;
     anchoredTokenRef.current = runToken;
     const endAt = Date.now() + seconds * 1000;
@@ -124,7 +133,7 @@ export function RestTimer({
     vibratedRef.current = seconds <= 0;
     persist({ endAt, duration: seconds, pausedRemaining: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runToken]);
+  }, [runToken, open]);
 
   // Só cuida da limpeza ao pausar — o (re)ancoramento ao rodar é sempre explícito
   // (efeito acima + handlers), nunca inferido de `running`/`duration` mudarem de valor.

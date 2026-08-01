@@ -33,7 +33,8 @@ const AXIS_BAND = 18; // faixa reservada ao eixo X — nunca deixar o rótulo pr
  */
 function precisaoExata(v: number): string | null {
   for (const casas of [0, 1, 2]) {
-    if (Number(v.toFixed(casas)) === v) return v.toFixed(casas).replace(".", ",");
+    if (Number(v.toFixed(casas)) === v)
+      return v.toFixed(casas).replace(".", ",");
   }
   return null;
 }
@@ -141,7 +142,8 @@ export function LineChart({
       series.length === 1
         ? (PAD_L + (W - PAD_R)) / 2
         : PAD_L + (i / (series.length - 1)) * (W - PAD_L - PAD_R);
-    const y = (v: number) => PAD_T + (1 - (v - min) / (max - min)) * (plotBottom - PAD_T);
+    const y = (v: number) =>
+      PAD_T + (1 - (v - min) / (max - min)) * (plotBottom - PAD_T);
     return { min, max, dataMin, dataMax, x, y };
   }, [series, target, plotBottom]);
 
@@ -212,8 +214,22 @@ export function LineChart({
         onPointerCancel={() => setActive(null)}
       >
         {/* Eixos: hairline sólido, recessivo. Nunca tracejado — tracejado lê como limiar. */}
-        <line x1={PAD_L} y1={plotBottom} x2={W - PAD_R} y2={plotBottom} stroke="var(--color-line)" strokeWidth="1" />
-        <line x1={PAD_L} y1={PAD_T} x2={PAD_L} y2={plotBottom} stroke="var(--color-line)" strokeWidth="1" />
+        <line
+          x1={PAD_L}
+          y1={plotBottom}
+          x2={W - PAD_R}
+          y2={plotBottom}
+          stroke="var(--color-line)"
+          strokeWidth="1"
+        />
+        <line
+          x1={PAD_L}
+          y1={PAD_T}
+          x2={PAD_L}
+          y2={plotBottom}
+          stroke="var(--color-line)"
+          strokeWidth="1"
+        />
 
         {/*
           Ticks do eixo Y: só extremos, com `tabular-nums` (aqui números SE ALINHAM).
@@ -222,11 +238,25 @@ export function LineChart({
           sobrepostos, deixando ilegível o único valor do eixo. Nesse caso, um tick só
           (achado do review Codex).
         */}
-        <text x={PAD_L - 5} y={y(dataMax) + 3} textAnchor="end" fill="var(--color-faint)" fontSize="10" style={{ fontVariantNumeric: "tabular-nums" }}>
+        <text
+          x={PAD_L - 5}
+          y={y(dataMax) + 3}
+          textAnchor="end"
+          fill="var(--color-faint)"
+          fontSize="10"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
           {formatTick(dataMax, dataMin, dataMax)}
         </text>
         {dataMin !== dataMax && (
-          <text x={PAD_L - 5} y={y(dataMin) + 3} textAnchor="end" fill="var(--color-faint)" fontSize="10" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <text
+            x={PAD_L - 5}
+            y={y(dataMin) + 3}
+            textAnchor="end"
+            fill="var(--color-faint)"
+            fontSize="10"
+            style={{ fontVariantNumeric: "tabular-nums" }}
+          >
             {formatTick(dataMin, dataMin, dataMax)}
           </text>
         )}
@@ -245,7 +275,11 @@ export function LineChart({
         )}
 
         {/* Área: lavagem a ~10%, nunca bloco saturado. */}
-        <polygon points={areaPoints} fill="var(--color-accent)" fillOpacity="0.1" />
+        <polygon
+          points={areaPoints}
+          fill="var(--color-accent)"
+          fillOpacity="0.1"
+        />
 
         <polyline
           points={linePoints}
@@ -255,7 +289,11 @@ export function LineChart({
           strokeLinejoin="round"
           strokeLinecap="round"
           className={isStatic ? undefined : "draw-line"}
-          style={isStatic ? undefined : ({ "--draw-length": 1200 } as React.CSSProperties)}
+          style={
+            isStatic
+              ? undefined
+              : ({ "--draw-length": 1200 } as React.CSSProperties)
+          }
         />
 
         {/* Marcadores só onde importam: destaques (recorde) e o último ponto. */}
@@ -273,7 +311,14 @@ export function LineChart({
           ) : null,
         )}
 
-        <circle cx={lastX} cy={lastY} r="4.5" fill="var(--color-accent)" stroke="var(--color-surface)" strokeWidth="2" />
+        <circle
+          cx={lastX}
+          cy={lastY}
+          r="4.5"
+          fill="var(--color-accent)"
+          stroke="var(--color-surface)"
+          strokeWidth="2"
+        />
 
         {/* Rótulo direto SÓ no ponto final. Ancoragem evita estourar a borda direita. */}
         <text
@@ -290,15 +335,36 @@ export function LineChart({
         <text x={PAD_L} y={H - 4} fill="var(--color-faint)" fontSize="10">
           {formatDate(series[0].date)}
         </text>
-        <text x={W - PAD_R} y={H - 4} textAnchor="end" fill="var(--color-faint)" fontSize="10">
+        <text
+          x={W - PAD_R}
+          y={H - 4}
+          textAnchor="end"
+          fill="var(--color-faint)"
+          fontSize="10"
+        >
           {formatDate(last.date)}
         </text>
 
         {/* Crosshair do scrub. */}
         {shown && active != null && (
           <>
-            <line x1={x(active)} y1={PAD_T} x2={x(active)} y2={plotBottom} stroke="var(--color-accent)" strokeWidth="1" strokeOpacity="0.4" />
-            <circle cx={x(active)} cy={y(shown.value)} r="4.5" fill="var(--color-accent)" stroke="var(--color-surface)" strokeWidth="2" />
+            <line
+              x1={x(active)}
+              y1={PAD_T}
+              x2={x(active)}
+              y2={plotBottom}
+              stroke="var(--color-accent)"
+              strokeWidth="1"
+              strokeOpacity="0.4"
+            />
+            <circle
+              cx={x(active)}
+              cy={y(shown.value)}
+              r="4.5"
+              fill="var(--color-accent)"
+              stroke="var(--color-surface)"
+              strokeWidth="2"
+            />
           </>
         )}
       </svg>
@@ -311,24 +377,35 @@ export function LineChart({
         </div>
       )}
 
-      {/* Tabela equivalente: o tooltip nunca pode ser o único caminho até o valor. */}
-      <table className="sr-only">
-        <caption>{label}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Data</th>
-            <th scope="col">Valor</th>
-          </tr>
-        </thead>
-        <tbody>
-          {series.map((s) => (
-            <tr key={`${uid}-t-${s.date}`}>
-              <td>{formatDate(s.date)}</td>
-              <td>{formatValue(s.value, unit)}</td>
+      {/*
+        Tabela equivalente: o tooltip nunca pode ser o único caminho até o valor.
+
+        O `sr-only` mora no DIV, não na `<table>`: `width: 1px` numa tabela não encolhe —
+        o algoritmo de layout de tabela nunca vai abaixo do min-content, então ela ficava
+        com a largura real do conteúdo, invisível (o `clip-path` esconde) mas ocupando
+        layout. Medido em 390px na tela de relatórios: `scrollWidth` 429 com as tabelas,
+        390 sem elas — 39px de rolagem horizontal na tela cuja tarefa é LER. Bug
+        pré-existente da TASK-021, achado ao verificar a TASK-029.
+      */}
+      <div className="sr-only">
+        <table>
+          <caption>{label}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Data</th>
+              <th scope="col">Valor</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {series.map((s) => (
+              <tr key={`${uid}-t-${s.date}`}>
+                <td>{formatDate(s.date)}</td>
+                <td>{formatValue(s.value, unit)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

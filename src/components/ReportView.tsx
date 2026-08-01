@@ -1,4 +1,5 @@
 import type { ReportFile } from "@/lib/plan/report";
+import { constancyView } from "@/lib/plan/report";
 import { ReportLineChart } from "./ReportLineChart";
 import { goalLabel } from "@/lib/plan/labels";
 
@@ -24,6 +25,7 @@ function formatPeriod(from: string, to: string): string {
  */
 export function ReportView({ report, label }: { report: ReportFile; label: string }) {
   const { adherence, training, body, goal } = report;
+  const constancy = constancyView(adherence);
   const weightChartSeries = body.weight.series.map((p) => ({ date: p.date, value: p.weight }));
   const measuresWithDelta = body.measures.filter((m) => m.delta_cm != null);
 
@@ -43,19 +45,34 @@ export function ReportView({ report, label }: { report: ReportFile; label: strin
 
       <section className="mt-7">
         <p className="text-[10px] uppercase tracking-[0.18em] text-faint">Constância</p>
+        {/*
+          Sem denominador de período (TASK-029, decisão do usuário). O "X de Y treinos"
+          media o usuário contra os dias marcados no `weekSchedule` — um calendário que o
+          app parou de seguir quando a agenda virou rotação. Aqui todo número ou
+          aconteceu (treinos, dias) ou está escrito no plano (a meta semanal). A forma da
+          comparação vem de `constancyView`, que também alimenta o Markdown: até uma
+          semana compara TREINOS com a meta; acima disso, ritmo por semana.
+        */}
         <p className="mt-2.5 max-w-[46ch] text-[15px] leading-relaxed text-ink">
           <span className="text-[26px] font-medium leading-none">{adherence.workoutsCompleted}</span>
-          <span className="text-muted"> de {adherence.workoutsScheduled} treinos concluídos</span>
+          <span className="text-muted">
+            {" "}
+            {adherence.workoutsCompleted === 1 ? "treino concluído" : "treinos concluídos"} ·{" "}
+            {constancy.extent}
+          </span>
           {adherence.workoutsPartial > 0 ? (
             <span className="text-muted"> (+{adherence.workoutsPartial} em andamento)</span>
           ) : null}
         </p>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface2">
+        <p className="mt-1.5 text-[13px] text-muted">{constancy.comparison}</p>
+        <div
+          className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface2"
+          role="img"
+          aria-label={constancy.ariaLabel}
+        >
           <div
             className="h-full rounded-full bg-accent"
-            style={{
-              width: `${adherence.workoutsScheduled ? Math.min(100, (adherence.workoutsCompleted / adherence.workoutsScheduled) * 100) : 0}%`,
-            }}
+            style={{ width: `${constancy.fillPct}%` }}
           />
         </div>
       </section>

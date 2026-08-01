@@ -314,11 +314,11 @@ em `report.ts`/`relatorios/page.tsx`, tem o raciocínio completo de 8 ciclos de 
   registro por planId, a revisão antiga é apagada de verdade do IndexedDB (não é bug de lookup da
   UI). Corrigir de verdade exige guardar histórico de revisões do plano (nova store ou chave
   composta `planId+importedAt`) — mudança de arquitetura, não um ajuste pontual.
-- **TASK-018 [P2]:** `planForDate`/`earliestKnown` (`report.ts`) comparam só a **data**
-  (`importedAt.slice(0,10)`), não o timestamp completo — se um plano novo for importado no MEIO do
-  dia (mesmo dia calendário do plano anterior), o dia inteiro cai pro plano novo em vez de
-  reconhecer a fronteira por horário. Como `workoutsScheduled` já opera em granularidade de DIA
-  (não hora), afeta no máximo 1 dia de fronteira, cenário raro. Não corrigido.
+- ~~**TASK-018 [P2]:** `planForDate`/`earliestKnown` comparavam só a data, não o timestamp.~~
+  **EXTINTA na TASK-029 (2026-08-01):** as duas funções foram removidas junto com
+  `workoutsScheduled` — sem denominador de período, não há mais nada que resolva plano por
+  DATA. O histórico cross-plano usa `planForSession`, que casa pelo `planId` da própria
+  sessão (fato registrado, não inferência por data).
 - **Dívida de teste (desde TASK-008):** faltam testes de UI/interação pra `/treino`, `RestTimer`,
   `/relatorios` (infra Vitest é node-only; exigiria RTL/jsdom — nunca configurado).
 
@@ -552,6 +552,105 @@ backend dá para: (a) contagem sempre correta ao voltar — **já entregue**; (b
 em segundo plano mas vivo (cobre 60–120s com a tela ligada); (c) aviso de recuperação ao voltar.
 Garantia total exigiria Web Push + servidor (Fase 2, contraria o local-first do v1) ou app nativo.
 
+---
+
+# ⚠️ CHECKPOINT DE RETOMADA — 2026-07-31 (leia isto primeiro depois de um `/clear`)
+
+## Onde exatamente estamos
+
+- **`main` = `98e7c5c`**, em sincronia com `origin` (deploy do Vercel já disparado).
+  Contém TASK-026, TASK-027 e TASK-028.
+- **Branch `ai/TASK-029-agenda-rotacao-claude`**, à frente da `main`, **working tree
+  limpo**. A TASK-029 está **implementada, revisada (3 ciclos Codex) e verificada no
+  browser** — **NÃO mergeada**.
+
+## PRÓXIMA AÇÃO EXATA
+
+**Review Codex concluído em 2026-08-01: 3 ciclos, 6 achados reais, todos corrigidos**
+(1 [P1] de corrida de carregamento no `/`, 3 [P2] no ciclo 2, 2 [P2] no ciclo 3). Uma
+consequência descrita pelo revisor foi **recusada com evidência** (o CTA do Hoje não
+carrega id de treino, então não levava ao treino errado). Detalhe ciclo a ciclo no
+contrato: `docs/ai/tasks/TASK-029-agenda-rotacao.md`.
+
+Gates: typecheck ✓ · lint ✓ · **282/282** ✓ · build ✓ (eram 274 no fim da implementação).
+
+**Faltam só as DUAS decisões humanas abaixo + gate visual + aprovação de merge.**
+
+## Decisões da TASK-029 — TOMADAS pelo usuário em 2026-08-01
+
+**1 — Constância sem denominador de período. `REPORT_SCHEMA` 1.0 → 1.1.**
+`adherence.workoutsScheduled` foi **removido**: contava dias marcados como treino no
+`weekSchedule`, medindo o usuário contra um calendário que o app parou de seguir. Entraram
+`weeklyTarget` (declarado no plano) e `periodWeeks`. `constancyView` (`report.ts`) é a
+fonte única do relatório visual e do Markdown: **até uma semana compara treinos com a meta
+semanal; acima disso, ritmo por semana**. A divisão por fração de semana foi barrada
+porque extrapolava (4 treinos em 6 dias = "4,7 por semana"; 1 treino na segunda = "7,0").
+⚠️ O coach re-ingere este contrato — a mudança está documentada em `REPORT_SCHEMA.md` §3.2
+e §4. **Não existe mais "treino perdido" derivável do relatório.**
+
+**2 — `CICLO_EM_DIAS = 2` virou `cycleLengthOf(plan)`**, derivado da maior sequência de
+treinos consecutivos do próprio `weekSchedule`, conforme a regra do usuário (*"vai variar
+do plano... A+B+C descansa ao fim do ciclo; upper/lower descansa ao fim do A/B"*). No
+plano do usuário dá **2 — comportamento inalterado**; num split A/B/C agora sugere C na
+quarta em vez de descanso.
+
+**Efeitos colaterais registrados:**
+- `planForDate` foi **removida** (era a única consumidora do denominador). Isso
+  **extingue a dívida técnica [P2] da TASK-018** — a fronteira de troca de plano no mesmo
+  dia calendário vivia exatamente nessa comparação por data. O histórico cross-plano
+  segue inteiro via `planForSession` (casa pelo `planId` da sessão, um fato registrado).
+- `rotationOf`/`cycleLengthOf` tiveram de virar **funções totais**: `report.ts` passou a
+  chamá-las com planos HISTÓRICOS, que só passaram pela guarda estrutural da TASK-013.
+  Um elemento nulo em `workouts` derrubava o relatório inteiro (regressão minha, pega
+  pela suíte).
+- **Bug pré-existente da TASK-021 corrigido de passagem:** `sr-only` estava na `<table>`
+  do `LineChart` e `width:1px` não encolhe tabela (nunca vai abaixo do min-content).
+  Medido: `scrollWidth` 429 contra 390 de viewport — **39px de rolagem horizontal** na
+  tela cuja tarefa é LER. O `sr-only` foi para um `div` em volta.
+
+**Gates finais da TASK-029:** typecheck ✓ · lint ✓ · **292/292** ✓ · build ✓.
+Passada de confirmação do Codex depois das decisões: **nada a corrigir no que foi
+implementado**.
+
+⚠️ **Limitação conhecida registrada (não é bug esquecido):** plano que repete o MESMO
+treino em dias seguidos (`A,A,B,…`) tem o dedupe da rotação pulando a repetição — depois
+do primeiro A a sugestão vai para B. Suportar isso exige rastrear **posição no ciclo**,
+que fica ambíguo justamente quando um dia é pulado (o cenário da task). **Impacto hoje:
+nenhum** — o plano do usuário não tem repetição em sequência. Detalhe no contrato.
+
+## Feedback de uso real — 4 de 7 itens resolvidos
+
+| # | Item | Estado |
+|---|---|---|
+| 1 | Contador fora da realidade ao sair do app | ✅ TASK-028, em `main` |
+| 3 | Contador fechar sozinho | ✅ TASK-028, em `main` |
+| 4 | Avançar sozinho para o próximo exercício | ✅ TASK-028, em `main` |
+| 7 | Treino preso ao dia da semana | 🔶 TASK-029 pronta, **aguarda review + merge** |
+| 2 | Background + notificação | ⬜ precisa de PWA (manifest + Service Worker) |
+| 6 | Sino sem função | ⬜ é a TASK-023 do roadmap, nunca construída |
+| 5 | Logo fraca | ⬜ |
+
+**Ordem sugerida depois da 029:** 2 (PWA/notificação) → 6 (sino, que o PWA facilita) → 5 (logo).
+
+### Limite honesto do item 2 — registrado ANTES de prometer
+App web **sem servidor de push** não garante notificação com a página congelada pelo
+sistema. Sem backend dá para: (a) contagem sempre correta ao voltar (**já entregue** na
+TASK-028); (b) notificação com o app em segundo plano mas ainda vivo — cobre o caso comum
+de 60–120s com a tela ligada; (c) aviso de recuperação no instante em que volta. Garantia
+total exigiria Web Push + servidor (Fase 2, contraria o local-first do v1) ou app nativo.
+**Não prometer "roda perfeitamente em background".**
+
+## Padrão que se repetiu nas últimas 3 tasks (vale para a próxima sessão)
+
+Os bugs que mais custaram **não vieram de lógica** — vieram de **ciclo de vida e contexto**:
+- `StrictMode` invocando efeito 2× e desfazendo uma guarda que "consumia" flag;
+- efeito de ancoragem rodando na montagem e gravando estado fantasma;
+- restaurar menos contexto do que o usuário tinha (exercício sem o treino, treino sem a posição).
+
+Nenhum apareceu na suíte. Os três saíram de **inspecionar o storage e o DOM no browser**.
+Verificação por DOM prova estrutura; **abrir o storage e perguntar "quem escreveu isso?"**
+é o que pega esta classe.
+
 ### PRÓXIMA AÇÃO EXATA (sessão nova começa aqui)
 **TASK-013 MERGEADA em `main` (`2118ff0`, 2026-07-28)** — gates revalidados na main (161/161),
 branch apagada. (Nota histórica daquele momento — o push só veio em 2026-07-30, ver acima.)
@@ -654,7 +753,7 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-026 | Vivid Fase 2 (Corpo, conclusão de treino, Relatórios, editorial) | MERGEADA | main (`c725dc0`) |
 | TASK-027 | Cobertura de mídia (28%→100%) + escala do calendário | MERGEADA | main (`ddaf9ab`) |
 | TASK-028 | Modo Treino confiável (descanso persistido, auto-close, auto-avanço) | MERGEADA | main (`7364b93`) |
-| TASK-029 | Agenda por rotação (treino solto do dia da semana) | ESPECIFICADA | — |
+| TASK-029 | Agenda por rotação (treino solto do dia da semana) | IMPLEMENTADA — aguarda review + merge | `ai/TASK-029-agenda-rotacao-claude` |
 
 ---
 

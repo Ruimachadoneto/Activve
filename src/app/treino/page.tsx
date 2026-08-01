@@ -13,7 +13,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
-import { getTodayWorkout } from "@/lib/plan/today";
+import { resolveToday } from "@/lib/plan/rotation";
 import { BottomNav } from "@/components/BottomNav";
 import { ExerciseSheet } from "@/components/ExerciseSheet";
 import { RestTimer } from "@/components/RestTimer";
@@ -143,7 +143,17 @@ export default function TreinoPage() {
     setAutoNext(null);
     mudar();
   }
-  const [history, setHistory] = useState<WorkoutSession[]>([]);
+  /*
+   * Histórico com o planId a que pertence — mesmo padrão DERIVADO do `overrideFetch`.
+   * A rotação (TASK-029) decide qual treino sugerir a partir das sessões; resolver isso
+   * com a lista ainda vazia sugeriria o primeiro treino por um render e poderia abrir um
+   * rascunho de sessão no treino errado — a corrida de carregamento que a TASK-016 já
+   * pagou caro para aprender.
+   */
+  const [historyFetch, setHistoryFetch] = useState<{
+    planId: string | null;
+    list: WorkoutSession[];
+  }>({ planId: null, list: [] });
   // Override resolvido junto com o planId a que ele pertence: `overrideLoading` é
   // DERIVADO comparando o planId atual com o planId do último fetch resolvido — não é
   // um booleano solto. Um booleano separado ficava obsoleto por 1 render quando o
@@ -156,6 +166,9 @@ export default function TreinoPage() {
   const p = plan?.plan;
   const planId = plan?.planId ?? null;
   const hasWorkouts = !!p && p.training.workouts.length > 0;
+  const historyLoading = historyFetch.planId !== planId;
+  /** Global de propósito: a memória de carga cruza planos por `exercise.id` (ADR-002). */
+  const history = historyLoading ? [] : historyFetch.list;
   const overrideLoading = overrideFetch.planId !== planId;
   const override = overrideLoading ? null : overrideFetch.value;
 
@@ -171,7 +184,14 @@ export default function TreinoPage() {
     };
   }, [planId]);
 
-  const today = p ? getTodayWorkout(p, new Date(), override) : null;
+  // Sugestão pela rotação (TASK-029): o treino padrão desta tela é o que vem a seguir no
+  // ciclo, não o que o dia da semana mandava.
+  /*
+   * Rotação olha só as sessões DESTE plano: o ciclo pertence ao plano ativo, e sessões de
+   * um ciclo anterior contariam dias seguidos que não são deste programa.
+   */
+  const planSessions = history.filter((s) => s.planId === planId);
+  const today = p ? resolveToday(p, planSessions, new Date(), override) : null;
   /*
    * Treino do descanso salvo, quando ele é de HOJE e deste plano. Sem isto, quem estava
    * num treino escolhido à mão voltava do descarte no treino do dia: a sessão não batia,
@@ -184,10 +204,15 @@ export default function TreinoPage() {
     savedRest.sessionId === sessionIdFor(planId, savedRest.workoutId, isoDate())
       ? savedRest.workoutId
       : null;
+  /*
+   * Num dia de descanso o usuário ainda pode entrar aqui para treinar assim mesmo — e aí
+   * o certo é abrir no PRÓXIMO da rotação, não sempre no primeiro treino do plano.
+   */
   const activeId =
     selected ??
     restoredWorkoutId ??
-    (today?.kind === "workout" ? today.workoutId : p?.training.workouts[0]?.id) ??
+    (today?.kind === "workout" ? today.workoutId : today?.nextWorkoutId) ??
+    p?.training.workouts[0]?.id ??
     null;
   const officialTodayId = today?.kind === "workout" ? today.workoutId : null;
   const workout = p?.training.workouts.find((w) => w.id === activeId) ?? p?.training.workouts[0];
@@ -226,12 +251,12 @@ export default function TreinoPage() {
   useEffect(() => {
     let cancelled = false;
     getAllSessions().then((list) => {
-      if (!cancelled) setHistory(list);
+      if (!cancelled) setHistoryFetch({ planId, list });
     });
     return () => {
       cancelled = true;
     };
-  }, [stored?.sessionId]);
+  }, [planId, stored?.sessionId]);
 
   const session = stored && draft && stored.sessionId === draft.sessionId ? stored : draft;
 
@@ -256,7 +281,7 @@ export default function TreinoPage() {
     return () => window.clearTimeout(id);
   }, [autoNext, restOpen, restPending]);
 
-  if (loading || overrideLoading) {
+  if (loading || overrideLoading || historyLoading) {
     return (
       <main className="mx-auto flex w-full max-w-[440px] flex-1 items-center justify-center px-5">
         <p className="text-sm text-muted">Carregando…</p>
@@ -530,7 +555,7 @@ export default function TreinoPage() {
      * a saída por erro de armazenamento castigaria o usuário por algo que não é dele.
      */
     const whenSaved = saveSession(next)
-      .then(() => getAllSessions().then(setHistory))
+      .then(() => getAllSessions().then((list) => setHistoryFetch({ planId, list })))
       .catch(() => undefined);
     setCelebration({ session: next, workout, whenSaved });
   }
