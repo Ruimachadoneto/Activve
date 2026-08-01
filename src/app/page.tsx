@@ -65,6 +65,16 @@ export default function HojePage() {
   const planId = plan?.planId ?? null;
   const overrideLoading = overrideFetch.planId !== planId;
   const override = overrideLoading ? null : overrideFetch.value;
+  /*
+   * Enquanto o histórico não chegar, a lista é vazia — e desde a TASK-029 lista vazia não
+   * é só "menos informação", é OUTRA RESPOSTA: `resolveToday` sugeriria o primeiro da
+   * rotação (ou um treino onde o certo era descanso) até o fetch resolver. A tela Hoje é
+   * onde o usuário DECIDE; ela não pode afirmar "Treino A" e trocar para "Treino B" um
+   * instante depois. Por isso o mesmo guard derivado que o `/treino` já paga
+   * (`historyLoading`), e não um booleano solto — comparar o planId do fetch com o atual
+   * reancora sozinho quando o plano troca (achado do review Codex na TASK-016, ciclo 4).
+   */
+  const historyLoading = sessionsFetch.planId !== planId;
   // Estado DERIVADO: enquanto o fetch não corresponder ao plano atual, a lista é vazia —
   // nunca a do plano anterior. Memoizado porque o `[]` literal criaria um array novo a
   // cada render e invalidaria os memos abaixo sem necessidade.
@@ -144,7 +154,7 @@ export default function HojePage() {
     setOverrideFetch({ planId: plan.planId, value: null });
   }
 
-  if (loading || overrideLoading) {
+  if (loading || overrideLoading || historyLoading) {
     return (
       <main className="mx-auto flex w-full max-w-[440px] flex-1 items-center justify-center px-5">
         <p className="text-sm text-muted">Carregando…</p>
