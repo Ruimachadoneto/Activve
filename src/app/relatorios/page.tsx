@@ -188,8 +188,8 @@ export default function RelatoriosPage() {
   // cosmeticamente inválido do relatório — `planForSession` caía no plano ativo e o
   // export mostrava nome errado e subcontava volume daquele ciclo. A proteção agora
   // mora na ORIGEM da leitura profunda (`buildExerciseMuscles` normaliza músculos e
-  // variações; `workoutsScheduled` ignora agenda ilegível), então o relatório pode
-  // aproveitar todo plano percorrível sem risco de estourar.
+  // variações; `rotationOf` tolera `workouts`/`weekSchedule` malformados), então o
+  // relatório pode aproveitar todo plano percorrível sem risco de estourar.
   const knownPlans = useMemo<KnownPlan[]>(() => {
     const list = plans.map((p) => ({ planId: p.planId, importedAt: p.importedAt, plan: p.plan }));
     if (plan && !list.some((p) => p.planId === plan.planId)) {

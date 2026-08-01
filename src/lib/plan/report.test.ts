@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { buildReport, reportToMarkdown, type KnownPlan, type ReportPeriod } from "./report";
+import {
+  buildReport,
+  constancyView,
+  reportToMarkdown,
+  type KnownPlan,
+  type ReportFile,
+  type ReportPeriod,
+} from "./report";
+import { rotationOf } from "./rotation";
 import type { PlanFile } from "./schema";
 import type { WorkoutSession } from "./session";
 import type { BodyEntry } from "./body";
@@ -70,11 +78,66 @@ function session(
 }
 
 describe("buildReport — adherence", () => {
-  it("conta dias agendados pelo weekSchedule (seg/qua/sex..) dentro do período", () => {
+  it("reporta a meta SEMANAL do plano e a extensão do período, sem projetar um total", () => {
+    /*
+     * TASK-029: `workoutsScheduled` (dias marcados no weekSchedule dentro do período)
+     * saiu no schema 1.1. Ele media o usuário contra um calendário que o app parou de
+     * seguir quando a agenda virou rotação, e a alternativa — meta × semanas — seria uma
+     * projeção com fração num mês. A §9 pede denominador verificável: a meta semanal
+     * está escrita no plano, o resto conta o que aconteceu.
+     */
     const r = buildReport(plan, knownPlans, [], [], period);
-    // semana seg..dom: A,rest,B,rest,A,B,rest → 4 dias de treino
-    expect(r.adherence.workoutsScheduled).toBe(4);
+    expect(r.adherence.weeklyTarget).toBe(4); // A,rest,B,rest,A,B,rest
+    expect(r.adherence.periodWeeks).toBe(1);
     expect(r.adherence.totalDays).toBe(7);
+    expect(r.schemaVersion).toBe("1.1");
+  });
+
+  describe("constancyView — não extrapola a partir de período curto", () => {
+    const adherence = (over: Partial<ReportFile["adherence"]>): ReportFile["adherence"] => ({
+      weeklyTarget: 4,
+      periodWeeks: 1,
+      workoutsCompleted: 0,
+      workoutsPartial: 0,
+      mealsCheckedPct: 0,
+      activeDays: 0,
+      totalDays: 7,
+      ...over,
+    });
+
+    it("até uma semana compara TREINOS com a meta, sem dividir por fração de semana", () => {
+      /*
+       * 4 treinos em 6 dias viravam "4,7 por semana" e 1 treino na segunda virava
+       * "7,0 por semana" — extrapolação de um ponto só. Pego na verificação do browser,
+       * não por teste: o período "Esta semana" termina HOJE, então quase sempre é
+       * parcial.
+       */
+      const v = constancyView(adherence({ periodWeeks: 6 / 7, totalDays: 6, workoutsCompleted: 4 }));
+      expect(v.extent).toBe("6 dias");
+      expect(v.comparison).toBe("meta da semana: 4 treinos");
+      expect(v.fillPct).toBe(100); // 4 de 4, não 117%
+      expect(v.ariaLabel).toContain("4 de 4 treinos previstos");
+    });
+
+    it("um treino num único dia não vira '7 por semana'", () => {
+      const v = constancyView(adherence({ periodWeeks: 1 / 7, totalDays: 1, workoutsCompleted: 1 }));
+      expect(v.extent).toBe("1 dia");
+      expect(v.comparison).toBe("meta da semana: 4 treinos");
+      expect(v.fillPct).toBe(25);
+    });
+
+    it("acima de uma semana o ritmo volta a ter base", () => {
+      const v = constancyView(
+        adherence({ periodWeeks: 31 / 7, totalDays: 31, workoutsCompleted: 11 }),
+      );
+      expect(v.extent).toBe("4,4 semanas");
+      expect(v.comparison).toBe("2,5 por semana — o plano prevê 4");
+      expect(Math.round(v.fillPct)).toBe(62);
+    });
+
+    it("meta zerada não vira divisão por zero", () => {
+      expect(constancyView(adherence({ weeklyTarget: 0 })).fillPct).toBe(0);
+    });
   });
 
   it("conta treinos concluídos e parciais no período, ignora fora do período", () => {
@@ -248,9 +311,8 @@ describe("buildReport — histórico entre planos (troca de ciclo no meio do per
     ];
     // activePlan = planB (o ciclo VIGENTE hoje), mas o período tem histórico do ciclo anterior.
     const r = buildReport(planB, knownPlansCrossCycle, sessions, [], period);
-    // seg(A, ciclo antigo)=treino · ter=rest · qua(B, ciclo antigo)=treino · qui..dom sob
-    // o ciclo novo (tudo rest) = 2 dias agendados, não 4 (só o antigo) nem 0 (só o novo).
-    expect(r.adherence.workoutsScheduled).toBe(2);
+    // A meta semanal vem do plano ATIVO (o ciclo vigente), como `refersToPlanId`.
+    expect(r.adherence.weeklyTarget).toBe(rotationOf(planB).weeklyTarget);
     // Nome resolvido pelo plano da SESSÃO (pl_test) — planB nem tem "supino" no catálogo.
     const ex = r.training.exercises.find((e) => e.exerciseId === "supino");
     expect(ex?.name).toBe("Supino reto");
@@ -258,31 +320,28 @@ describe("buildReport — histórico entre planos (troca de ciclo no meio do per
     expect(r.meta.refersToPlanId).toBe("pl_test2");
   });
 
-  it("não inventa agenda pra dias ANTES do primeiro plano importado", () => {
-    // Só um plano conhecido, importado no MEIO do período (25/06, quinta) — dias
-    // 22–24/06 (seg/ter/qua) são de ANTES de qualquer plano existir.
-    const knownPlansLateStart: KnownPlan[] = [
-      { planId: "pl_test", importedAt: "2026-06-25T00:00:00.000Z", plan },
-    ];
-    const r = buildReport(plan, knownPlansLateStart, [], [], period);
-    // weekSchedule seg..dom = A,rest,B,rest,A,B,rest. Sem o fix, os dias 22(seg=A) e
-    // 24(qua=B) — ANTES do plano existir — cairiam no fallback (o único plano
-    // conhecido) e contariam como agendados, dando 4 (22+24+26+27). Com o fix, só
-    // 25/06 em diante conta: sex(26)=A e sáb(27)=B → 2 agendados.
-    expect(r.adherence.workoutsScheduled).toBe(2);
-  });
+  /*
+   * Os dois testes que viviam aqui — "não inventa agenda pra dias ANTES do primeiro
+   * plano" e "não conta agenda de plano histórico com weekSchedule ilegível" — foram
+   * removidos com o `workoutsScheduled` na TASK-029. Os dois protegiam a MESMA coisa:
+   * que o app não afirmasse "você tinha treino nesse dia" sem base. Sem denominador de
+   * período, a afirmação não é mais feita em lugar nenhum, então o risco não existe
+   * (não é cobertura perdida — é a pergunta que deixou de ser feita). O que restou do
+   * histórico cross-plano é a resolução por `planId` da sessão, coberta logo acima.
+   */
 
   // TASK-013: planos históricos entram no relatório após só uma guarda estrutural.
-  it("não conta agenda de plano histórico com weekSchedule ilegível", () => {
+  it("plano histórico com weekSchedule ilegível não derruba o relatório", () => {
     const semAgenda = JSON.parse(JSON.stringify(plan));
     delete semAgenda.training.weekSchedule;
     const knownSemAgenda: KnownPlan[] = [
       { planId: "pl_test", importedAt: "2026-06-01T00:00:00.000Z", plan: semAgenda },
     ];
-    // Não dá pra afirmar que o dia era de treino sem agenda legível — e inventar
-    // "agendado" faria a constância parecer PIOR do que foi (anti-culpa).
     const r = buildReport(semAgenda, knownSemAgenda, [], [], period);
-    expect(r.adherence.workoutsScheduled).toBe(0);
+    // Sem agenda legível, `rotationOf` cai em `profile.daysPerWeek` — o relatório
+    // continua saindo, com uma meta declarada em vez de um número inventado.
+    expect(r.adherence.weeklyTarget).toBeGreaterThan(0);
+    expect(r.adherence.workoutsCompleted).toBe(0);
   });
 
   it("um treino corrompido não cega os outros treinos do mesmo ciclo", () => {

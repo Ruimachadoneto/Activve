@@ -21,11 +21,28 @@ import type { WorkoutSession } from "./session";
 import { isoDate } from "./session";
 import type { TodayResult } from "./today";
 
-/** Dias consecutivos treinados que fecham um ciclo e passam a sugerir descanso. */
-const CICLO_EM_DIAS = 2;
+/**
+ * Cadência quando o plano não declara uma legível. Era uma CONSTANTE global até a
+ * decisão do usuário em 2026-08-01 (ver `cycleLengthOf`).
+ */
+const CICLO_PADRAO_EM_DIAS = 2;
 
 /** Quantos dias para trás vale a pena olhar ao medir a sequência (barato e suficiente). */
 const LOOKBACK_DIAS = 14;
+
+/**
+ * Treinos do plano, tolerando plano HISTÓRICO malformado.
+ *
+ * `report.ts` chama a rotação com planos que passaram só pela guarda estrutural da
+ * TASK-013 — `workouts` pode não ser array e pode conter elementos nulos. Ler o campo
+ * direto derrubava o relatório inteiro por causa de um treino ruim, que é exatamente a
+ * regressão que a TASK-013 fechou. Aqui vale a mesma postura: **função total**.
+ */
+function workoutsOf(plan: PlanFile): PlanFile["training"]["workouts"] {
+  return Array.isArray(plan.training?.workouts)
+    ? plan.training.workouts.filter((w) => typeof w?.id === "string")
+    : [];
+}
 
 export type Rotation = {
   /** Ordem dos treinos, sem repetição — ex.: `["A","B"]` ou `["A","B","C","D"]`. */
@@ -46,19 +63,57 @@ export type Rotation = {
  * função total da TASK-013).
  */
 export function rotationOf(plan: PlanFile): Rotation {
-  const ids = new Set(plan.training.workouts.map((w) => w.id));
-  const agendados = (plan.training.weekSchedule ?? []).filter(
+  const workouts = workoutsOf(plan);
+  const ids = new Set(workouts.map((w) => w.id));
+  const agendados = (Array.isArray(plan.training?.weekSchedule) ? plan.training.weekSchedule : []).filter(
     (entry): entry is string => typeof entry === "string" && ids.has(entry),
   );
   const order = [...new Set(agendados)];
   if (order.length === 0) {
-    const fallback = plan.training.workouts.map((w) => w.id);
+    const fallback = workouts.map((w) => w.id);
     return {
       order: fallback,
-      weeklyTarget: Math.max(1, plan.profile.daysPerWeek || fallback.length),
+      weeklyTarget: Math.max(1, plan.profile?.daysPerWeek || fallback.length),
     };
   }
   return { order, weeklyTarget: Math.max(1, agendados.length) };
+}
+
+/**
+ * Quantos dias seguidos de treino fecham um CICLO neste plano — e portanto quando o
+ * descanso passa a ser sugerido.
+ *
+ * Vem do próprio `weekSchedule`: é a maior sequência de entradas de treino CONSECUTIVAS
+ * que o plano declara. Regra do usuário (2026-08-01): *"vai variar do plano... se o
+ * treino é A+B+C onde cada dia tem um foco, o descanso é após o fim do ciclo. Se é
+ * Upper/Lower A/B — C/D, o descanso é ao fim do ciclo upper/lower"*.
+ *
+ * | `weekSchedule`                | ciclo |
+ * |---|---|
+ * | `A,B,rest,A,B,rest,rest`      | 2 (o plano do usuário — comportamento inalterado) |
+ * | `A,B,C,rest,A,B,C`            | 3 |
+ * | `A,rest,B,rest,C,rest,rest`   | 1 (o plano alterna treino e descanso) |
+ *
+ * Sem sequência utilizável (agenda ilegível ou só `rest`), cai no padrão — plano
+ * histórico malformado não pode derrubar a sugestão (mesma postura da TASK-013).
+ *
+ * Sem envolver a virada da semana de propósito: juntar o fim com o começo do array
+ * transformaria `A,rest,rest,rest,rest,rest,A` (2× por semana, bem espaçado) numa
+ * sequência de 2, quando o que o plano diz é treinar um dia e descansar.
+ */
+export function cycleLengthOf(plan: PlanFile): number {
+  const ids = new Set(workoutsOf(plan).map((w) => w.id));
+  let maior = 0;
+  let atual = 0;
+  for (const entry of Array.isArray(plan.training?.weekSchedule) ? plan.training.weekSchedule : []) {
+    if (typeof entry === "string" && ids.has(entry)) {
+      atual += 1;
+      maior = Math.max(maior, atual);
+    } else {
+      atual = 0;
+    }
+  }
+  return maior > 0 ? maior : CICLO_PADRAO_EM_DIAS;
 }
 
 /** Só sessões concluídas contam — a mesma régua de `recovery.ts` e do relatório. */
@@ -173,7 +228,7 @@ export function suggestWorkout(
 
   if (override) {
     if (override === "rest") return { kind: "rest", reason: "cycle", next: proximo };
-    const existe = plan.training.workouts.some((w) => w.id === override);
+    const existe = workoutsOf(plan).some((w) => w.id === override);
     if (existe) {
       /*
        * O override diz QUAL é o treino de hoje, não que ele siga pendente. Sem esta
@@ -192,7 +247,7 @@ export function suggestWorkout(
   const feitoHoje = doHoje[doHoje.length - 1];
   if (feitoHoje) return { kind: "done_today", workoutId: feitoHoje.workoutId, next: proximo };
 
-  if (consecutiveDaysUntilYesterday(sessions, now) >= CICLO_EM_DIAS) {
+  if (consecutiveDaysUntilYesterday(sessions, now) >= cycleLengthOf(plan)) {
     return { kind: "rest", reason: "cycle", next: proximo };
   }
 
@@ -220,9 +275,10 @@ export function resolveToday(
 ): TodayResult {
   const s = suggestWorkout(plan, sessions, now, override);
   const workoutId = s.kind === "rest" ? null : s.workoutId;
-  const workout = workoutId ? plan.training.workouts.find((w) => w.id === workoutId) : undefined;
+  const workouts = workoutsOf(plan);
+  const workout = workoutId ? workouts.find((w) => w.id === workoutId) : undefined;
   const nomeDe = (id: string | null) =>
-    id ? (plan.training.workouts.find((w) => w.id === id)?.name ?? null) : null;
+    id ? (workouts.find((w) => w.id === id)?.name ?? null) : null;
 
   if (!workout) {
     const next = s.kind === "rest" ? s.next : null;

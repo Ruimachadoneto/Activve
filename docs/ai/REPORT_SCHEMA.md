@@ -13,7 +13,7 @@
 ## 2. Estrutura
 ```
 ReportFile
-├─ schemaVersion     "1.0"
+├─ schemaVersion     "1.1"
 ├─ meta              reportId, generatedAt, app, locale, refersToPlanId, period{from,to}
 ├─ adherence         treinos feitos/agendados, % refeições marcadas, dias ativos
 ├─ training          resumo por exercício + volume por músculo + flags (dor/pulado)
@@ -36,8 +36,21 @@ ReportFile
 | `period` | `{ from, to }` (ISO date) | janela coberta (ex.: o mês) |
 
 ### 3.2 `adherence`
-`{ workoutsScheduled:int, workoutsCompleted:int, workoutsPartial:int, mealsCheckedPct:0-100, activeDays:int, totalDays:int }`
+`{ weeklyTarget:int, periodWeeks:number, workoutsCompleted:int, workoutsPartial:int, mealsCheckedPct:0-100, activeDays:int, totalDays:int }`
 > **Anti-culpa:** números descritivos, sem linguagem de fracasso. O Artifact interpreta; o app não julga.
+
+**Mudança 1.0 → 1.1 (TASK-029, 2026-08-01) — `workoutsScheduled` REMOVIDO.**
+Ele contava os dias que o `weekSchedule` marcava como treino dentro do período. Quando a
+agenda do app virou **rotação** (o treino sugerido vem do que foi concluído, não do dia da
+semana), esse número passou a medir o usuário contra um calendário que o app não segue
+mais. Projetar um total de período (`meta × semanas`) foi descartado por inventar precisão
+(4,43 semanas num mês). No lugar:
+- `weeklyTarget` — treinos por semana **declarados no plano** (`weekSchedule` sem `rest`);
+- `periodWeeks` — extensão do período em semanas (`dias ÷ 7`, fracionário).
+
+O ritmo real é `workoutsCompleted ÷ periodWeeks`, comparável a `weeklyTarget`. **Para o
+coach:** não existe mais "treinos perdidos" derivável do relatório — a ausência de treino
+num dia específico deixou de ser um fato que o app afirma.
 
 ### 3.3 `training`
 ```
@@ -73,13 +86,16 @@ body
 Texto livre do usuário pro coach ("senti dor no ombro no supino", "viajei 1 semana"). Escapado ao exibir.
 
 ## 4. Versão e round-trip
-- `1.x` aditivo retrocompatível. O Artifact e o app evoluem juntos: campo novo no relatório → o gerador passa a usá-lo; campo novo no plano → o app passa a renderizar.
+- `1.x` aditivo retrocompatível — **com a exceção registrada acima**: a 1.1 REMOVEU
+  `adherence.workoutsScheduled`, porque manter um campo que o app não consegue mais
+  afirmar com honestidade seria pior que quebrar o aditivo. Um consumidor de 1.0 deve
+  tratar sua ausência como "o app não promete mais treino por dia da semana". O Artifact e o app evoluem juntos: campo novo no relatório → o gerador passa a usá-lo; campo novo no plano → o app passa a renderizar.
 - O Artifact recebe `ReportFile` + (opcional) o `PLAN_SCHEMA` vigente e devolve um **novo PlanFile** — preservando `exercise.id` quando o exercício continua, para a continuidade de histórico.
 
-## 5. Exemplo mínimo (`schemaVersion 1.0`)
+## 5. Exemplo mínimo (`schemaVersion 1.1`)
 ```json
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "meta": {
     "reportId": "rp_2026_06",
     "generatedAt": "2026-06-30T20:00:00Z",
@@ -89,7 +105,7 @@ Texto livre do usuário pro coach ("senti dor no ombro no supino", "viajei 1 sem
     "period": { "from": "2026-06-01", "to": "2026-06-30" }
   },
   "adherence": {
-    "workoutsScheduled": 13, "workoutsCompleted": 11, "workoutsPartial": 1,
+    "weeklyTarget": 4, "periodWeeks": 4.3, "workoutsCompleted": 11, "workoutsPartial": 1,
     "mealsCheckedPct": 78, "activeDays": 14, "totalDays": 30
   },
   "training": {

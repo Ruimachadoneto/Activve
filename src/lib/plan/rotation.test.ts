@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   completedThisWeek,
   consecutiveDaysUntilYesterday,
+  cycleLengthOf,
   nextInRotation,
   resolveToday,
   rotationOf,
@@ -67,6 +68,66 @@ describe("rotationOf — weekSchedule vira ordem + meta, não calendário", () =
     // Plano histórico com agenda ilegível não pode derrubar a sugestão (TASK-013).
     const p = plano(["rest", "rest", "rest", "rest", "rest", "rest", "rest"], ["A", "B"], 3);
     expect(rotationOf(p)).toEqual({ order: ["A", "B"], weeklyTarget: 3 });
+  });
+});
+
+describe("cycleLengthOf — a cadência do descanso vem do plano, não de uma constante", () => {
+  it("upper/lower do usuário continua em 2 (comportamento inalterado)", () => {
+    expect(cycleLengthOf(plano())).toBe(2);
+  });
+
+  it("split A/B/C descansa depois do CICLO, não depois de 2 dias", () => {
+    const p = plano(["A", "B", "C", "rest", "A", "B", "C"], ["A", "B", "C"]);
+    expect(cycleLengthOf(p)).toBe(3);
+    // Era o achado [P1]: com a constante fixa, quarta virava descanso em vez de C.
+    const s = [sessao(SEG, "A"), sessao(TER, "B")];
+    expect(suggestWorkout(p, s, dia(QUA))).toEqual({ kind: "workout", workoutId: "C" });
+    // Fechado o ciclo de 3, aí sim descansa.
+    expect(
+      suggestWorkout(p, [...s, sessao(QUA, "C")], dia(QUI)),
+    ).toMatchObject({ kind: "rest", reason: "cycle" });
+  });
+
+  it("plano que alterna treino e descanso tem ciclo 1", () => {
+    const p = plano(["A", "rest", "B", "rest", "A", "rest", "rest"]);
+    expect(cycleLengthOf(p)).toBe(1);
+  });
+
+  it("não junta o fim com o começo da semana", () => {
+    // 2x por semana bem espaçado: o plano diz treinar 1 dia e descansar, não 2 seguidos.
+    expect(cycleLengthOf(plano(["A", "rest", "rest", "rest", "rest", "rest", "B"]))).toBe(1);
+  });
+
+  it("agenda ilegível cai no padrão em vez de derrubar a sugestão", () => {
+    expect(cycleLengthOf(plano(["rest", "rest", "rest", "rest", "rest", "rest", "rest"]))).toBe(2);
+  });
+});
+
+describe("plano HISTÓRICO malformado não derruba a rotação (TASK-013)", () => {
+  /*
+   * `report.ts` passou a chamar `rotationOf` (TASK-029) e planos históricos entram lá
+   * depois de só uma guarda estrutural: `workouts` pode não ser array e pode ter
+   * elementos nulos. A primeira versão estourava em `w.id` e derrubava o relatório
+   * inteiro — pego pela suíte do relatório, não por esta.
+   */
+  const malformado = (training: unknown) => ({ profile: {}, training }) as unknown as PlanFile;
+
+  it("elemento nulo dentro de workouts é ignorado", () => {
+    const p = malformado({
+      weekSchedule: ["A", "B", "rest", "A", "B", "rest", "rest"],
+      workouts: [null, { id: "A", name: "Treino A", exercises: [] }, { name: "sem id" }],
+    });
+    expect(rotationOf(p)).toEqual({ order: ["A"], weeklyTarget: 2 });
+    expect(cycleLengthOf(p)).toBe(1); // só "A" é reconhecível; "B" não existe mais
+    expect(() => suggestWorkout(p, [], dia(SEG))).not.toThrow();
+    expect(() => resolveToday(p, [], dia(SEG))).not.toThrow();
+  });
+
+  it("training sem workouts nem weekSchedule ainda responde", () => {
+    const p = malformado({});
+    expect(rotationOf(p)).toEqual({ order: [], weeklyTarget: 1 });
+    expect(cycleLengthOf(p)).toBe(2);
+    expect(resolveToday(p, [], dia(SEG))).toMatchObject({ kind: "rest" });
   });
 });
 

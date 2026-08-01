@@ -100,7 +100,7 @@ export function hasReadableTraining(value: unknown): boolean {
   //
   // O caminho certo é o oposto: cada LEITOR se protege do que desreferencia
   // (`buildExerciseMuscles` normaliza músculos/variações; `exerciseName`/`movementName`
-  // pulam treino ilegível; `workoutsScheduled` ignora agenda ausente). Assim a
+  // pulam treino ilegível; `rotationOf` tolera agenda e treinos malformados). Assim a
   // corrupção degrada só a parte afetada e o resto do ciclo continua legível.
   return Array.isArray(workouts);
 }
