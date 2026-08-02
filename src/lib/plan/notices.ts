@@ -128,14 +128,32 @@ function segundaDa(date: Date): string {
  * não pode celebrar um recorde que a tela do treino não celebrou, nem o contrário.
  */
 function avisosDeRecorde(input: NoticesInput, desde: number): Notice[] {
-  const feitas = concluidas(input.sessions);
+  /*
+   * Ordem cronológica é OBRIGATÓRIA aqui, não conveniência.
+   *
+   * `buildSessionSummary` foi escrita para a tela de conclusão, onde o "histórico" é tudo
+   * o que existe no instante em que o treino acaba — ou seja, nada do futuro. Ela exclui
+   * apenas a própria sessão, por `sessionId`. Reproduzi-la sobre a lista inteira compara
+   * cada treino com o melhor de TODOS OS TEMPOS, inclusive o que veio depois: numa
+   * progressão 60 → 65 → 70, o dia de 65 deixava de ser recorde assim que o de 70
+   * existisse, e o centro de avisos engolia recordes legítimos (achado do review Codex).
+   *
+   * A régua de cada sessão é só o que existia ANTES dela. Mesma armadilha da TASK-013 e
+   * da TASK-029: função certa, contexto diferente daquele para o qual foi escrita.
+   */
+  const feitas = concluidas(input.sessions)
+    .slice()
+    .sort((a, b) =>
+      a.date === b.date
+        ? (a.completedAt ?? "").localeCompare(b.completedAt ?? "")
+        : a.date.localeCompare(b.date),
+    );
   const out: Notice[] = [];
-  for (const s of feitas) {
+  for (let i = 0; i < feitas.length; i++) {
+    const s = feitas[i];
     const at = s.completedAt ?? `${s.date}T12:00:00.000Z`;
     if (new Date(at).getTime() < desde) continue;
-    // `buildSessionSummary` compara com o histórico ANTERIOR: passar a lista toda é
-    // correto porque a própria função exclui a sessão em avaliação da régua.
-    for (const r of buildSessionSummary(s, feitas).records) {
+    for (const r of buildSessionSummary(s, feitas.slice(0, i)).records) {
       out.push({
         id: `record:${s.sessionId}:${r.movementId}`,
         kind: "record",
@@ -306,8 +324,26 @@ export function buildNotices(input: NoticesInput, now: Date = new Date()): Notic
     avisoDeIdadeDoPlano(input, agora),
   ].filter((n): n is Notice => n != null);
 
+  /*
+   * A janela de relevância vale para EVENTOS, não para CONDIÇÕES.
+   *
+   * Recorde, semana fechada e recuperação são fatos pontuais: passados 30 dias, viram
+   * ruído e saem (antes só o recorde e a recuperação eram podados, então uma "semana
+   * fechada" de três meses atrás ficava na lista para sempre — achado do review Codex).
+   *
+   * Já "peso parado" e "ciclo com 8 semanas" descrevem uma situação que **ainda é
+   * verdade agora**: as funções que os geram só os emitem enquanto a condição vale. Podá-los
+   * por idade sumiria com o aviso justamente de quem está há mais tempo naquela situação —
+   * corrigir um ruído criando um silêncio. Eles carregam a data em que a condição começou,
+   * que é o dado honesto, e param de incomodar por já estarem lidos.
+   */
+  const EVENTOS: NoticeKind[] = ["record", "week_done", "ready"];
   return out
-    .filter((n) => new Date(n.at).getTime() <= agora) // nada do futuro
+    .filter((n) => {
+      const t = new Date(n.at).getTime();
+      if (t > agora) return false; // nada do futuro
+      return EVENTOS.includes(n.kind) ? t >= desde : true;
+    })
     .sort((a, b) => b.at.localeCompare(a.at));
 }
 

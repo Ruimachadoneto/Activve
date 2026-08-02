@@ -109,6 +109,33 @@ describe("buildNotices — recorde", () => {
     expect(rec?.href).toBe(`/relatorios?d=${QUA}`);
   });
 
+  it("cada recorde é medido contra o que existia ANTES dele, não contra o futuro", () => {
+    /*
+     * Progressão 60 → 65 → 70: os dois avanços são recordes no dia em que aconteceram.
+     * Comparando com o melhor de todos os tempos, o dia de 65 sumia assim que o de 70
+     * existisse — o centro de avisos engolia um recorde legítimo (review Codex, ciclo 2).
+     */
+    const s = [
+      sessao(SEG, "A", "supino", 60),
+      sessao(TER, "A", "supino", 65),
+      sessao(QUA, "A", "supino", 70),
+    ];
+    const recs = buildNotices(base({ sessions: s }), dia(QUI)).filter((n) => n.kind === "record");
+    expect(recs).toHaveLength(2);
+    expect(recs.find((r) => r.at.startsWith(TER))?.body).toContain("o melhor anterior era 60 kg");
+    expect(recs.find((r) => r.at.startsWith(QUA))?.body).toContain("o melhor anterior era 65 kg");
+  });
+
+  it("ordem do array não muda a régua de nenhum deles", () => {
+    const s = [
+      sessao(QUA, "A", "supino", 70),
+      sessao(SEG, "A", "supino", 60),
+      sessao(TER, "A", "supino", 65),
+    ];
+    const recs = buildNotices(base({ sessions: s }), dia(QUI)).filter((n) => n.kind === "record");
+    expect(recs).toHaveLength(2);
+  });
+
   it("primeira vez num exercício NÃO é recorde", () => {
     // Sem régua anterior não há o que superar — anunciar seria inventar conquista.
     const avisos = buildNotices(base({ sessions: [sessao(SEG, "A", "supino", 60)] }), dia(TER));
@@ -156,6 +183,34 @@ describe("buildNotices — semana e peso", () => {
     ).find((n) => n.kind === "plan_age");
     expect(a?.id).toBe("plan_age:pl_1");
     expect(a?.href).toBe("/mais");
+  });
+});
+
+describe("janela de relevância: evento envelhece, condição persiste", () => {
+  it("semana fechada há meses sai da lista", () => {
+    // Evento pontual: passados 30 dias vira ruído (review Codex, ciclo 2).
+    const antigo = ["2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05"];
+    const s = antigo.map((d, i) => sessao(d, i % 2 ? "B" : "A", i % 2 ? "puxada" : "supino", 50 + i));
+    const avisos = buildNotices(base({ sessions: s }), dia(QUI));
+    expect(avisos.some((n) => n.kind === "week_done")).toBe(false);
+  });
+
+  it("peso parado há meses CONTINUA avisando — a condição ainda é verdade", () => {
+    /*
+     * Podar por idade sumiria com o aviso justamente de quem está há mais tempo sem
+     * registrar. A data mostrada é a de quando a situação começou, que é o dado honesto.
+     */
+    const a = buildNotices(base({ bodyEntries: [peso("2026-01-10", 84)] }), dia(QUI)).find(
+      (n) => n.kind === "weight_stale",
+    );
+    expect(a?.id).toBe("weight_stale:2026-01-10");
+  });
+
+  it("ciclo muito antigo também continua sugerindo um plano novo", () => {
+    const a = buildNotices(base({ planImportedAt: "2026-01-01T10:00:00.000Z" }), dia(QUI)).find(
+      (n) => n.kind === "plan_age",
+    );
+    expect(a?.id).toBe("plan_age:pl_1");
   });
 });
 
