@@ -76,6 +76,7 @@ export default function AvisosPage() {
       buildNotices({
         plan: plan?.plan ?? null,
         planImportedAt: plan?.importedAt ?? null,
+        activePlanId: plan?.planId ?? null,
         sessions,
         bodyEntries: body,
       }),

@@ -49,6 +49,7 @@ const peso = (date: string, weight_kg: number): BodyEntry => ({ date, weight_kg 
 const base = (over: Partial<NoticesInput> = {}): NoticesInput => ({
   plan: plano(),
   planImportedAt: "2026-07-20T10:00:00.000Z",
+  activePlanId: "pl_1",
   sessions: [],
   bodyEntries: [],
   ...over,
@@ -158,6 +159,50 @@ describe("buildNotices — semana e peso", () => {
   });
 });
 
+describe("escopo: duas perguntas, dois recortes (achado do review Codex)", () => {
+  /** Mesma sessão, mas de um ciclo ANTERIOR (outro planId). */
+  const deOutroPlano = (s: WorkoutSession): WorkoutSession => ({
+    ...s,
+    planId: "pl_ANTIGO",
+    sessionId: s.sessionId.replace("pl_1", "pl_ANTIGO"),
+  });
+
+  it("sessões de um ciclo anterior NÃO fecham a semana do ciclo novo", () => {
+    /*
+     * Importar um plano no meio da semana fazia o sino anunciar "semana fechada" contando
+     * treinos de outro programa — o centro de avisos contradizendo o Hoje e o Corpo, que
+     * sempre escoparam por `getSessionsForPlan`.
+     */
+    const antigas = [
+      sessao(SEG, "A", "supino", 60),
+      sessao(TER, "B", "puxada", 50),
+      sessao(QUA, "A", "supino", 61),
+      sessao(QUI, "B", "puxada", 51),
+    ].map(deOutroPlano);
+    const avisos = buildNotices(base({ sessions: antigas }), dia(QUI, 22));
+    expect(avisos.some((n) => n.kind === "week_done")).toBe(false);
+  });
+
+  it("mas o RECORDE atravessa plano, de propósito (ADR-002)", () => {
+    // A memória de carga é por `exercise.id` entre ciclos: trocar de plano não pode
+    // zerá-la, senão a primeira carga do ciclo novo viraria "recorde" sozinha.
+    const s = [deOutroPlano(sessao(SEG, "A", "supino", 60)), sessao(QUA, "A", "supino", 70)];
+    const rec = buildNotices(base({ sessions: s }), dia(QUI)).find((n) => n.kind === "record");
+    expect(rec?.body).toContain("o melhor anterior era 60 kg");
+  });
+
+  it("sem `activePlanId` não inventa semana fechada", () => {
+    const s = [
+      sessao(SEG, "A", "supino", 60),
+      sessao(TER, "B", "puxada", 50),
+      sessao(QUA, "A", "supino", 61),
+      sessao(QUI, "B", "puxada", 51),
+    ];
+    const avisos = buildNotices(base({ sessions: s, activePlanId: null }), dia(QUI, 22));
+    expect(avisos.some((n) => n.kind === "week_done")).toBe(false);
+  });
+});
+
 describe("buildNotices — recuperação", () => {
   it("sem nada trabalhado, não anuncia 'recuperado'", () => {
     /*
@@ -184,12 +229,17 @@ describe("robustez e leitura", () => {
       training: { weekSchedule: ["A"], workouts: [null, { id: "A" }] },
     } as unknown as PlanFile;
     expect(() =>
-      buildNotices({ plan: ruim, planImportedAt: null, sessions: [], bodyEntries: [] }, dia(QUI)),
+      buildNotices(
+        { plan: ruim, planImportedAt: null, activePlanId: "pl_x", sessions: [], bodyEntries: [] },
+        dia(QUI),
+      ),
     ).not.toThrow();
   });
 
   it("sem plano nenhum, devolve lista vazia em vez de estourar", () => {
-    expect(buildNotices({ plan: null, sessions: [], bodyEntries: [] }, dia(QUI))).toEqual([]);
+    expect(
+      buildNotices({ plan: null, activePlanId: null, sessions: [], bodyEntries: [] }, dia(QUI)),
+    ).toEqual([]);
   });
 
   it("unreadCount conta só o que não foi lido", () => {

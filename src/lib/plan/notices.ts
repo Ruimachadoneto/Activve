@@ -53,7 +53,23 @@ export type NoticesInput = {
   plan: PlanFile | null;
   /** `importedAt` do plano ativo — o "início do ciclo" (semântica da TASK-018). */
   planImportedAt?: string | null;
-  /** TODAS as sessões: recorde atravessa plano por `exercise.id` (ADR-002). */
+  /**
+   * Id do plano ATIVO. Obrigatório porque este arquivo faz duas perguntas com escopos
+   * diferentes sobre a mesma lista (ver `sessions`); sem ele não dá para separá-las.
+   */
+  activePlanId: string | null;
+  /**
+   * TODAS as sessões, de todos os planos.
+   *
+   * ⚠️ **Duas perguntas, dois escopos** (achado do review Codex): o RECORDE atravessa
+   * plano de propósito — a continuidade do produto é por `exercise.id` entre ciclos
+   * (ADR-002), e trocar de plano não pode zerar a memória de carga. Já a SEMANA, a
+   * ROTAÇÃO e a RECUPERAÇÃO pertencem ao ciclo vigente: o resto do app calcula os três a
+   * partir de `getSessionsForPlan(planId)`, e contar um ciclo anterior aqui faria o sino
+   * anunciar "semana fechada" logo depois de importar um plano novo — o centro de avisos
+   * contradizendo o Hoje e o Corpo. O recorte acontece dentro de `buildNotices`, não no
+   * chamador, para que não haja como errar de fora.
+   */
   sessions: WorkoutSession[];
   bodyEntries: BodyEntry[];
 };
@@ -142,10 +158,15 @@ function avisosDeRecorde(input: NoticesInput, desde: number): Notice[] {
  * um por dia. Se nenhum músculo do treino foi trabalhado, não há travessia a anunciar:
  * silêncio é mais honesto que "está tudo pronto" sobre um corpo do qual nada foi medido.
  */
-function avisoDeRecuperacao(input: NoticesInput, agora: number, desde: number): Notice | null {
+function avisoDeRecuperacao(
+  input: NoticesInput,
+  doPlano: WorkoutSession[],
+  agora: number,
+  desde: number,
+): Notice | null {
   const { plan } = input;
   if (!plan) return null;
-  const proximo = nextInRotation(plan, input.sessions);
+  const proximo = nextInRotation(plan, doPlano);
   if (!proximo) return null;
   const workouts = Array.isArray(plan.training?.workouts) ? plan.training.workouts : [];
   const treino = workouts.find((w) => w?.id === proximo);
@@ -158,7 +179,7 @@ function avisoDeRecuperacao(input: NoticesInput, agora: number, desde: number): 
   if (exercicios.length === 0) return null;
 
   const recovery = computeRecovery(
-    stimuliFromSessions(input.sessions, buildExerciseMuscles(plan), agora),
+    stimuliFromSessions(doPlano, buildExerciseMuscles(plan), agora),
     agora,
   );
 
@@ -191,15 +212,15 @@ function avisoDeRecuperacao(input: NoticesInput, agora: number, desde: number): 
 }
 
 /** Meta semanal do plano atingida — fato, não elogio (nem cobrança se não atingir). */
-function avisoDeSemana(input: NoticesInput, agora: Date): Notice | null {
+function avisoDeSemana(input: NoticesInput, doPlano: WorkoutSession[], agora: Date): Notice | null {
   const { plan } = input;
   if (!plan) return null;
   const { weeklyTarget } = rotationOf(plan);
-  const feitosNaSemana = completedThisWeek(input.sessions, agora);
+  const feitosNaSemana = completedThisWeek(doPlano, agora);
   if (feitosNaSemana < weeklyTarget) return null;
   const segunda = segundaDa(agora);
   // Carimbo = a sessão que FECHOU a meta, não "agora": é ela o fato.
-  const daSemana = concluidas(input.sessions)
+  const daSemana = concluidas(doPlano)
     .filter((s) => s.date >= segunda && s.date <= isoDate(agora))
     .sort((a, b) => (a.completedAt ?? a.date).localeCompare(b.completedAt ?? b.date));
   const fechou = daSemana[weeklyTarget - 1] ?? daSemana[daSemana.length - 1];
@@ -268,10 +289,19 @@ function avisoDeIdadeDoPlano(input: NoticesInput, agora: number): Notice | null 
 export function buildNotices(input: NoticesInput, now: Date = new Date()): Notice[] {
   const agora = now.getTime();
   const desde = agora - JANELA_DIAS * DIA_MS;
+  /*
+   * Sessões do ciclo VIGENTE. Sem `activePlanId` não há recorte possível, e aí a resposta
+   * honesta é não emitir os avisos que dependem dele — melhor calar do que afirmar
+   * "semana fechada" com sessões de outro programa.
+   */
+  const doPlano =
+    input.activePlanId == null
+      ? []
+      : input.sessions.filter((s) => s.planId === input.activePlanId);
   const out: Notice[] = [
     ...avisosDeRecorde(input, desde),
-    avisoDeRecuperacao(input, agora, desde),
-    avisoDeSemana(input, now),
+    avisoDeRecuperacao(input, doPlano, agora, desde),
+    avisoDeSemana(input, doPlano, now),
     avisoDePesoParado(input, agora),
     avisoDeIdadeDoPlano(input, agora),
   ].filter((n): n is Notice => n != null);

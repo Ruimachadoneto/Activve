@@ -172,6 +172,7 @@ export default function HojePage() {
       const avisos = buildNotices({
         plan: plan.plan,
         planImportedAt: plan.importedAt,
+        activePlanId: plan.planId,
         sessions: todas,
         bodyEntries: corpo,
       });
