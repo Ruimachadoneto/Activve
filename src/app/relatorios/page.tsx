@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Copy, FileDown } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
@@ -125,15 +126,59 @@ function monthPeriod(y: number, m: number): ReportPeriod {
   return { from, to };
 }
 
+/**
+ * Data válida vinda da URL (`?d=yyyy-mm-dd`), ou `null`.
+ *
+ * A faixa da semana do Hoje leva para cá com o dia clicado (TASK-030) em vez de duplicar
+ * a tela de detalhe da sessão, que já existe aqui. Query string é ENTRADA NÃO CONFIÁVEL —
+ * pode vir de link colado, de histórico velho ou digitada à mão — então é validada como
+ * data real, não só por formato: "2026-02-31" casa com o regex e não existe.
+ */
+function dataDaURL(raw: string | null): string | null {
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const [y, m, d] = raw.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  const real = dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+  return real ? raw : null;
+}
+
+/**
+ * `useSearchParams` exige uma fronteira de Suspense numa página pré-renderizada
+ * estaticamente. Por isso o componente real mora abaixo e o default só o embrulha.
+ */
 export default function RelatoriosPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto flex w-full max-w-[440px] flex-1 items-center justify-center px-5">
+          <p className="text-sm text-muted">Carregando…</p>
+        </main>
+      }
+    >
+      <RelatoriosConteudo />
+    </Suspense>
+  );
+}
+
+function RelatoriosConteudo() {
   const { loading, plan, invalid } = useActivePlan();
+  /*
+   * Lido UMA vez, no inicializador do estado: depois disso quem manda é a navegação do
+   * usuário dentro da tela. Reagir à URL continuamente faria o mês voltar sozinho para o
+   * do link toda vez que ele trocasse de mês.
+   */
+  const deepLink = dataDaURL(useSearchParams().get("d"));
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [bodyEntries, setBodyEntries] = useState<BodyEntry[]>([]);
   const [plans, setPlans] = useState<StoredPlan[]>([]);
   const today = useMemo(() => new Date(), []);
   const todayStr = isoDate(today);
-  const [view, setView] = useState(() => ({ y: today.getFullYear(), m: today.getMonth() }));
-  const [selected, setSelected] = useState<string | null>(null);
+  const [view, setView] = useState(() =>
+    deepLink
+      ? { y: Number(deepLink.slice(0, 4)), m: Number(deepLink.slice(5, 7)) - 1 }
+      : { y: today.getFullYear(), m: today.getMonth() },
+  );
+  const [selected, setSelected] = useState<string | null>(deepLink);
   const [notesDraft, setNotesDraft] = useState("");
   const [reportPreview, setReportPreview] = useState<{ label: string; report: ReportFile } | null>(null);
   const [reportEmptyMessage, setReportEmptyMessage] = useState<string | null>(null);
