@@ -558,20 +558,22 @@ Garantia total exigiria Web Push + servidor (Fase 2, contraria o local-first do 
 
 ## Onde exatamente estamos
 
-- **`main` = `afe80aa`, em sincronia com `origin`** — push feito, **deploy do Vercel
-  disparado**. Contém TASK-026, 027, 028 e **029**.
+- **`main` = `a7a2647`, em sincronia com `origin`** — push feito, **deploy do Vercel
+  disparado**. Contém TASK-026, 027, 028, **029 e 030**.
 - **Nenhuma branch de trabalho aberta.** Working tree limpo.
 - **TASK-029 MERGEADA** (`--no-ff`), gates revalidados na `main` (**292/292**), branch
   apagada local e remotamente.
 
 ## PRÓXIMA AÇÃO EXATA
 
-**TASK-030 (`ai/TASK-030-nada-morto-claude`) aguarda gate visual + aprovação de merge.**
-Marca desenhada, centro de avisos e faixa da semana clicável. 4 ciclos de review Codex,
-8 achados reais, todos corrigidos; **acima do limite de 3 do §13**, loop interrompido
-para decisão humana. Contrato: `docs/ai/tasks/TASK-030-nada-morto.md`.
+**TASK-030 MERGEADA e em produção** (`a7a2647`, 2026-08-03): marca desenhada, centro de
+avisos e faixa da semana clicável. 4 ciclos de review Codex, 8 achados reais, todos
+corrigidos (acima do limite de 3 do §13 — loop interrompido e decisão levada ao usuário,
+que aprovou merge + push). Contrato: `docs/ai/tasks/TASK-030-nada-morto.md`.
+⚠️ **Gate visual de olho humano continua pendente** — o screenshot da pane falha nesta
+máquina e a verificação foi por DOM, que não prova composição.
 
-**Depois dela — feedback de uso real, item 2 — PWA:** `manifest.json` + Service Worker + notificação de
+**Feedback de uso real, item 2 — PWA:** `manifest.json` + Service Worker + notificação de
 fim de descanso. Criar branch `ai/TASK-019-pwa-claude` + contrato, e seguir o fluxo
 (contrato → gates → browser 390×844 em aba nova → review Codex → gate visual → merge).
 
@@ -581,7 +583,7 @@ abaixo). Não prometer "roda perfeitamente em background".
 Depois: **item 6** (sino de avisos = TASK-023 do roadmap, nunca construída) e **item 5**
 (logo — o usuário quer repensar, achou fraca).
 
-## Feedback de uso real — 5 de 7 itens resolvidos
+## Feedback de uso real — 6 de 7 itens resolvidos
 
 | # | Item | Estado |
 |---|---|---|
@@ -589,8 +591,8 @@ Depois: **item 6** (sino de avisos = TASK-023 do roadmap, nunca construída) e *
 | 3 | Contador fechar sozinho | ✅ TASK-028, em `main` |
 | 4 | Avançar sozinho para o próximo exercício | ✅ TASK-028, em `main` |
 | 7 | Treino preso ao dia da semana | ✅ **TASK-029, em `main` e em produção** |
-| 6 | Sino sem função | 🔶 **TASK-030 pronta**, aguarda merge (substitui a TASK-023) |
-| 5 | Logo fraca | 🔶 **TASK-030 pronta**, aguarda merge |
+| 6 | Sino sem função | ✅ **TASK-030**, em `main` e em produção (substituiu a TASK-023) |
+| 5 | Logo fraca | ✅ **TASK-030**, em `main` e em produção |
 | 2 | Background + notificação | ⬜ PWA (manifest + Service Worker) — a próxima |
 
 ⚠️ **Ideia em maturação (não decidida):** converter em app mobile de verdade. Medido nesta
@@ -793,7 +795,7 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-027 | Cobertura de mídia (28%→100%) + escala do calendário | MERGEADA | main (`ddaf9ab`) |
 | TASK-028 | Modo Treino confiável (descanso persistido, auto-close, auto-avanço) | MERGEADA | main (`7364b93`) |
 | TASK-029 | Agenda por rotação + constância sem denominador (REPORT_SCHEMA 1.1) | MERGEADA | main (`afe80aa`) |
-| TASK-030 | Nada morto na tela (marca, centro de avisos, faixa clicável) | IMPLEMENTADA — aguarda gate visual + merge | `ai/TASK-030-nada-morto-claude` |
+| TASK-030 | Nada morto na tela (marca, centro de avisos, faixa clicável) | MERGEADA | main (`a7a2647`) |
 
 ---
 
