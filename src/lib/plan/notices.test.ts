@@ -152,7 +152,7 @@ describe("buildNotices — semana e peso", () => {
       sessao(QUI, "B", "puxada", 51),
     ];
     const w = buildNotices(base({ sessions: s }), dia(QUI, 22)).find((n) => n.kind === "week_done");
-    expect(w?.id).toBe(`week_done:${SEG}`); // estável pela semana, não pelo dia da leitura
+    expect(w?.id).toBe(`week_done:pl_1:${SEG}`); // estável pela semana E escopado ao plano
     expect(w?.at).toBe(`${QUI}T20:00:00.000Z`);
     expect(w?.body).toContain("4");
   });
@@ -183,6 +183,43 @@ describe("buildNotices — semana e peso", () => {
     ).find((n) => n.kind === "plan_age");
     expect(a?.id).toBe("plan_age:pl_1");
     expect(a?.href).toBe("/mais");
+  });
+});
+
+describe("ids são únicos no disco GLOBAL de lidos", () => {
+  /*
+   * `markNoticesRead` guarda uma lista só, para todos os planos. Ids de treino (`A`, `B`)
+   * se repetem entre ciclos, então um id sem o plano faria o primeiro marco de um plano
+   * NOVO nascer "lido" — o sino calado num fato inédito (achado do review Codex).
+   */
+  const quatro = [
+    sessao(SEG, "A", "supino", 60),
+    sessao(TER, "B", "puxada", 50),
+    sessao(QUA, "A", "supino", 61),
+    sessao(QUI, "B", "puxada", 51),
+  ];
+
+  it("dois planos distintos na MESMA semana geram ids diferentes", () => {
+    const a = buildNotices(base({ sessions: quatro }), dia(QUI, 22)).find((n) => n.kind === "week_done");
+    const outroPlano = quatro.map((s) => ({ ...s, planId: "pl_2", sessionId: s.sessionId.replace("pl_1", "pl_2") }));
+    const b = buildNotices(
+      base({ sessions: outroPlano, activePlanId: "pl_2" }),
+      dia(QUI, 22),
+    ).find((n) => n.kind === "week_done");
+    expect(a?.id).toBeDefined();
+    expect(b?.id).toBeDefined();
+    expect(a?.id).not.toBe(b?.id);
+  });
+
+  it("todo id carrega o plano ou a sessão — nada é só o dia da semana", () => {
+    const avisos = buildNotices(
+      base({ sessions: quatro, bodyEntries: [peso("2026-07-01", 84)] }),
+      dia(QUI, 22),
+    );
+    for (const n of avisos) {
+      if (n.kind === "weight_stale") continue; // peso é do aparelho, não do plano
+      expect(n.id).toContain("pl_1");
+    }
   });
 });
 

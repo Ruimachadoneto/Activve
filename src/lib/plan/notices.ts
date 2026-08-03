@@ -219,8 +219,14 @@ function avisoDeRecuperacao(
   if (!algumTrabalhado || travessia === 0 || travessia < desde) return null;
 
   return {
-    // Arredondado à hora: blinda o id contra micro-variações do cálculo entre aberturas.
-    id: `ready:${proximo}:${Math.floor(travessia / (60 * 60 * 1000))}`,
+    /*
+     * Arredondado à hora: blinda o id contra micro-variações do cálculo entre aberturas.
+     * Com o PLANO no id porque o disco de lidos é global e ids de treino (`A`, `B`) se
+     * repetem entre ciclos — dois planos chegando à recuperação na mesma hora colidiriam
+     * e o segundo nasceria "lido" (achado do review Codex; mesma classe da colisão de ids
+     * de variação da TASK-009).
+     */
+    id: `ready:${input.activePlanId ?? "?"}:${proximo}:${Math.floor(travessia / (60 * 60 * 1000))}`,
     kind: "ready",
     title: `${workoutName(plan, proximo)} está recuperado`,
     body: "Tudo que este treino exige voltou a estar pronto, pelo que você registrou.",
@@ -244,7 +250,9 @@ function avisoDeSemana(input: NoticesInput, doPlano: WorkoutSession[], agora: Da
   const fechou = daSemana[weeklyTarget - 1] ?? daSemana[daSemana.length - 1];
   if (!fechou) return null;
   return {
-    id: `week_done:${segunda}`,
+    // Com o PLANO no id: importar um plano novo na MESMA semana geraria a mesma chave do
+    // ciclo anterior, e o primeiro "semana fechada" do ciclo novo nasceria lido.
+    id: `week_done:${input.activePlanId ?? "?"}:${segunda}`,
     kind: "week_done",
     title: "Semana fechada",
     body: `${feitosNaSemana} ${feitosNaSemana === 1 ? "treino" : "treinos"} — a meta do plano é ${weeklyTarget} por semana.`,
