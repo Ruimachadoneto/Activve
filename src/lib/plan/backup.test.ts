@@ -14,6 +14,7 @@ const dados = (over: Partial<BackupFile["data"]> = {}): BackupFile["data"] => ({
     {
       sessionId: "pl_1:A:2026-07-27",
       planId: "pl_1",
+      workoutId: "A",
       date: "2026-07-27",
       status: "done",
       exercises: [{ exerciseId: "supino", sets: [{ done: true, load_kg: 60 }] }],
@@ -78,6 +79,7 @@ describe("parseBackup — arquivo é ENTRADA NÃO CONFIÁVEL", () => {
     const valida = {
       sessionId: "pl_1:A:2026-07-27",
       planId: "pl_1",
+      workoutId: "A",
       date: "2026-07-27",
       status: "done",
       exercises: [],
@@ -103,11 +105,11 @@ describe("parseBackup — arquivo é ENTRADA NÃO CONFIÁVEL", () => {
      */
     const ruim = dados({
       sessions: [
-        { sessionId: "ok", planId: "pl_1", date: "2026-07-27", status: "done", exercises: [] },
-        { sessionId: "sem-exercises", planId: "pl_1", date: "2026-07-27", status: "done" },
-        { sessionId: "exercises-nao-array", planId: "pl_1", date: "2026-07-27", status: "done", exercises: {} },
-        { sessionId: "sem-status", planId: "pl_1", date: "2026-07-27", exercises: [] },
-        { sessionId: "sem-planid", date: "2026-07-27", status: "done", exercises: [] },
+        { sessionId: "ok", planId: "pl_1", workoutId: "A", date: "2026-07-27", status: "done", exercises: [] },
+        { sessionId: "sem-exercises", planId: "pl_1", workoutId: "A", date: "2026-07-27", status: "done" },
+        { sessionId: "exercises-nao-array", planId: "pl_1", workoutId: "A", date: "2026-07-27", status: "done", exercises: {} },
+        { sessionId: "sem-status", planId: "pl_1", workoutId: "A", date: "2026-07-27", exercises: [] },
+        { sessionId: "sem-planid", workoutId: "A", date: "2026-07-27", status: "done", exercises: [] },
       ],
     });
     const p = parseBackup(arquivo(ruim));
@@ -115,6 +117,39 @@ describe("parseBackup — arquivo é ENTRADA NÃO CONFIÁVEL", () => {
     if (!p.ok) return;
     expect(p.counts.sessions).toBe(1);
     expect(p.discarded).toBe(4);
+  });
+
+  it("sessão sem `workoutId` é descartada — ela reiniciaria a rotação no A", () => {
+    // Não quebra: `order.indexOf(undefined)` = -1 cai no ramo "treino saiu da rotação".
+    // É pior que quebrar — o histórico restaurado mente sobre qual é o próximo treino.
+    const ruim = dados({
+      sessions: [
+        { sessionId: "s1", planId: "pl_1", date: "2026-07-27", status: "done", exercises: [] },
+      ],
+    });
+    const p = parseBackup(arquivo(ruim));
+    expect(p.ok).toBe(true);
+    if (!p.ok) return;
+    expect(p.counts.sessions).toBe(0);
+  });
+
+  it("log sem `exerciseId` invalida a sessão", () => {
+    const ruim = dados({
+      sessions: [
+        {
+          sessionId: "s1",
+          planId: "pl_1",
+          workoutId: "A",
+          date: "2026-07-27",
+          status: "done",
+          exercises: [{ sets: [] }],
+        },
+      ],
+    });
+    const p = parseBackup(arquivo(ruim));
+    expect(p.ok).toBe(true);
+    if (!p.ok) return;
+    expect(p.counts.sessions).toBe(0);
   });
 
   it("log de exercício sem `sets` invalida a sessão inteira", () => {
@@ -125,6 +160,7 @@ describe("parseBackup — arquivo é ENTRADA NÃO CONFIÁVEL", () => {
         {
           sessionId: "s1",
           planId: "pl_1",
+          workoutId: "A",
           date: "2026-07-27",
           status: "done",
           exercises: [{ exerciseId: "supino" }],

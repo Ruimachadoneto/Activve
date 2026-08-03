@@ -102,9 +102,17 @@ function keepSessions(records: unknown[]): { kept: unknown[]; dropped: number } 
   const kept = records.filter((r) => {
     if (!isObject(r)) return false;
     if (!str(r.sessionId) || !str(r.planId) || !str(r.date) || !str(r.status)) return false;
+    /*
+     * `workoutId` entra na identidade, não é enfeite: `nextInRotation` procura o último
+     * treino concluído em `order.indexOf(s.workoutId)`, e `undefined` cai no ramo "treino
+     * saiu da rotação" — a sugestão reinicia no A e o relatório perde o nome do treino.
+     * Não quebra, mas faz o histórico restaurado MENTIR sobre o que vem a seguir.
+     */
+    if (!str(r.workoutId)) return false;
     if (!Array.isArray(r.exercises)) return false;
-    // Um nível a mais: `e.sets.some(…)` estoura igual se o log vier sem `sets`.
-    return r.exercises.every((e) => isObject(e) && Array.isArray(e.sets));
+    // Um nível a mais: `e.sets.some(…)` estoura igual se o log vier sem `sets`, e sem
+    // `exerciseId` o log não casa com exercício nenhum (some da progressão e do recorde).
+    return r.exercises.every((e) => isObject(e) && str(e.exerciseId) && Array.isArray(e.sets));
   });
   return { kept, dropped: records.length - kept.length };
 }
