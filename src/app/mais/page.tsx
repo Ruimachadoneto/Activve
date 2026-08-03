@@ -6,6 +6,7 @@ import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { PlanErrorState } from "@/components/PlanErrorState";
 import { goalLabel } from "@/lib/plan/labels";
+import { BackupCard } from "@/components/BackupCard";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -16,7 +17,19 @@ export default function MaisPage() {
   const { loading, plan, invalid } = useActivePlan();
 
   if (invalid) {
-    return <PlanErrorState errors={invalid.errors} />;
+    /*
+     * O backup segue acessível com o plano corrompido — é o cenário em que ele existe
+     * para servir. E a navegação também, para não deixar o usuário encurralado numa tela
+     * cuja única saída era reimportar (o que não devolve sessões nem medidas).
+     */
+    return (
+      <>
+        <PlanErrorState errors={invalid.errors}>
+          <BackupCard />
+        </PlanErrorState>
+        <BottomNav active="mais" />
+      </>
+    );
   }
 
   return (
@@ -84,6 +97,8 @@ export default function MaisPage() {
           </Link>
         </section>
       )}
+
+      {loading ? null : <BackupCard />}
 
       <BottomNav active="mais" />
     </main>
