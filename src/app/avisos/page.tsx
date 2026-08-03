@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { PlanErrorState } from "@/components/PlanErrorState";
 import { getAllSessions } from "@/lib/storage/sessions";
 import { getBodyLog } from "@/lib/storage/bodylog";
+import { getAllPlans, type StoredPlan } from "@/lib/storage/plans";
 import { getReadNoticeIds, markNoticesRead } from "@/lib/storage/notices";
 import { buildNotices, type Notice, type NoticeKind } from "@/lib/plan/notices";
 import type { WorkoutSession } from "@/lib/plan/session";
@@ -57,15 +58,19 @@ export default function AvisosPage() {
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [body, setBody] = useState<BodyEntry[]>([]);
   const [read, setRead] = useState<string[] | null>(null);
+  const [plans, setPlans] = useState<StoredPlan[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getAllSessions(), getBodyLog(), getReadNoticeIds()]).then(([s, b, r]) => {
-      if (cancelled) return;
-      setSessions(s);
-      setBody(b);
-      setRead(r);
-    });
+    Promise.all([getAllSessions(), getBodyLog(), getReadNoticeIds(), getAllPlans()]).then(
+      ([s, b, r, p]) => {
+        if (cancelled) return;
+        setSessions(s);
+        setBody(b);
+        setRead(r);
+        setPlans(p);
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -78,9 +83,11 @@ export default function AvisosPage() {
         planImportedAt: plan?.importedAt ?? null,
         activePlanId: plan?.planId ?? null,
         sessions,
+        // Nome do recorde resolvido pelo plano em que ele foi EXECUTADO, não pelo ativo.
+        knownPlans: plans.map((x) => ({ planId: x.planId, plan: x.plan })),
         bodyEntries: body,
       }),
-    [plan, sessions, body],
+    [plan, sessions, body, plans],
   );
 
   /*

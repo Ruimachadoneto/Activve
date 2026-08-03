@@ -275,6 +275,29 @@ describe("escopo: duas perguntas, dois recortes (achado do review Codex)", () =>
     expect(avisos.some((n) => n.kind === "week_done")).toBe(false);
   });
 
+  it("o nome do recorde vem do plano em que ele foi EXECUTADO", () => {
+    /*
+     * `movementName` resolvia sempre no plano ATIVO. Como o recorde atravessa ciclos, um
+     * `exerciseId` reaproveitado com outro significado no plano novo fazia o aviso anunciar
+     * o movimento errado (achado do review Codex). Mesmo remédio do `planForSession` do
+     * `report.ts`: o `planId` da sessão é fato registrado, não inferência.
+     */
+    const planoAntigo = {
+      training: {
+        workouts: [
+          { id: "A", name: "Treino A", exercises: [{ id: "supino", name: "Supino INCLINADO" }] },
+        ],
+      },
+    } as unknown as PlanFile;
+    const s = [deOutroPlano(sessao(SEG, "A", "supino", 60)), deOutroPlano(sessao(TER, "A", "supino", 70))];
+    const rec = buildNotices(
+      base({ sessions: s, knownPlans: [{ planId: "pl_ANTIGO", plan: planoAntigo }] }),
+      dia(QUI),
+    ).find((n) => n.kind === "record");
+    // O plano ATIVO chama o mesmo id de "Supino reto" — anunciar isso seria mentir.
+    expect(rec?.title).toBe("Novo recorde em Supino INCLINADO");
+  });
+
   it("mas o RECORDE atravessa plano, de propósito (ADR-002)", () => {
     // A memória de carga é por `exercise.id` entre ciclos: trocar de plano não pode
     // zerá-la, senão a primeira carga do ciclo novo viraria "recorde" sozinha.

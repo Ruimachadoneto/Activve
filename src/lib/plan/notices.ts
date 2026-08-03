@@ -71,6 +71,17 @@ export type NoticesInput = {
    * chamador, para que não haja como errar de fora.
    */
   sessions: WorkoutSession[];
+  /**
+   * Todos os planos já importados, para resolver o nome de um movimento pelo plano em que
+   * ele foi EXECUTADO.
+   *
+   * Sem isto, um recorde batido num ciclo anterior era rotulado pelo catálogo do plano
+   * ATIVO: se o id existisse lá com outro significado — ou se a variação (`swappedToId`)
+   * não existisse mais — o aviso anunciava o movimento errado (achado do review Codex).
+   * Mesmo remédio do `planForSession` no `report.ts`: o `planId` da sessão é um fato
+   * registrado, não uma inferência.
+   */
+  knownPlans?: { planId: string; plan: PlanFile }[];
   bodyEntries: BodyEntry[];
 };
 
@@ -83,6 +94,20 @@ const CICLO_SEMANAS = 8;
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 const concluidas = (s: WorkoutSession[]) => s.filter((x) => x.status === "done");
+
+/**
+ * Meio-dia LOCAL de um `yyyy-mm-dd`.
+ *
+ * `BodyEntry.date` e `WorkoutSession.date` são datas locais (`isoDate` usa `getFullYear`
+ * e companhia). Interpretá-las como UTC (`T12:00:00.000Z`) desloca o limiar em algumas
+ * horas: num fuso a oeste, um peso de 14 dias continuava "fresco" parte do dia, e o sino
+ * discordava do dia gravado (achado do review Codex). A convenção do resto do app é meio-dia
+ * local — longe o bastante das duas bordas para nenhum horário de verão virar o dia.
+ */
+function meioDiaLocal(date: string): Date {
+  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0, 0);
+}
 
 /**
  * Nome exibível de um movimento. **Função total** — plano histórico só passou pela guarda
@@ -128,6 +153,9 @@ function segundaDa(date: Date): string {
  * não pode celebrar um recorde que a tela do treino não celebrou, nem o contrário.
  */
 function avisosDeRecorde(input: NoticesInput, desde: number): Notice[] {
+  /** Plano em que a sessão foi executada; sem histórico conhecido, cai no ativo. */
+  const planoDa = (s: WorkoutSession): PlanFile | null =>
+    input.knownPlans?.find((p) => p.planId === s.planId)?.plan ?? input.plan;
   /*
    * Ordem cronológica é OBRIGATÓRIA aqui, não conveniência.
    *
@@ -151,13 +179,13 @@ function avisosDeRecorde(input: NoticesInput, desde: number): Notice[] {
   const out: Notice[] = [];
   for (let i = 0; i < feitas.length; i++) {
     const s = feitas[i];
-    const at = s.completedAt ?? `${s.date}T12:00:00.000Z`;
+    const at = s.completedAt ?? meioDiaLocal(s.date).toISOString();
     if (new Date(at).getTime() < desde) continue;
     for (const r of buildSessionSummary(s, feitas.slice(0, i)).records) {
       out.push({
         id: `record:${s.sessionId}:${r.movementId}`,
         kind: "record",
-        title: `Novo recorde em ${movementName(input.plan, r.exerciseId, r.movementId)}`,
+        title: `Novo recorde em ${movementName(planoDa(s), r.exerciseId, r.movementId)}`,
         body: `${r.load_kg} kg${r.reps ? ` × ${r.reps}` : ""} — o melhor anterior era ${r.previousBest} kg.`,
         at,
         href: `/relatorios?d=${s.date}`,
@@ -256,7 +284,7 @@ function avisoDeSemana(input: NoticesInput, doPlano: WorkoutSession[], agora: Da
     kind: "week_done",
     title: "Semana fechada",
     body: `${feitosNaSemana} ${feitosNaSemana === 1 ? "treino" : "treinos"} — a meta do plano é ${weeklyTarget} por semana.`,
-    at: fechou.completedAt ?? `${fechou.date}T12:00:00.000Z`,
+    at: fechou.completedAt ?? meioDiaLocal(fechou.date).toISOString(),
     href: "/relatorios",
   };
 }
@@ -275,7 +303,7 @@ function avisoDePesoParado(input: NoticesInput, agora: number): Notice | null {
   const ultima = datas[datas.length - 1];
   if (!ultima) return null;
   // Carimbo = o instante em que virou "parado" (última + N dias), não o momento da leitura.
-  const virou = new Date(`${ultima}T12:00:00.000Z`).getTime() + PESO_PARADO_DIAS * DIA_MS;
+  const virou = meioDiaLocal(ultima).getTime() + PESO_PARADO_DIAS * DIA_MS;
   if (virou > agora) return null;
   return {
     id: `weight_stale:${ultima}`,

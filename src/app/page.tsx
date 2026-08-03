@@ -33,6 +33,7 @@ import {
 import { getDayOverride, clearDayOverride } from "@/lib/storage/overrides";
 import { getAllSessions } from "@/lib/storage/sessions";
 import { getBodyLog } from "@/lib/storage/bodylog";
+import { getAllPlans } from "@/lib/storage/plans";
 import { getReadNoticeIds } from "@/lib/storage/notices";
 import { buildNotices, unreadCount } from "@/lib/plan/notices";
 import { isoDate } from "@/lib/plan/session";
@@ -167,17 +168,21 @@ export default function HojePage() {
   useEffect(() => {
     if (!plan) return;
     let cancelled = false;
-    Promise.all([getAllSessions(), getBodyLog(), getReadNoticeIds()]).then(([todas, corpo, lidos]) => {
-      if (cancelled) return;
-      const avisos = buildNotices({
-        plan: plan.plan,
-        planImportedAt: plan.importedAt,
-        activePlanId: plan.planId,
-        sessions: todas,
-        bodyEntries: corpo,
-      });
-      setAvisosNaoLidos(unreadCount(avisos, lidos));
-    });
+    Promise.all([getAllSessions(), getBodyLog(), getReadNoticeIds(), getAllPlans()]).then(
+      ([todas, corpo, lidos, planos]) => {
+        if (cancelled) return;
+        const avisos = buildNotices({
+          plan: plan.plan,
+          planImportedAt: plan.importedAt,
+          activePlanId: plan.planId,
+          sessions: todas,
+          // Nome do recorde vem do plano em que ele foi EXECUTADO, não do ativo.
+          knownPlans: planos.map((x) => ({ planId: x.planId, plan: x.plan })),
+          bodyEntries: corpo,
+        });
+        setAvisosNaoLidos(unreadCount(avisos, lidos));
+      },
+    );
     return () => {
       cancelled = true;
     };
