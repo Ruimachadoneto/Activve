@@ -10,7 +10,15 @@ import {
 
 const dados = (over: Partial<BackupFile["data"]> = {}): BackupFile["data"] => ({
   plans: [{ planId: "pl_1", importedAt: "2026-05-01T10:00:00.000Z", plan: {} }],
-  sessions: [{ sessionId: "pl_1:A:2026-07-27", planId: "pl_1", date: "2026-07-27" }],
+  sessions: [
+    {
+      sessionId: "pl_1:A:2026-07-27",
+      planId: "pl_1",
+      date: "2026-07-27",
+      status: "done",
+      exercises: [{ exerciseId: "supino", sets: [{ done: true, load_kg: 60 }] }],
+    },
+  ],
   bodylog: [{ date: "2026-07-01", weight_kg: 84 }],
   kv: [{ key: "activePlanId", value: "pl_1" }],
   ...over,
@@ -67,13 +75,15 @@ describe("parseBackup — arquivo é ENTRADA NÃO CONFIÁVEL", () => {
 
   it("descarta registro sem chave e CONTA quantos", () => {
     // Importar em silêncio o que não se entende é pior que recusar: a UI mostra o número.
+    const valida = {
+      sessionId: "pl_1:A:2026-07-27",
+      planId: "pl_1",
+      date: "2026-07-27",
+      status: "done",
+      exercises: [],
+    };
     const ruim = dados({
-      sessions: [
-        { sessionId: "pl_1:A:2026-07-27", date: "2026-07-27" },
-        { semChave: true },
-        null,
-        "texto solto",
-      ],
+      sessions: [valida, { semChave: true }, null, "texto solto"],
       bodylog: [{ date: "2026-07-01" }, { weight_kg: 80 }],
     });
     const p = parseBackup(arquivo(ruim));
@@ -81,7 +91,52 @@ describe("parseBackup — arquivo é ENTRADA NÃO CONFIÁVEL", () => {
     if (!p.ok) return;
     expect(p.counts.sessions).toBe(1);
     expect(p.counts.bodylog).toBe(1);
-    expect(p.discarded).toBe(4); // 3 sessões + 1 registro de corpo
+    expect(p.discarded).toBe(4); // 3 sessões + 1 registro de corpo sem `date`
+  });
+
+  it("sessão sem `exercises` é DESCARTADA — ela derrubaria a tela de treino", () => {
+    /*
+     * A assimetria com os planos é deliberada: os leitores de plano foram endurecidos na
+     * TASK-013, os de sessão não — `previousPerformance` faz `s.exercises.some(…)` direto.
+     * O backup é o primeiro caminho em que sessão entra vinda de fora, então a validação
+     * mora na PORTA (achado do review Codex).
+     */
+    const ruim = dados({
+      sessions: [
+        { sessionId: "ok", planId: "pl_1", date: "2026-07-27", status: "done", exercises: [] },
+        { sessionId: "sem-exercises", planId: "pl_1", date: "2026-07-27", status: "done" },
+        { sessionId: "exercises-nao-array", planId: "pl_1", date: "2026-07-27", status: "done", exercises: {} },
+        { sessionId: "sem-status", planId: "pl_1", date: "2026-07-27", exercises: [] },
+        { sessionId: "sem-planid", date: "2026-07-27", status: "done", exercises: [] },
+      ],
+    });
+    const p = parseBackup(arquivo(ruim));
+    expect(p.ok).toBe(true);
+    if (!p.ok) return;
+    expect(p.counts.sessions).toBe(1);
+    expect(p.discarded).toBe(4);
+  });
+
+  it("log de exercício sem `sets` invalida a sessão inteira", () => {
+    // `e.sets.some(…)` estoura igual a `s.exercises.some(…)`, então a validação desce um
+    // nível. O resto do backup (plano, corpo) continua válido — só a sessão cai.
+    const ruim = dados({
+      sessions: [
+        {
+          sessionId: "s1",
+          planId: "pl_1",
+          date: "2026-07-27",
+          status: "done",
+          exercises: [{ exerciseId: "supino" }],
+        },
+      ],
+    });
+    const p = parseBackup(arquivo(ruim));
+    expect(p.ok).toBe(true);
+    if (!p.ok) return;
+    expect(p.counts.sessions).toBe(0);
+    expect(p.counts.plans).toBe(1);
+    expect(p.discarded).toBe(1);
   });
 
   it("backup vazio é recusado em vez de 'restaurado' sem efeito", () => {

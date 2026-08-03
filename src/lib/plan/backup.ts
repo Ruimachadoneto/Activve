@@ -69,14 +69,43 @@ const isObject = (v: unknown): v is Record<string, unknown> =>
 const arrayOf = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 
 /**
- * Registro utilizável é o que tem a CHAVE do seu store — sem ela o `put` nem sequer
- * funcionaria. O resto do conteúdo não é validado aqui de propósito: um plano histórico
- * cosmeticamente inválido ainda é útil (resolve nome de exercício antigo), e as telas já
- * sabem se defender dele desde a TASK-013. Exigir o contrato inteiro aqui jogaria fora
- * histórico perfeitamente aproveitável.
+ * PLANOS: basta a chave.
+ *
+ * Um plano histórico cosmeticamente inválido ainda é útil (resolve nome de exercício de um
+ * ciclo antigo), e **todos os leitores de plano foram endurecidos na TASK-013** — eles já
+ * esperam campo faltando. Exigir o contrato inteiro aqui jogaria fora histórico
+ * perfeitamente aproveitável.
  */
 function keepWithKey(records: unknown[], key: string): { kept: unknown[]; dropped: number } {
   const kept = records.filter((r) => isObject(r) && typeof r[key] === "string" && r[key] !== "");
+  return { kept, dropped: records.length - kept.length };
+}
+
+const str = (v: unknown) => typeof v === "string" && v !== "";
+
+/**
+ * SESSÕES: exige a estrutura que os leitores desreferenciam.
+ *
+ * ⚠️ A assimetria com os planos acima é DELIBERADA, e a razão é a fronteira de confiança.
+ * Até este recurso existir, sessão só nascia dentro do app (`createSession`), então nenhum
+ * leitor precisou se defender: `previousPerformance` faz `s.exercises.some(e => …
+ * e.sets.some(…))` direto, e uma sessão sem `exercises` **derruba a tela de treino**.
+ *
+ * O backup é o primeiro caminho em que sessão entra vinda de FORA. Aplicar aqui a postura
+ * de plano ("só a chave, o leitor se defende") foi um erro meu, pego no review: a postura
+ * da TASK-013 pressupõe leitores endurecidos, e os de sessão não são. Validar na PORTA
+ * fecha a classe inteira num ponto só, em vez de endurecer cada leitor e esquecer um.
+ *
+ * Uma sessão legítima sempre tem estes campos — eles são a identidade dela.
+ */
+function keepSessions(records: unknown[]): { kept: unknown[]; dropped: number } {
+  const kept = records.filter((r) => {
+    if (!isObject(r)) return false;
+    if (!str(r.sessionId) || !str(r.planId) || !str(r.date) || !str(r.status)) return false;
+    if (!Array.isArray(r.exercises)) return false;
+    // Um nível a mais: `e.sets.some(…)` estoura igual se o log vier sem `sets`.
+    return r.exercises.every((e) => isObject(e) && Array.isArray(e.sets));
+  });
   return { kept, dropped: records.length - kept.length };
 }
 
@@ -139,7 +168,7 @@ export function parseBackup(text: string): BackupParse {
 
   const d = json.data as Record<string, unknown>;
   const plans = keepWithKey(arrayOf(d.plans), "planId");
-  const sessions = keepWithKey(arrayOf(d.sessions), "sessionId");
+  const sessions = keepSessions(arrayOf(d.sessions));
   const bodylog = keepWithKey(arrayOf(d.bodylog), "date");
   const kv = keepKvPairs(arrayOf(d.kv));
 

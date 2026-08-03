@@ -29,6 +29,14 @@ export function BackupCard() {
   const [erro, setErro] = useState<string | null>(null);
   const [feito, setFeito] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recarregarAppRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (recarregarAppRef.current !== null) window.clearTimeout(recarregarAppRef.current);
+    },
+    [],
+  );
 
   const recarregar = () => {
     void currentCounts().then(setAgora);
@@ -82,9 +90,22 @@ export function BackupCard() {
     setOcupado("restaurando");
     try {
       const c = await restoreBackup(pendente.backup);
-      setFeito(`Restaurado: ${describeCounts(c)}.`);
+      setFeito(`Restaurado: ${describeCounts(c)}. Recarregando o app…`);
       setPendente(null);
       recarregar();
+      /*
+       * Recarrega a página inteira, e não só este card.
+       *
+       * A restauração reescreve o banco INTEIRO por baixo de telas que leram o estado uma
+       * vez na montagem — `useActivePlan` entre elas. Sem isto, restaurar num aparelho
+       * novo deixava o `/mais` ainda dizendo "Nenhum plano importado ainda" apesar de o
+       * plano já estar no disco (achado do review Codex). Atualizar só as contagens
+       * corrigiria este card e deixaria todo o resto mentindo.
+       *
+       * O atraso existe para a confirmação ser lida antes de a tela trocar; o timer é
+       * cancelado na desmontagem para não recarregar uma tela que o usuário já deixou.
+       */
+      recarregarAppRef.current = window.setTimeout(() => window.location.reload(), 1200);
     } catch {
       setErro("Não consegui gravar o backup no aparelho.");
     } finally {
