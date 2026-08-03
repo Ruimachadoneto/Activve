@@ -398,6 +398,17 @@ export default function HojePage() {
               <h2 className="mt-2 text-[22px] font-medium leading-tight tracking-tight">
                 {today.name}
               </h2>
+              {/*
+                O PORQUÊ do treino, nas palavras do coach (schema 1.3). É o mecanismo mais
+                barato de personalização visível: o plano deixa de parecer uma tabela e passa
+                a lembrar a conversa que o gerou. Plano antigo não tem o campo e a linha
+                simplesmente não aparece — degrada, não quebra.
+              */}
+              {today.why ? (
+                <p className="mt-2 max-w-[34ch] text-[13px] leading-relaxed text-muted">
+                  {today.why}
+                </p>
+              ) : null}
               <div className="mt-4 space-y-2 text-sm text-muted">
                 <span className="flex items-center gap-2">
                   <Dumbbell size={16} aria-hidden /> {today.exerciseCount} exercícios

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.2",
+  "schemaVersion": "1.3",
   "meta": {
     "planId": "pl_exemplo_2026_06",
     "generatedAt": "2026-06-22T18:00:00Z",
@@ -111,7 +111,8 @@
                   "videoUrl": "https://www.youtube.com/results?search_query=flexao+como+fazer"
                 }
               }
-            ]
+            ],
+            "why": "Com halteres em vez de barra — o ombro direito reclama na barra, e o halter deixa o punho girar livre."
           },
           {
             "id": "desenvolvimento_ombro",
@@ -164,7 +165,8 @@
               }
             ]
           }
-        ]
+        ],
+        "why": "Empurrar concentrado num dia só porque você treina cedo e cansado: menos exercícios, mais foco em cada um."
       },
       {
         "id": "B",
@@ -229,7 +231,8 @@
                   ]
                 }
               }
-            ]
+            ],
+            "why": "Costas antes de perna: é o que você disse que menos gosta, então sai primeiro."
           },
           {
             "id": "agachamento",
@@ -293,7 +296,8 @@
               }
             ]
           }
-        ]
+        ],
+        "why": "Puxar e pernas juntos para fechar o corpo em dois dias, já que a semana só abre espaço para quatro treinos."
       }
     ]
   },
@@ -410,5 +414,30 @@
       "Deixar o frango temperado no domingo.",
       "Cozinhar arroz e feijão para 3 dias."
     ]
-  }
+  },
+  "context": "Você treina de manhã, antes do trabalho, e tem cerca de 50 minutos. Faz compras no mercado do bairro e numa feira aos sábados, cozinha de verdade só no domingo e no resto da semana precisa de coisa que resolva em 10 minutos. Ombro direito reclama em supino com barra. Lê antes de dormir e diz que é o que te desliga do dia.",
+  "wellness": {
+    "summary": "Três âncoras pequenas, nenhuma delas cobrada pelo app.",
+    "habits": [
+      {
+        "id": "leitura",
+        "title": "20 minutos de leitura antes de dormir",
+        "when": "toda noite",
+        "why": "Você disse que ler te desliga do dia. Nos dias de treino pesado é o que protege o sono, e o sono é metade do resultado."
+      },
+      {
+        "id": "sol",
+        "title": "Caminhada curta no sol",
+        "when": "manhã, 10 min",
+        "why": "Não é treino nem meta — é só sair um pouco antes de o dia começar a puxar."
+      },
+      {
+        "id": "domingo",
+        "title": "Uma hora de cozinha no domingo",
+        "when": "domingo",
+        "why": "Você só cozinha domingo. Adiantar proteína aqui é o que faz a semana inteira funcionar sem depender de força de vontade."
+      }
+    ]
+  },
+  "document": "# Seu ciclo de 8 semanas\n\nO objetivo é recomposição: perder gordura mantendo (ou ganhando um pouco de) músculo. Em 8 semanas a régua não é o peso na balança — é a carga subindo no treino e a roupa caindo diferente.\n\n## Como o treino foi montado\n\nQuatro treinos por semana, em dois blocos de dois dias, porque você treina antes do trabalho e tem cerca de 50 minutos. Menos exercícios por sessão e mais atenção em cada um.\n\n- **Empurrar** e **Puxar/pernas**, alternando, com descanso depois de cada bloco.\n- Nada com barra no supino: o ombro direito reclama, e halter resolve sem perder estímulo.\n- Se a semana apertar, **faça só o primeiro exercício de cada treino**. Vale mais que faltar.\n\n## Como a comida foi montada\n\nA regra foi: nada que dependa de você cozinhar no meio da semana.\n\n1. Ovo, frango e feijão como base — tudo o que você acha no mercado do bairro.\n2. Fruta da feira de sábado, que é mais barata e dura a semana.\n3. Domingo é o dia que sustenta os outros seis: uma hora de cozinha resolve a proteína até quarta.\n\n**Se um dia sair da linha, ele não estraga a semana.** Volte na refeição seguinte e siga.\n\n## Se a semana apertar\n\nPrioridade, nesta ordem: dormir, proteína, treinar. Se der para fazer só uma coisa, durma."
 }

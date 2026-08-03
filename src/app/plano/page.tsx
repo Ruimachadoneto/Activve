@@ -1,0 +1,148 @@
+"use client";
+
+import Link from "next/link";
+import { ChevronLeft, Quote, Sparkles } from "lucide-react";
+import { useActivePlan } from "@/lib/storage/useActivePlan";
+import { BottomNav } from "@/components/BottomNav";
+import { PlanErrorState } from "@/components/PlanErrorState";
+import { Markdown } from "@/components/Markdown";
+
+/**
+ * "Meu plano" — o Documento do coach, por extenso (schema 1.3).
+ *
+ * POR QUE ESTA TELA EXISTE
+ * O coach faz uma anamnese profunda (orçamento, onde a pessoa faz compras, hobbies,
+ * refúgios mentais) e entrega DOIS artefatos: o arquivo do app e um Documento em Markdown
+ * com o plano explicado. Até aqui só o primeiro atravessava — o Documento ficava no chat e
+ * se perdia. Resultado: uma consulta de 30 minutos sobre a vida da pessoa chegava ao app
+ * como treino + dieta + meta, e o plano parecia template mesmo não sendo.
+ *
+ * Esta tela é o artefato que mais comunica personalização, e era o único que não existia.
+ *
+ * **Registro C — Editorial** (`DESIGN_SYSTEM` §0): a tarefa aqui é LER. Tipografia
+ * protagonista, medida de linha curta, sem cartões disputando atenção.
+ */
+export default function PlanoPage() {
+  const { loading, plan, invalid } = useActivePlan();
+
+  if (invalid) return <PlanErrorState errors={invalid.errors} />;
+
+  if (loading) {
+    return (
+      <main className="mx-auto flex w-full max-w-[440px] flex-1 items-center justify-center px-5">
+        <p className="text-sm text-muted">Carregando…</p>
+      </main>
+    );
+  }
+
+  const p = plan?.plan;
+  const wellness = p?.wellness;
+  const habits = wellness?.habits ?? [];
+  const temAlgo = !!(p?.document || p?.context || wellness);
+
+  return (
+    <main className="stagger mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-6">
+      <header className="flex items-center gap-3">
+        <Link
+          href="/mais"
+          aria-label="Voltar"
+          className="-ml-2 flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:text-ink"
+        >
+          <ChevronLeft size={22} aria-hidden />
+        </Link>
+        <div>
+          <h1 className="text-xl font-medium tracking-tight">Meu plano</h1>
+          <p className="mt-0.5 text-sm text-muted">Por extenso, do jeito que foi montado.</p>
+        </div>
+      </header>
+
+      {!p ? (
+        <section className="mt-10 flex flex-1 flex-col items-center justify-center text-center">
+          <h2 className="text-[30px] font-medium leading-[1.15] tracking-tight">Nenhum plano ainda</h2>
+          <p className="mt-3 max-w-[34ch] text-[15px] leading-relaxed text-muted">
+            Quando você importar um plano, ele aparece aqui inteiro.
+          </p>
+          <Link
+            href="/import"
+            className="mt-6 rounded-xl bg-accent px-6 py-3 text-sm font-medium text-on-accent"
+          >
+            Importar plano
+          </Link>
+        </section>
+      ) : (
+        <>
+          {/*
+            O ESPELHO primeiro. É o resumo que o coach confirmou antes de gerar — e é o que
+            transforma a tela de "um plano" em "o MEU plano". Vem antes do documento porque
+            é a resposta à pergunta que a pessoa tem ao abrir: "isto entendeu a minha vida?"
+          */}
+          {p.context ? (
+            <section className="mt-6 rounded-card border border-accent/25 bg-accent/[0.04] p-5">
+              <p className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-accent">
+                <Quote size={13} aria-hidden /> O que entendi de você
+              </p>
+              <p className="mt-2.5 max-w-[46ch] text-[15px] leading-relaxed text-ink">{p.context}</p>
+            </section>
+          ) : null}
+
+          {wellness ? (
+            <section className="mt-4 rounded-card border border-line bg-surface p-5">
+              <p className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-faint">
+                <Sparkles size={13} aria-hidden className="text-recovering" /> Bem-estar
+              </p>
+              {wellness.summary ? (
+                <p className="mt-2 max-w-[46ch] text-[15px] leading-relaxed text-muted">
+                  {wellness.summary}
+                </p>
+              ) : null}
+              {habits.length > 0 ? (
+                <ul className="mt-4 flex flex-col gap-3.5">
+                  {habits.map((h) => (
+                    <li key={h.id}>
+                      <p className="text-sm font-medium text-ink">
+                        {h.title}
+                        {h.when ? <span className="font-normal text-faint"> · {h.when}</span> : null}
+                      </p>
+                      {/* O `why` é o que separa "medite 10 min" de um plano de verdade. */}
+                      {h.why ? (
+                        <p className="mt-1 max-w-[44ch] text-[13px] leading-relaxed text-muted">
+                          {h.why}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <p className="mt-4 text-xs leading-relaxed text-faint">
+                Isto é apoio, não cobrança. Nenhum destes itens é marcado, contado ou cobrado.
+              </p>
+            </section>
+          ) : null}
+
+          {p.document ? (
+            <section className="mt-6 border-t border-line pt-6">
+              <Markdown source={p.document} />
+            </section>
+          ) : null}
+
+          {!temAlgo ? (
+            /*
+              Plano de schema antigo (1.0–1.2): válido, só não carrega estes campos. Dizer
+              isso é melhor que uma tela vazia sem explicação — e aponta a saída.
+            */
+            <section className="mt-8 rounded-card border border-line bg-surface p-5">
+              <h2 className="text-lg font-medium">Este plano não trouxe o texto completo</h2>
+              <p className="mt-2 max-w-[44ch] text-[15px] leading-relaxed text-muted">
+                Ele foi gerado num formato anterior, que só carregava treino e dieta. O treino
+                continua funcionando normalmente — o que falta aqui é a explicação por extenso.
+                No próximo ciclo, peça o plano atualizado ao coach.
+              </p>
+            </section>
+          ) : null}
+        </>
+      )}
+
+      <BottomNav active="mais" />
+    </main>
+  );
+}

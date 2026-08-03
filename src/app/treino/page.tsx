@@ -663,6 +663,18 @@ export default function TreinoPage() {
         <div>
           <p className="text-[11px] uppercase tracking-wider text-faint">Exercício atual</p>
           <h1 className="mt-1 text-[22px] font-medium leading-tight tracking-tight">{mov.name}</h1>
+          {/*
+            O PORQUÊ deste exercício estar aqui (schema 1.3). No Modo Treino ele responde a
+            pergunta que aparece sob esforço — "por que justo este?" — sem obrigar a abrir o
+            "Como fazer". Plano antigo não tem o campo e a linha some.
+
+            Escondido quando o usuário TROCOU a variação: o porquê foi escrito para o
+            movimento original ("halteres em vez de barra, por causa do ombro") e pode não
+            valer para o substituto. Mesmo critério que a TASK-012 usou nos secundários.
+          */}
+          {!mov.isSwapped && ex.why ? (
+            <p className="mt-1.5 max-w-[40ch] text-[13px] leading-relaxed text-muted">{ex.why}</p>
+          ) : null}
           <p className="mt-1 text-xs text-muted">
             {equipmentLabel(mov.equipment)} · {ex.sets} × {ex.reps}
           </p>

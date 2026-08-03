@@ -135,6 +135,16 @@ diet
 - **1.x:** adições retrocompatíveis (campos opcionais novos). App 1.x ignora campos que não conhece.
 - **2.0+:** mudança que quebra. App exige gerador/atualização compatível e oferece migração quando possível.
 - **Changelog:** `1.1` (2026-07-03) — adiciona `howTo.tips`, `howTo.quickTip` e define a semântica de `howTo.mediaId` (ADR-005).
+- **Changelog:** `1.3` (2026-08-03) — **a personalização passa a atravessar para o app.**
+  Adiciona, todos opcionais e retrocompatíveis: `context` (o resumo-espelho da anamnese que
+  o coach confirmou antes de gerar), `document` (o Documento completo em Markdown),
+  `wellness` (plano de bem-estar com hábitos ancorados no que a pessoa gosta),
+  `training.workouts[].why` e `training.workouts[].exercises[].why`.
+  **Motivo:** a anamnese já perguntava orçamento, onde a pessoa faz compras, hobbies e
+  refúgios mentais — e nada disso tinha onde morar no arquivo, então chegava ao app como
+  treino + dieta + meta. A personalização morria na porta. Ver `docs/ai/CONSULTA_SPEC.md`.
+  *Nota para o gerador:* `why` usa a MESMA palavra de `diet.meals[].why` — um conceito, um
+  nome. Escreva na segunda pessoa, citando o que a pessoa disse.
 - **Changelog:** `1.2` (2026-07-29) — adiciona `diet.meals[].why` e `diet.meals[].items[].alternatives[]` (ADR-006). Retrocompatível: planos 1.0/1.1 seguem válidos, os campos são opcionais.
 
 ### 3.6.3 Campos 1.2 da dieta (opcionais, retrocompatíveis)
