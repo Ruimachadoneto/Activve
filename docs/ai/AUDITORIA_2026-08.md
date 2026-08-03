@@ -74,7 +74,18 @@ ferramenta externa e um arquivo não tem TTFV — tem uma lição de casa.
 Isso é invisível hoje porque **o usuário é o próprio autor** e já tem o plano. Para
 qualquer outra pessoa, é uma parede.
 
-**Recomendação — "plano em 60 segundos":** um onboarding que produz um `PlanFile` válido
+> ⚠️ **RECOMENDAÇÃO RECUSADA PELO USUÁRIO (2026-08-03), e ele estava certo.** Templates
+> trocariam o diferencial pela commodity: *"a personalização máxima é o maior diferencial, é
+> aquilo que faz o usuário entender que o plano não é um plano padrão, mas um plano para ele
+> especificamente."* O diagnóstico (TTFV quebrado) estava certo; a cura, errada.
+>
+> **A investigação seguinte achou a causa real:** o `PLAN_SCHEMA` não tem campo para
+> bem-estar, contexto de vida nem para o Documento do coach — a anamnese profunda que já
+> existe chega ao app como treino + dieta + meta. **A personalização morre na porta**, e é
+> por isso que o plano importado parece template. Desenho completo em
+> `docs/ai/CONSULTA_SPEC.md`.
+
+**Recomendação original (SUPERADA) — "plano em 60 segundos":** um onboarding que produz um `PlanFile` válido
 **dentro do app**, a partir de 4 perguntas (objetivo, experiência, dias por semana,
 equipamento disponível), escolhendo entre um punhado de templates curados. A arquitetura
 plan-file **não muda** — o template gera exatamente o mesmo contrato que o coach gera. O
