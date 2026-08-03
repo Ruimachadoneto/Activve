@@ -566,7 +566,12 @@ Garantia total exigiria Web Push + servidor (Fase 2, contraria o local-first do 
 
 ## PRÓXIMA AÇÃO EXATA
 
-**Feedback de uso real, item 2 — PWA:** `manifest.json` + Service Worker + notificação de
+**TASK-030 (`ai/TASK-030-nada-morto-claude`) aguarda gate visual + aprovação de merge.**
+Marca desenhada, centro de avisos e faixa da semana clicável. 4 ciclos de review Codex,
+8 achados reais, todos corrigidos; **acima do limite de 3 do §13**, loop interrompido
+para decisão humana. Contrato: `docs/ai/tasks/TASK-030-nada-morto.md`.
+
+**Depois dela — feedback de uso real, item 2 — PWA:** `manifest.json` + Service Worker + notificação de
 fim de descanso. Criar branch `ai/TASK-019-pwa-claude` + contrato, e seguir o fluxo
 (contrato → gates → browser 390×844 em aba nova → review Codex → gate visual → merge).
 
@@ -584,9 +589,18 @@ Depois: **item 6** (sino de avisos = TASK-023 do roadmap, nunca construída) e *
 | 3 | Contador fechar sozinho | ✅ TASK-028, em `main` |
 | 4 | Avançar sozinho para o próximo exercício | ✅ TASK-028, em `main` |
 | 7 | Treino preso ao dia da semana | ✅ **TASK-029, em `main` e em produção** |
-| 2 | Background + notificação | ⬜ **a próxima** — PWA (manifest + Service Worker) |
-| 6 | Sino sem função | ⬜ é a TASK-023 do roadmap, nunca construída |
-| 5 | Logo fraca | ⬜ |
+| 6 | Sino sem função | 🔶 **TASK-030 pronta**, aguarda merge (substitui a TASK-023) |
+| 5 | Logo fraca | 🔶 **TASK-030 pronta**, aguarda merge |
+| 2 | Background + notificação | ⬜ PWA (manifest + Service Worker) — a próxima |
+
+⚠️ **Ideia em maturação (não decidida):** converter em app mobile de verdade. Medido nesta
+sessão: o domínio (`src/lib/plan`, 3.373 linhas) é puro e porta 1:1 com os 318 testes; só
+`src/lib/storage` (420 linhas) precisa de adaptador; as APIs de browser são ~15 pontos com
+equivalente nativo direto. **O export estático foi TESTADO e funciona de primeira** (sem
+rotas de API, sem server actions, `next.config` vazio), o que torna Capacitor viável em
+dias. O ponto forte: com Capacitor, o item 2 vira **notificação local agendada no SO** —
+resolve de verdade, sem servidor e sem sair do local-first, em vez dos 60–120s parciais do
+Service Worker. Bloqueio honesto: iOS exige Mac; Android sai do Windows hoje.
 
 ## Padrão que se repetiu (vale para a próxima sessão)
 
@@ -779,6 +793,7 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-027 | Cobertura de mídia (28%→100%) + escala do calendário | MERGEADA | main (`ddaf9ab`) |
 | TASK-028 | Modo Treino confiável (descanso persistido, auto-close, auto-avanço) | MERGEADA | main (`7364b93`) |
 | TASK-029 | Agenda por rotação + constância sem denominador (REPORT_SCHEMA 1.1) | MERGEADA | main (`afe80aa`) |
+| TASK-030 | Nada morto na tela (marca, centro de avisos, faixa clicável) | IMPLEMENTADA — aguarda gate visual + merge | `ai/TASK-030-nada-morto-claude` |
 
 ---
 
