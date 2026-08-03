@@ -558,13 +558,21 @@ Garantia total exigiria Web Push + servidor (Fase 2, contraria o local-first do 
 
 ## Onde exatamente estamos
 
-- **`main` = `a7a2647`, em sincronia com `origin`** — push feito, **deploy do Vercel
-  disparado**. Contém TASK-026, 027, 028, **029 e 030**.
+- **`main` = `d8d9150`, em sincronia com `origin`** — push feito, **deploy do Vercel
+  disparado**. Contém TASK-026 a **031**.
+- 📋 **`docs/ai/AUDITORIA_2026-08.md`** — auditoria completa (código medido + pesquisa de
+  mercado), com escopo aberto a pedido do usuário. **É o documento que guia o trabalho
+  agora**; as recomendações estão priorizadas em 3 faixas.
 - **Nenhuma branch de trabalho aberta.** Working tree limpo.
 - **TASK-029 MERGEADA** (`--no-ff`), gates revalidados na `main` (**292/292**), branch
   apagada local e remotamente.
 
 ## PRÓXIMA AÇÃO EXATA
+
+**TASK-031 MERGEADA e em produção** (`d8d9150`, 2026-08-03): **backup completo do
+aparelho** (o achado mais severo da auditoria — não existia forma de tirar o histórico
+dali) + **foco visível global** (o projeto não tinha nenhuma regra de foco; WCAG 2.2
+§2.4.11). 3 ciclos de review, 4 achados. Contrato: `docs/ai/tasks/TASK-031-backup-a11y.md`.
 
 **TASK-030 MERGEADA e em produção** (`a7a2647`, 2026-08-03): marca desenhada, centro de
 avisos e faixa da semana clicável. 4 ciclos de review Codex, 8 achados reais, todos
@@ -573,15 +581,28 @@ que aprovou merge + push). Contrato: `docs/ai/tasks/TASK-030-nada-morto.md`.
 ⚠️ **Gate visual de olho humano continua pendente** — o screenshot da pane falha nesta
 máquina e a verificação foi por DOM, que não prova composição.
 
-**Feedback de uso real, item 2 — PWA:** `manifest.json` + Service Worker + notificação de
-fim de descanso. Criar branch `ai/TASK-019-pwa-claude` + contrato, e seguir o fluxo
-(contrato → gates → browser 390×844 em aba nova → review Codex → gate visual → merge).
+## PRÓXIMA AÇÃO EXATA — Faixa 1, item 2: onboarding que gera plano no app
 
-⚠️ **Ler o "Limite honesto do item 2" antes de escrever qualquer linha** (seção logo
-abaixo). Não prometer "roda perfeitamente em background".
+É o **achado nº1 da auditoria** e o único bloqueador de Faixa 1 que resta. A porta de
+entrada hoje é *"Escolher arquivo"* ou *"Cole aqui o conteúdo do seu plano (JSON)"* — o app
+só tem valor depois de um artefato que ele não sabe produzir. Invisível hoje porque o
+usuário é o próprio autor; parede para qualquer outra pessoa. Ativação D1 em fitness é 26%
+e a queda mais íngreme é no time-to-first-value.
 
-Depois: **item 6** (sino de avisos = TASK-023 do roadmap, nunca construída) e **item 5**
-(logo — o usuário quer repensar, achou fraca).
+**Desenho aprovado na auditoria (§3.1):** 4 perguntas (objetivo, experiência, dias por
+semana, equipamento) → gera um `PlanFile` **válido** a partir de templates curados. A
+arquitetura plan-file NÃO muda: o template emite o mesmo contrato que o coach emite.
+
+⚠️ **A tensão a respeitar:** um intocável é *"o app não prescreve treino/dieta"*. O plano
+gerado tem de se apresentar como **ponto de partida genérico e editável**, dizendo de onde
+veio — e o coach continua sendo o caminho do plano **personalizado**, agora como upgrade e
+não como porta. Se a implementação começar a parecer prescrição personalizada, parar e
+consultar.
+
+**Depois disso — Faixa 2 da auditoria:** Capacitor + Android (resolve o item 2 do feedback
+de uso real de verdade, via notificação local do SO, e abre HealthKit/Health Connect);
+testes de UI com jsdom + fake-indexeddb (a dívida mais antiga e de maior retorno); escala
+tipográfica; resolver a dieta.
 
 ## Feedback de uso real — 6 de 7 itens resolvidos
 
@@ -796,6 +817,7 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-028 | Modo Treino confiável (descanso persistido, auto-close, auto-avanço) | MERGEADA | main (`7364b93`) |
 | TASK-029 | Agenda por rotação + constância sem denominador (REPORT_SCHEMA 1.1) | MERGEADA | main (`afe80aa`) |
 | TASK-030 | Nada morto na tela (marca, centro de avisos, faixa clicável) | MERGEADA | main (`a7a2647`) |
+| TASK-031 | Backup completo do aparelho + foco visível global | MERGEADA | main (`d8d9150`) |
 
 ---
 
