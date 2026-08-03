@@ -24,7 +24,19 @@ function truncate(value: string): string {
  * O título vai ao degrau *Display* e o texto ganha medida e entrelinha de leitura — quem
  * chega aqui precisa entender o que houve, não escanear um card.
  */
-export function PlanErrorState({ errors }: { errors: FieldError[] }) {
+export function PlanErrorState({
+  errors,
+  children,
+}: {
+  errors: FieldError[];
+  /**
+   * Slot para uma saída ADICIONAL de recuperação. Só o `/mais` preenche, com o cartão de
+   * backup: um plano corrompido é justamente o cenário em que restaurar mais importa, e
+   * até a TASK-031 esta tela escondia o backup atrás de um `return` antecipado — a
+   * ferramenta de recuperação indisponível exatamente na hora de recuperar (review Codex).
+   */
+  children?: React.ReactNode;
+}) {
   const shown = errors.slice(0, MAX_SHOWN);
   const rest = errors.length - shown.length;
 
@@ -54,6 +66,9 @@ export function PlanErrorState({ errors }: { errors: FieldError[] }) {
       >
         <RefreshCw size={15} aria-hidden /> Reimportar plano
       </Link>
+
+      {/* Antes dos detalhes técnicos: recuperar o histórico importa mais que diagnosticar. */}
+      {children ? <div className="mt-7 w-full text-left">{children}</div> : null}
 
       {shown.length > 0 ? (
         <details className="mt-8 w-full text-left">
