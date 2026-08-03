@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { MuscleArt } from "@/components/MuscleArt";
 import { Logo } from "@/components/Logo";
 import { PlanErrorState } from "@/components/PlanErrorState";
+import { LogoMark } from "@/components/LogoMark";
 import { equipmentLabel } from "@/lib/plan/labels";
 import { hasDietContent, hasDietTargets } from "@/lib/plan/diet";
 import { completedThisWeek, resolveToday, rotationOf } from "@/lib/plan/rotation";
@@ -15,7 +16,6 @@ import {
   estimateWorkoutMinutes,
   experienceLabel,
   greeting,
-  todayIndex,
   weekDates,
   workoutBadge,
   WEEK_DAYS,
@@ -31,7 +31,20 @@ import {
   todayReadiness,
 } from "@/lib/plan/recovery";
 import { getDayOverride, clearDayOverride } from "@/lib/storage/overrides";
+import { getAllSessions } from "@/lib/storage/sessions";
+import { getBodyLog } from "@/lib/storage/bodylog";
+import { getAllPlans } from "@/lib/storage/plans";
+import { getReadNoticeIds } from "@/lib/storage/notices";
+import { buildNotices, unreadCount } from "@/lib/plan/notices";
 import { isoDate } from "@/lib/plan/session";
+
+/** "sexta-feira, 01/08" — rótulo acessível de um dia da faixa da semana. */
+const rotuloDoDia = (iso: string) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+  });
 
 export default function HojePage() {
   const { loading, plan, invalid } = useActivePlan();
@@ -61,6 +74,12 @@ export default function HojePage() {
    * de lá mantém as duas telas concordando sobre o estado do corpo.
    */
   const [now, setNow] = useState(() => Date.now());
+  /*
+   * Contagem de avisos não lidos — carregada À PARTE, sem travar a tela. O ponto do sino
+   * começa apagado e acende quando a conta chega: "ainda não sei" tem que parecer
+   * "nenhum", nunca o contrário. Um ponto que aparece e some seria a mentira de volta.
+   */
+  const [avisosNaoLidos, setAvisosNaoLidos] = useState(0);
 
   const planId = plan?.planId ?? null;
   const overrideLoading = overrideFetch.planId !== planId;
@@ -82,10 +101,19 @@ export default function HojePage() {
     () => (sessionsFetch.planId === planId ? sessionsFetch.list : []),
     [sessionsFetch, planId],
   );
-  const doneDates = useMemo(
-    () => new Set(sessions.filter((s) => s.status === "done").map((s) => s.date)),
-    [sessions],
-  );
+  /*
+   * Data → treinos CONCLUÍDOS naquele dia. Substitui o antigo `Set` de datas porque a
+   * faixa da semana passou a mostrar QUAL treino foi feito (fato), e não mais a letra que
+   * o `weekSchedule` marcava para aquele dia da semana (promessa que a TASK-029 aboliu).
+   */
+  const doneByDate = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const s of sessions) {
+      if (s.status !== "done") continue;
+      m.set(s.date, [...(m.get(s.date) ?? []), s.workoutId]);
+    }
+    return m;
+  }, [sessions]);
 
   // Dias da semana com treino concluído (lê as sessões do período ativo).
   useEffect(() => {
@@ -133,6 +161,30 @@ export default function HojePage() {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", refresh);
+    };
+  }, [plan]);
+
+  // Avisos não lidos (TASK-030). Lê TODAS as sessões: recorde atravessa plano (ADR-002).
+  useEffect(() => {
+    if (!plan) return;
+    let cancelled = false;
+    Promise.all([getAllSessions(), getBodyLog(), getReadNoticeIds(), getAllPlans()]).then(
+      ([todas, corpo, lidos, planos]) => {
+        if (cancelled) return;
+        const avisos = buildNotices({
+          plan: plan.plan,
+          planImportedAt: plan.importedAt,
+          activePlanId: plan.planId,
+          sessions: todas,
+          // Nome do recorde vem do plano em que ele foi EXECUTADO, não do ativo.
+          knownPlans: planos.map((x) => ({ planId: x.planId, plan: x.plan })),
+          bodyEntries: corpo,
+        });
+        setAvisosNaoLidos(unreadCount(avisos, lidos));
+      },
+    );
+    return () => {
+      cancelled = true;
     };
   }, [plan]);
 
@@ -185,7 +237,9 @@ export default function HojePage() {
 
   const p = plan.plan;
   const today = resolveToday(p, sessions, new Date(), override);
-  const ti = todayIndex();
+  // Compara DATA, não índice do dia da semana: a faixa deixou de ter qualquer relação
+  // com a posição no `weekSchedule` (TASK-029/030).
+  const hojeIso = isoDate();
   const week = weekDates();
   /*
    * Conta SESSÕES, pela mesma função que decide o descanso da semana — não os dias com
@@ -258,13 +312,24 @@ export default function HojePage() {
   return (
     <main className="stagger mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-6">
       <header className="flex items-center justify-between">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full border border-accent/40 text-sm font-medium text-accent">
-          A
-        </span>
-        <span className="relative text-faint">
+        {/* O símbolo da marca (TASK-030). Antes era a letra "A" digitada num anel — o
+            `DESIGN_SYSTEM` §1 sempre pediu um "A" estilizado e ele nunca fora desenhado. */}
+        <LogoMark size={34} className="text-accent" />
+        {/*
+          O sino era um `<span>` com bolinha teal FIXA: inerte e, pior, afirmando haver
+          aviso novo quando não havia nenhum sistema de avisos. Agora é link de verdade,
+          com alvo de 44px, e o ponto só acende com aviso não lido de verdade.
+        */}
+        <Link
+          href="/avisos"
+          aria-label={avisosNaoLidos > 0 ? `Avisos: ${avisosNaoLidos} não lidos` : "Avisos"}
+          className="relative -mr-2 flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:text-ink"
+        >
           <Bell size={20} aria-hidden />
-          <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-accent" />
-        </span>
+          {avisosNaoLidos > 0 ? (
+            <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-accent ring-2 ring-bg" />
+          ) : null}
+        </Link>
       </header>
 
       <div className="mt-5">
@@ -415,27 +480,68 @@ export default function HojePage() {
           </span>
         </div>
         <p className="mt-2 text-sm text-muted">Constância é o que constrói.</p>
+        {/*
+          A faixa mostra o que FOI FEITO, não o que "estava marcado" (ripple nº 1 da
+          TASK-029, que tinha ficado para trás). Ela lia `weekSchedule[i]` como calendário
+          e desenhava "A" na segunda, "B" na quarta — a agenda que a rotação aboliu — e
+          ainda pintava HOJE com o mesmo preenchimento de um dia concluído, fazendo o dia
+          parecer treinado sem ter sido.
+
+          Dia com treino vira LINK para o detalhe daquela sessão em `/relatorios`, que já
+          resolve essa tela (treino + série/carga/reps/RPE) — reusar é melhor que duplicar.
+          Dia sem sessão não vira botão nenhum: o pedido do usuário era que nada pareça
+          clicável sem ser, e a recíproca é sumir com a afordância onde não há destino.
+        */}
         <div className="mt-4 flex justify-between">
           {WEEK_DAYS.map((d, i) => {
-            const isToday = i === ti;
-            const entry = p.training.weekSchedule[i];
-            const isRest = entry === "rest";
-            const isDone = doneDates.has(week[i]);
+            const date = week[i];
+            const feitos = doneByDate.get(date) ?? [];
+            const isDone = feitos.length > 0;
+            const isToday = date === hojeIso;
+            // Badge = o treino que foi FEITO (fato). Vários no mesmo dia caem no ✓, que
+            // não escolhe um deles; o detalhe está a um toque.
+            const badgeFeito = feitos.length === 1 ? workoutBadge(feitos[0]) : null;
+            const pill = [
+              "flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-medium",
+              isDone
+                ? "bg-accent text-on-accent"
+                : isToday
+                  ? "border border-accent/60 text-accent"
+                  : "border border-line text-faint",
+            ].join(" ");
+            const conteudo = isDone ? (
+              badgeFeito ?? <Check size={14} aria-hidden />
+            ) : isToday ? (
+              <span className="h-1 w-1 rounded-full bg-accent" />
+            ) : null;
+
+            /*
+              O alvo de toque é o INVÓLUCRO de 44px, não a pílula de 32px que se vê. A
+              TASK-026 já tinha subido a grade do calendário de 36 para 44px pelo mesmo
+              motivo; repetir 32px aqui reintroduziria o alvo pequeno numa tela que se
+              usa de pé, na academia. Sete colunas de 44px cabem nos 310px úteis do card.
+            */
+            const envolucro = "flex h-11 w-11 items-center justify-center";
             return (
-              <div key={i} className="flex flex-col items-center gap-1.5">
-                <div
-                  className={[
-                    "flex h-8 min-w-8 items-center justify-center rounded-full px-1.5 text-[11px]",
-                    isDone || isToday
-                      ? "bg-accent text-on-accent"
-                      : isRest
-                        ? "border border-line text-faint"
-                        : "border border-accent/40 text-accent",
-                  ].join(" ")}
-                >
-                  {isDone ? <Check size={14} aria-hidden /> : isRest ? d : entry}
-                </div>
-                <span className="text-[10px] text-faint">{d}</span>
+              <div key={date} className="flex flex-col items-center">
+                {isDone ? (
+                  <Link
+                    href={`/relatorios?d=${date}`}
+                    aria-label={`${rotuloDoDia(date)}: ${
+                      feitos.length === 1
+                        ? `${p.training.workouts.find((w) => w.id === feitos[0])?.name ?? "treino"} concluído`
+                        : `${feitos.length} treinos concluídos`
+                    }. Ver detalhes.`}
+                    className={`${envolucro} transition-transform active:scale-95`}
+                  >
+                    <span className={pill}>{conteudo}</span>
+                  </Link>
+                ) : (
+                  <div className={envolucro} aria-hidden>
+                    <span className={pill}>{conteudo}</span>
+                  </div>
+                )}
+                <span className={`text-[10px] ${isToday ? "text-accent" : "text-faint"}`}>{d}</span>
               </div>
             );
           })}
