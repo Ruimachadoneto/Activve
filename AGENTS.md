@@ -13,7 +13,7 @@ Entregar alterações corretas, verificáveis, pequenas o suficiente para revis�
 ## 2. Contexto do projeto
 - **Produto:** Activve — parceiro de treino/coach/personal/nutri na palma da mão. Cobre treino (academia/casa), dieta, acompanhamento de meta, peso e medidas corporais. **Greenfield**, do zero, mirando produto superior. Não é evolução de app anterior.
 - **Arquitetura "plan-file":** gerador externo (artifact) faz a anamnese e emite um **arquivo de plano JSON** (contrato em `docs/ai/PLAN_SCHEMA.md`); o app importa/valida/monta/rastreia. **Sem IA de servidor** (sem chave de API, sem custo).
-- **v1 = LOCAL-FIRST, SEM CONTA.** Dados em IndexedDB, 100% offline, por aparelho; backup via export/import JSON. **Sem Supabase/auth/sync no v1.**
+- **v1 = LOCAL-FIRST, SEM CONTA.** Dados em IndexedDB, 100% offline, por aparelho; backup completo (plano + sessões + medidas) via `/mais` → Baixar/Restaurar backup (TASK-031). **Sem Supabase/auth/sync no v1.**
 - **Contas + sync + multiusuário = Fase 2** (isolada; não reescreve o v1).
 - **Stack v1:** Next.js 16 (App Router) + TypeScript + Tailwind v4 + IndexedDB, como **PWA** instalável. Supabase entra só na Fase 2.
 - **Decisões de produto:** agenda de treino **flexível** (sugestão, não rígida); dieta = ver + **marcar refeição**; **design anti-culpa** (sem streak punitivo, sem BMI/% gordura em destaque); continuidade de histórico ao trocar de plano. Ver `docs/ai/FEATURE_MAP.md`.

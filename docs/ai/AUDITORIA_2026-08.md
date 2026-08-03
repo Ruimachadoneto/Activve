@@ -144,8 +144,10 @@ Consequência: trocar de celular, limpar dados do site ou um navegador recicland
 pressão **apaga meses de histórico, sem aviso e sem recuperação**. Num produto cujo valor é
 justamente o acúmulo, isso é a falha mais severa do sistema.
 
-**Recomendação imediata (barata):** "Exportar meus dados" em `/mais` — um JSON com plans +
-sessions + bodylog + kv, e o "Importar backup" correspondente. Uma tarde de trabalho.
+✅ **RESOLVIDO na TASK-031:** "Baixar backup" e "Restaurar backup" em `/mais`, com o
+conteúdo do aparelho declarado antes de exportar e o do arquivo antes de restaurar.
+Restaurar é **união, nunca substituição** — um app sem desfazer não pode ter uma operação
+que destrói meses de dado por um toque errado.
 **Recomendação seguinte:** lembrete periódico de backup no centro de avisos (que já existe e
 já sabe falar de condições persistentes).
 
@@ -255,12 +257,16 @@ vezes** em todo o projeto.
 | 2.5.8 Target Size (AA, 24px) | ✅ Passa | O projeto adota 44px, bem acima do mínimo |
 | 1.4.3 Contraste (AA) | ✅ Passa | Validado por script e medido no browser em várias tasks |
 | 2.4.11 **Focus Appearance (AA)** | 🟠 **Provável falha** | Só 8 referências a foco em ~10.400 linhas; navegação por teclado provavelmente sem indicador consistente |
-| 1.1.1 Conteúdo não textual | 🟡 Parcial | **3 `<img>` sem `alt`** |
+| 1.1.1 Conteúdo não textual | ✅ Passa | *(Correção: a auditoria apontou "3 `<img>` sem alt" — era **falso positivo da medição**. O grep olhava só a mesma linha, e no JSX multi-linha o `alt` está abaixo. Verificado um a um: os três estão corretos — `alt=""` em imagem decorativa e `alt` real no primeiro quadro do card.)* |
 | 2.5.7 Dragging (AA) | ✅ N/A | O scrub do gráfico tem alternativa (tabela oculta) |
 | Reduced motion | ✅ Passa | 9 referências, respeitado nas animações |
 
 **Recomendação:** um passe de foco visível global (um anel `focus-visible` no CSS base cobre
-quase tudo de uma vez) e `alt` nas 3 imagens. Trabalho de horas, fecha o gap de AA.
+quase tudo de uma vez). Trabalho de horas, fecha o gap de AA.
+✅ **FEITO na TASK-031.** Anel duplo (interno na cor do fundo, externo no acento), medido no
+browser com navegação real por teclado: 9,87:1 contra o fundo da página. O anel duplo se
+provou necessário — no botão de acento o anel teal sozinho mede **1,00:1**, ou seja, o foco
+seria invisível justamente no CTA principal.
 
 > Acessibilidade continua sendo intocável mesmo com o escopo aberto — e é o único item desta
 > auditoria que eu recomendaria tratar como bloqueador de release.
@@ -284,9 +290,9 @@ quase tudo de uma vez) e `alt` nas 3 imagens. Trabalho de horas, fecha o gap de 
 ## 8. Recomendações priorizadas
 
 **Faixa 1 — bloqueadores de "Top Score" (fazer primeiro)**
-1. **Exportar/importar backup completo** (§4.1) — risco de perda total de dados. *Esforço: baixo.*
+1. ✅ **Exportar/importar backup completo** (§4.1) — **FEITO na TASK-031.**
 2. **Onboarding que gera plano no app** (§3.1) — destrava qualquer usuário que não seja você. *Esforço: médio.*
-3. **Passe de foco visível + `alt`** (§6) — fecha WCAG 2.2 AA. *Esforço: baixo.*
+3. ✅ **Passe de foco visível** (§6) — **FEITO na TASK-031.**
 
 **Faixa 2 — alto retorno**
 4. **Capacitor + Android** (§4.4) — resolve o item 2 de verdade, abre loja e HealthKit/Health Connect. *Esforço: médio.*

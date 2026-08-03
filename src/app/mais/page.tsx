@@ -6,6 +6,7 @@ import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { PlanErrorState } from "@/components/PlanErrorState";
 import { goalLabel } from "@/lib/plan/labels";
+import { BackupCard } from "@/components/BackupCard";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -84,6 +85,8 @@ export default function MaisPage() {
           </Link>
         </section>
       )}
+
+      {loading ? null : <BackupCard />}
 
       <BottomNav active="mais" />
     </main>

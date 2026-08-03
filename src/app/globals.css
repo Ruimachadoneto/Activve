@@ -381,3 +381,38 @@ body {
     color: #111827;
   }
 }
+
+/*
+ * FOCO VISÍVEL GLOBAL (TASK-031, achado da auditoria de 2026-08).
+ *
+ * O projeto não tinha NENHUMA regra de foco em ~10.400 linhas: a navegação por teclado
+ * dependia do anel padrão do navegador, que sobre um tema escuro customizado fica quase
+ * invisível. É a WCAG 2.2 §2.4.11 (Focus Appearance, nível AA) — e acessibilidade é o
+ * único item que este projeto trata como bloqueador de release.
+ *
+ * ANEL DUPLO, e não uma cor só: um anel de acento sozinho some em cima de um botão de
+ * acento (teal sobre teal mede ~1,2:1). O `box-shadow` cria primeiro uma faixa da cor do
+ * FUNDO colada ao elemento, e o `outline` desenha o acento logo fora dela. Assim há
+ * contraste garantido nos dois casos — sobre o fundo escuro e sobre o botão teal — sem
+ * precisar de uma exceção por componente.
+ *
+ * `:focus-visible` (e não `:focus`) de propósito: quem clica com o dedo ou com o mouse não
+ * vê anel nenhum; ele aparece para quem navega por teclado, que é quem precisa dele.
+ * Nenhuma das duas propriedades afeta layout.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-bg);
+}
+
+/*
+ * O anel do `input`/`textarea` já é a borda que muda de cor (`focus:border-accent`), e
+ * empilhar os dois engorda o campo. Aqui o offset colado basta.
+ */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-offset: 0;
+  box-shadow: none;
+}
