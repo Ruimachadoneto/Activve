@@ -567,31 +567,63 @@ Garantia total exigiria Web Push + servidor (Fase 2, contraria o local-first do 
 
 ## Onde exatamente estamos
 
-**`main` = `23d9cdc`**, em sincronia com `origin`. Contém tudo até a TASK-031 + os pareceres
-(a branch de revisão da auditoria já foi mergeada).
+**`main` = `c9aa82f`** — a **Faixa A foi MERGEADA em 2026-08-03** (merge `--no-ff`, aprovado
+pelo usuário). Gates revalidados na `main` depois do merge: typecheck ✓ · lint ✓ ·
+**361/361** ✓ · build ✓.
 
-**Existem DUAS branches abertas, nenhuma mergeada:**
+🔴 **`main` está 9 commits À FRENTE de `origin` — o push NÃO foi feito.** O push dispara o
+deploy do Vercel, e isso é decisão do usuário. **Perguntar antes de empurrar.**
+
+**Branches:**
 
 | Branch | O que tem | Estado |
 |---|---|---|
-| `ai/TASK-032-personalizacao-visivel-claude` | **Schema 1.3** (`context`, `wellness`, `document`, `why`) + tela `/plano` "Meu plano" + porquê no Hoje e no Modo Treino + parser de Markdown seguro + as correções dos achados. **361 testes verdes**, verificado em 390×844 | ✅ **PRONTA — aguarda só o gate humano de merge** |
-| `ai/TASK-032-auditoria-gpt-activve-gpt` (remota) | `docs/ai/AUDITORIA_ESTRATEGICA_GPT_ACTIVVE_2026-08.md`, 1.586 linhas. **PR #2, draft** | 🔶 Aguarda decisão |
+| `ai/TASK-032-personalizacao-visivel-claude` | Faixa A | ✅ **MERGEADA e apagada** (era `32b68ee`, recuperável por `git branch <nome> 32b68ee`) |
+| `ai/TASK-033-revisao-auditoria-gpt-claude` (local) | parecer da auditoria | ✅ Já contida em `main` — **resíduo, pode apagar** |
+| `ai/TASK-032-auditoria-gpt-activve-gpt` (remota) | auditoria do GPT **+ a réplica dele** (`e120592`). **PR #2, draft** | 🔶 É o objeto da próxima task |
 
-⚠️ **COLISÃO DE ID:** duas branches diferentes se chamam TASK-032. O `AGENTS.md` §14 define
-`ai/<task-id>-<descrição>-<agente>` e o STATUS indexa por id. **Renumerar a de auditoria
-(→ TASK-034) antes de mergear** — senão o histórico fica ambíguo para sempre.
+⚠️ **COLISÃO DE ID:** a branch remota da auditoria ainda se chama TASK-032, id agora ocupado
+por uma task mergeada. **Renumerar (→ TASK-034) antes de mergear** — senão o histórico fica
+ambíguo para sempre.
 
-## PRÓXIMA AÇÃO EXATA — aprovar (ou recusar) o merge da Faixa A
+## PRÓXIMA AÇÃO EXATA — 2ª revisão crítica (só análise, nada de código)
 
-Os 2 achados que travavam a faixa **foram corrigidos em 2026-08-03**, e mais 3 achados
-saíram dos ciclos de review seguintes. Detalhe em "Sessão de 2026-08-03" logo abaixo.
+O usuário encerrou a sessão de 2026-08-03 aqui e **pediu para continuar amanhã**. A tarefa
+seguinte já está definida: o GPT respondeu ao parecer, e o usuário quer **uma segunda
+revisão crítica dessa réplica** — verificando cada afirmação contra o código, o git e a
+documentação, e dizendo quem está certo em cada divergência.
+
+**Restrições explícitas do pedido:** não implementar, não alterar código, não mergear, não
+criar task ainda, não aceitar as conclusões automaticamente.
+
+**Os três documentos da discussão** (nenhum na `main`; ler sem trocar de branch):
 
 ```bash
-git log --oneline main..ai/TASK-032-personalizacao-visivel-claude
+git show origin/ai/TASK-032-auditoria-gpt-activve-gpt:docs/ai/AUDITORIA_ESTRATEGICA_GPT_ACTIVVE_2026-08.md
+git show origin/ai/TASK-032-auditoria-gpt-activve-gpt:docs/ai/DECISOES_POS_REVISAO_AUDITORIA_GPT_2026-08.md
 ```
 
-Depois do merge: revalidar gates na `main`, apagar a branch, e **só então** a ordem
-`(decisões travadas) → D (testes) → E (PWA) → B (GPT e claim) → C (beta pago) → F (portal)`.
+1. Auditoria do GPT — 1.586 linhas.
+2. Meu parecer — `docs/ai/REVISAO_AUDITORIA_GPT_2026-08.md`, **já está em `main`**.
+3. **A réplica do GPT — `DECISOES_POS_REVISAO_AUDITORIA_GPT_2026-08.md`, 522 linhas,
+   commit `e120592`** (verificado: existe no remoto, já buscado com `git fetch`).
+
+**Pontos que o usuário mandou analisar** (a lista chegou truncada no meio do 3º — **pedir a
+continuação antes de começar**): (1) conferir o estado real do repo contra o que a réplica
+afirma; (2) veredito explícito sobre `why` vs. `rationale`; (3) a estrutura de `context`
+(`summary` + `constraints`/`preferences`/`motivations`/`availability`) — daí em diante o
+texto foi cortado.
+
+⚠️ **Boa parte do "estado real" que a réplica discute MUDOU no merge de hoje**: os 2 achados
+não estão mais pendentes, são 361 testes (não 350), a acessibilidade do Markdown está
+resolvida, e a colisão de id agora é entre uma branch aberta e uma task já mergeada. A
+réplica foi escrita antes disso — **conferir antes de concordar ou discordar**.
+
+**Caminhos citados pelo pedido, já verificados:** todos existem, **exceto
+`docs/ai/DESIGN_SYSTEM.md`** — o caminho real é **`docs/DESIGN_SYSTEM.md`** (sem `ai/`).
+
+Depois dessa revisão, a ordem combinada segue:
+`(5 decisões travadas) → D (testes) → E (PWA) → B (GPT e claim) → C (beta pago) → F (portal)`.
 
 ---
 
