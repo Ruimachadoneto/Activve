@@ -6,6 +6,7 @@ import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { PlanErrorState } from "@/components/PlanErrorState";
 import { Markdown } from "@/components/Markdown";
+import { textoVisivel } from "@/lib/plan/labels";
 
 /**
  * "Meu plano" — o Documento do coach, por extenso (schema 1.3).
@@ -44,7 +45,10 @@ export default function PlanoPage() {
     por causa de um hábito em branco jogaria fora treino e dieta bons — a desproporção que
     a TASK-013 decidiu evitar.
   */
-  const habits = (wellness?.habits ?? []).filter((h) => h.title.trim().length > 0);
+  const habits = (wellness?.habits ?? []).flatMap((h) => {
+    const title = textoVisivel(h.title);
+    return title ? [{ ...h, title }] : [];
+  });
 
   /*
     CAMPO PRESENTE NÃO É CONTEÚDO.
@@ -52,14 +56,15 @@ export default function PlanoPage() {
     e `document` só com espaços. Perguntar "o campo existe?" fazia a tela contar isso como
     conteúdo: suprimia o aviso de formato anterior E desenhava um card em branco — o pior
     dos dois mundos, porque some a explicação e sobra a moldura.
-    Uma régua só decide o que aparece e se o aviso aparece; sem ela, a mesma pergunta seria
-    respondida em quatro lugares com respostas diferentes (a classe de bug das TASK-016/029).
+    `textoVisivel` é a régua única (a mesma que o Hoje e o Modo Treino usam no `why`); sem
+    ela, a mesma pergunta seria respondida em quatro lugares com respostas diferentes — a
+    classe de bug das TASK-016/029.
   */
-  const contexto = p?.context?.trim() ?? "";
-  const documento = p?.document?.trim() ?? "";
-  const resumoBemEstar = wellness?.summary?.trim() ?? "";
-  const temBemEstar = resumoBemEstar.length > 0 || habits.length > 0;
-  const temAlgo = documento.length > 0 || contexto.length > 0 || temBemEstar;
+  const contexto = textoVisivel(p?.context);
+  const documento = textoVisivel(p?.document);
+  const resumoBemEstar = textoVisivel(wellness?.summary);
+  const temBemEstar = !!resumoBemEstar || habits.length > 0;
+  const temAlgo = !!documento || !!contexto || temBemEstar;
 
   return (
     <main className="stagger mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-6">
@@ -121,12 +126,12 @@ export default function PlanoPage() {
                   {habits.map((h) => {
                     // Mesma régua nos campos auxiliares: um `when` só com espaços viraria
                     // um "·" pendurado, e um `why` em branco, um parágrafo fantasma.
-                    const quando = h.when?.trim() ?? "";
-                    const porque = h.why?.trim() ?? "";
+                    const quando = textoVisivel(h.when);
+                    const porque = textoVisivel(h.why);
                     return (
                       <li key={h.id}>
                         <p className="text-sm font-medium text-ink">
-                          {h.title.trim()}
+                          {h.title}
                           {quando ? <span className="font-normal text-faint"> · {quando}</span> : null}
                         </p>
                         {/* O `why` é o que separa "medite 10 min" de um plano de verdade. */}

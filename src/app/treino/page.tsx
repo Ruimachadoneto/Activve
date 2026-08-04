@@ -22,7 +22,7 @@ import { ExerciseMediaCard, ExerciseThumb, PreloadImages } from "@/components/Ex
 import { WorkoutCompletion } from "@/components/WorkoutCompletion";
 import { resolveMovement, videoHref } from "@/lib/plan/movement";
 import { resolveExerciseMedia } from "@/lib/plan/exerciseMedia";
-import { equipmentLabel, muscleLabel } from "@/lib/plan/labels";
+import { equipmentLabel, muscleLabel, textoVisivel } from "@/lib/plan/labels";
 import { buildExerciseMuscles } from "@/lib/plan/recovery";
 import { buildSessionSummary } from "@/lib/plan/summary";
 import type { PlanFile } from "@/lib/plan/schema";
@@ -672,8 +672,10 @@ export default function TreinoPage() {
             movimento original ("halteres em vez de barra, por causa do ombro") e pode não
             valer para o substituto. Mesmo critério que a TASK-012 usou nos secundários.
           */}
-          {!mov.isSwapped && ex.why ? (
-            <p className="mt-1.5 max-w-[40ch] text-[13px] leading-relaxed text-muted">{ex.why}</p>
+          {!mov.isSwapped && textoVisivel(ex.why) ? (
+            <p className="mt-1.5 max-w-[40ch] text-[13px] leading-relaxed text-muted">
+              {textoVisivel(ex.why)}
+            </p>
           ) : null}
           <p className="mt-1 text-xs text-muted">
             {equipmentLabel(mov.equipment)} · {ex.sets} × {ex.reps}

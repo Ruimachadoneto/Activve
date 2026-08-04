@@ -9,7 +9,7 @@ import { MuscleArt } from "@/components/MuscleArt";
 import { Logo } from "@/components/Logo";
 import { PlanErrorState } from "@/components/PlanErrorState";
 import { LogoMark } from "@/components/LogoMark";
-import { equipmentLabel } from "@/lib/plan/labels";
+import { equipmentLabel, textoVisivel } from "@/lib/plan/labels";
 import { hasDietContent, hasDietTargets } from "@/lib/plan/diet";
 import { completedThisWeek, resolveToday, rotationOf } from "@/lib/plan/rotation";
 import {
@@ -404,9 +404,9 @@ export default function HojePage() {
                 a lembrar a conversa que o gerou. Plano antigo não tem o campo e a linha
                 simplesmente não aparece — degrada, não quebra.
               */}
-              {today.why ? (
+              {textoVisivel(today.why) ? (
                 <p className="mt-2 max-w-[34ch] text-[13px] leading-relaxed text-muted">
-                  {today.why}
+                  {textoVisivel(today.why)}
                 </p>
               ) : null}
               <div className="mt-4 space-y-2 text-sm text-muted">
