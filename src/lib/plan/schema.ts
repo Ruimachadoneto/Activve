@@ -43,6 +43,11 @@ export const exerciseSchema = z.object({
   equipment: equipmentSchema.optional(),
   sets: z.number().int().min(1).max(20),
   reps: z.string().min(1),
+  /**
+   * Por que ESTE exercício está aqui, para ESTA pessoa (schema 1.3; opcional).
+   * Mesmo campo e mesma palavra de `meal.why` — um conceito, um nome.
+   */
+  why: z.string().max(400).optional(),
   load_kg: z.number().min(0).max(500).optional(),
   rest_s: z.number().int().min(0).max(600),
   effortTarget: z.number().int().min(6).max(10).optional(),
@@ -58,6 +63,8 @@ export const workoutSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   focus: z.string().optional(),
+  /** Por que este treino é assim para esta pessoa (schema 1.3; opcional). */
+  why: z.string().max(400).optional(),
   exercises: z.array(exerciseSchema),
 });
 
@@ -170,6 +177,49 @@ export const dietSchema = z.object({
   prep: z.array(z.string()).optional(),
 });
 
+/**
+ * Plano de bem-estar (schema 1.3; opcional) — o terceiro pilar da visão de produto, previsto
+ * desde o `PRODUCT_VISION` e nunca implementado.
+ *
+ * É **apoio, nunca cobrança** (anti-culpa): hábitos ancorados no que a pessoa já gosta de
+ * fazer, e não uma lista de virtudes. Por isso `why` importa tanto aqui quanto o `title` —
+ * "leia 20 min antes de dormir" é genérico; "você disse que ler te desliga, então proteja
+ * esses 20 minutos nos dias de treino pesado" é um plano.
+ */
+export const wellnessSchema = z
+  .object({
+    summary: z.string().max(600).optional(),
+    habits: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          title: z.string().min(1),
+          why: z.string().max(300).optional(),
+          /** Quando encaixa na vida da pessoa: "antes de dormir", "domingo de manhã". */
+          when: z.string().max(60).optional(),
+        }),
+      )
+      .optional(),
+  })
+  .superRefine((wellness, ctx) => {
+    // Mesma guarda que treino e exercício já têm: o id é a chave estável da linha na
+    // tela. Repetido, duas linhas viram a mesma para o React e uma pode exibir o
+    // conteúdo da outra. O escopo é a própria lista de hábitos — id de hábito não
+    // divide namespace com exercício (a lição da TASK-027 é justamente não promover
+    // id de um escopo a global).
+    const ids = new Set<string>();
+    wellness.habits?.forEach((h, i) => {
+      if (ids.has(h.id)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["habits", i, "id"],
+          message: `id de hábito duplicado: "${h.id}" (precisa ser único em wellness.habits).`,
+        });
+      }
+      ids.add(h.id);
+    });
+  });
+
 export const planFileSchema = z.object({
   schemaVersion: z.string().regex(/^\d+\.\d+$/, "schemaVersion deve ser 'major.minor' (ex.: 1.0)."),
   meta: z.object({
@@ -185,6 +235,22 @@ export const planFileSchema = z.object({
     .optional(),
   training: trainingSchema,
   diet: dietSchema,
+  wellness: wellnessSchema.optional(),
+  /**
+   * O ESPELHO da anamnese (schema 1.3; opcional): o resumo que o coach confirmou com a
+   * pessoa antes de gerar o plano ("então: você treina de manhã, 45 min, ombro reclama…").
+   *
+   * É a prova, dentro do app, de que a consulta aconteceu — e o que permite qualquer tela
+   * dizer "isto foi montado assim porque você disse aquilo". Sem ele, uma anamnese de 30
+   * minutos chega como um plano que poderia ser de qualquer um.
+   */
+  context: z.string().max(2000).optional(),
+  /**
+   * O DOCUMENTO completo em Markdown (schema 1.3; opcional) — o plano por extenso que o
+   * coach entrega. Até aqui ele existia só no chat e se perdia; é o artefato que mais
+   * comunica personalização e o único que não atravessava para o app.
+   */
+  document: z.string().max(60000).optional(),
 });
 
 export type PlanFile = z.infer<typeof planFileSchema>;

@@ -298,6 +298,7 @@ export function resolveToday(
     workoutId: workout.id,
     name: workout.name,
     focus: workout.focus,
+    why: workout.why,
     exerciseCount: workout.exercises.length,
     muscles: workout.exercises.flatMap((e) => e.primaryMuscles),
     doneToday: s.kind === "done_today",

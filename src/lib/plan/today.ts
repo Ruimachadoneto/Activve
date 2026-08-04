@@ -14,6 +14,8 @@ export type TodayResult =
       workoutId: string;
       name: string;
       focus?: string;
+      /** Por que este treino é assim para esta pessoa (schema 1.3). */
+      why?: string;
       exerciseCount: number;
       muscles: Muscle[];
       /** Este treino já foi CONCLUÍDO hoje — a tela mostra fechamento, não convite. */

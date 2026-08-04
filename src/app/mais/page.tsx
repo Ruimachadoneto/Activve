@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarDays, ChevronRight, RefreshCw, ShieldCheck } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronRight, RefreshCw, ShieldCheck } from "lucide-react";
 import { useActivePlan } from "@/lib/storage/useActivePlan";
 import { BottomNav } from "@/components/BottomNav";
 import { PlanErrorState } from "@/components/PlanErrorState";
@@ -70,6 +70,22 @@ export default function MaisPage() {
             nada.
           </p>
         </section>
+      ) : null}
+
+      {loading ? null : plan ? (
+        <Link
+          href="/plano"
+          className="mt-3 flex items-center gap-3 rounded-card border border-line bg-surface p-4 transition-colors hover:bg-surface2"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface2 text-accent">
+            <BookOpen size={17} aria-hidden />
+          </span>
+          <span className="flex-1">
+            <span className="block text-sm font-medium">Meu plano</span>
+            <span className="block text-xs text-muted">O plano por extenso e o bem-estar</span>
+          </span>
+          <ChevronRight size={16} aria-hidden className="shrink-0 text-faint" />
+        </Link>
       ) : null}
 
       {loading ? null : plan ? (

@@ -1,5 +1,19 @@
 import type { Muscle, PlanFile } from "./schema";
 
+/**
+ * Texto opcional do plano que vale a pena mostrar — ou `undefined`.
+ *
+ * O schema aceita `"   "` em todo campo de texto livre (`min(1)` mede a string crua), e
+ * `"   "` é verdadeiro em JS. Sem esta régua, cada tela decide sozinha se campo presente é
+ * conteúdo, e um `why` só com espaços vira parágrafo fantasma aqui, "·" pendurado ali, e
+ * um aviso de "formato anterior" suprimido acolá. **Uma pergunta, uma resposta** — a lição
+ * que se repetiu nas TASK-016/027/029.
+ */
+export function textoVisivel(valor?: string): string | undefined {
+  const limpo = valor?.trim();
+  return limpo ? limpo : undefined;
+}
+
 /** Rótulos pt-BR do vocabulário de objetivo do plano. */
 export const GOAL_LABEL: Record<PlanFile["goal"]["type"], string> = {
   lose_fat: "Perder gordura",

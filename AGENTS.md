@@ -15,7 +15,7 @@ Entregar alterações corretas, verificáveis, pequenas o suficiente para revis�
 - **Arquitetura "plan-file":** gerador externo (artifact) faz a anamnese e emite um **arquivo de plano JSON** (contrato em `docs/ai/PLAN_SCHEMA.md`); o app importa/valida/monta/rastreia. **Sem IA de servidor** (sem chave de API, sem custo).
 - **v1 = LOCAL-FIRST, SEM CONTA.** Dados em IndexedDB, 100% offline, por aparelho; backup completo (plano + sessões + medidas) via `/mais` → Baixar/Restaurar backup (TASK-031). **Sem Supabase/auth/sync no v1.**
 - **Contas + sync + multiusuário = Fase 2** (isolada; não reescreve o v1).
-- **Stack v1:** Next.js 16 (App Router) + TypeScript + Tailwind v4 + IndexedDB, como **PWA** instalável. Supabase entra só na Fase 2.
+- **Stack v1:** Next.js 16 (App Router) + TypeScript + Tailwind v4 + IndexedDB. **Ainda NÃO é PWA:** não existe `manifest` nem service worker — o app não é instalável e não abre offline. Instalação, shell offline e notificação com o app minimizado são a **Faixa E** do backlog (`docs/ai/REVISAO_AUDITORIA_GPT_2026-08.md` §7). Supabase entra só na Fase 2.
 - **Decisões de produto:** agenda de treino **flexível** (sugestão, não rígida); dieta = ver + **marcar refeição**; **design anti-culpa** (sem streak punitivo, sem BMI/% gordura em destaque); continuidade de histórico ao trocar de plano. Ver `docs/ai/FEATURE_MAP.md`.
 - **Diretórios críticos:** `src/app` (rotas/telas), `src/components` (UI — a criar), `src/lib` (domínio, import/validação do plano, storage IndexedDB — a criar), `docs/ai/` (governança e contratos).
 - **Arquitetura relevante:** IndexedDB como fonte de verdade no v1; modelo de planos/períodos/logs/medidas; import valida contra o schema. Detalhe em `docs/ai/DECISIONS.md` (ADR-001).
