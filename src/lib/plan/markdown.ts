@@ -111,3 +111,42 @@ export function parseMarkdown(source: string): Block[] {
   fecharTudo();
   return blocos;
 }
+
+const TAGS = ["h1", "h2", "h3", "h4", "h5", "h6"] as const;
+export type HeadingTag = (typeof TAGS)[number];
+
+/**
+ * Nível de título mais alto que o documento de fato usa (1 se não houver nenhum).
+ *
+ * Existe porque o coach às vezes começa o documento em `##`. Ancorar a hierarquia no menor
+ * nível PRESENTE, e não no nível 1 teórico, evita que um documento assim comece num `<h4>`
+ * pendurado sob o `<h1>` da tela — um degrau pulado que o leitor de tela anuncia.
+ */
+export function topHeadingLevel(blocks: Block[]): 1 | 2 | 3 {
+  let topo: 1 | 2 | 3 = 3;
+  let achou = false;
+  for (const b of blocks) {
+    if (b.kind !== "heading") continue;
+    achou = true;
+    if (b.level < topo) topo = b.level;
+  }
+  return achou ? topo : 1;
+}
+
+/**
+ * Tag real para um título do documento — `<h2>`, `<h3>`… nunca `<p>`.
+ *
+ * POR QUE NÃO É `<h1..h3>` DIRETO
+ * O documento é conteúdo DENTRO de uma tela que já tem o seu próprio `<h1>` ("Meu plano").
+ * Repetir `<h1>` produziria dois topos de documento e quebraria a navegação por títulos
+ * justamente para quem depende dela. `base` é o nível a partir do qual o documento se
+ * encaixa na tela hospedeira.
+ *
+ * O deslocamento preserva a hierarquia RELATIVA do documento; um degrau pulado pelo próprio
+ * autor (`#` direto para `###`) atravessa como está — inventar o nível que falta seria
+ * inferir estrutura que ninguém escreveu.
+ */
+export function headingTag(level: 1 | 2 | 3, top: 1 | 2 | 3, base = 2): HeadingTag {
+  const nivel = Math.min(Math.max(base + (level - top), base), 6);
+  return TAGS[nivel - 1];
+}

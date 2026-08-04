@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseInline, parseMarkdown } from "./markdown";
+import { headingTag, parseInline, parseMarkdown, topHeadingLevel } from "./markdown";
 
 const texto = (b: ReturnType<typeof parseMarkdown>[number]) =>
   b.kind === "list" ? b.items.map((i) => i.map((x) => x.text).join("")) : b.content.map((x) => x.text).join("");
@@ -37,6 +37,45 @@ describe("parseMarkdown — blocos", () => {
 
   it("CRLF do Windows não vira lixo", () => {
     expect(parseMarkdown("# A\r\n\r\ntexto")).toHaveLength(2);
+  });
+});
+
+describe("títulos viram <h> reais, encaixados na tela", () => {
+  /*
+   * O documento é lido por quem navega por títulos. Renderizá-lo como `<p>` estilizado
+   * apagava a estrutura numa tela cuja tarefa é LER — o achado [P2] do review.
+   */
+  const niveis = (fonte: string, base = 2) => {
+    const blocos = parseMarkdown(fonte);
+    const topo = topHeadingLevel(blocos);
+    return blocos
+      .filter((b) => b.kind === "heading")
+      .map((b) => headingTag(b.kind === "heading" ? b.level : 1, topo, base));
+  };
+
+  it("documento que começa em # se encaixa a partir de h2 (a tela já tem o h1)", () => {
+    expect(niveis("# Um\n\n## Dois\n\n### Três")).toEqual(["h2", "h3", "h4"]);
+  });
+
+  it("documento que começa em ## não pula degrau — vira h2, não h3", () => {
+    expect(niveis("## Rotina\n\n### Detalhe")).toEqual(["h2", "h3"]);
+  });
+
+  it("degrau pulado pelo autor atravessa como está — não se inventa o nível que falta", () => {
+    expect(niveis("# Um\n\n### Três")).toEqual(["h2", "h4"]);
+  });
+
+  it("sem título nenhum, topo é 1 e nada estoura", () => {
+    expect(topHeadingLevel(parseMarkdown("só texto"))).toBe(1);
+    expect(niveis("só texto")).toEqual([]);
+  });
+
+  it("base configurável: numa tela que encaixa mais fundo, desloca junto", () => {
+    expect(niveis("# Um\n\n## Dois", 3)).toEqual(["h3", "h4"]);
+  });
+
+  it("nunca passa de h6", () => {
+    expect(headingTag(3, 1, 6)).toBe("h6");
   });
 });
 

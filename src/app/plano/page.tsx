@@ -38,7 +38,21 @@ export default function PlanoPage() {
   const p = plan?.plan;
   const wellness = p?.wellness;
   const habits = wellness?.habits ?? [];
-  const temAlgo = !!(p?.document || p?.context || wellness);
+
+  /*
+    CAMPO PRESENTE NÃO É CONTEÚDO.
+    O schema aceita `wellness: {}` e `{habits: []}` num plano 1.3 válido, e aceita `context`
+    e `document` só com espaços. Perguntar "o campo existe?" fazia a tela contar isso como
+    conteúdo: suprimia o aviso de formato anterior E desenhava um card em branco — o pior
+    dos dois mundos, porque some a explicação e sobra a moldura.
+    Uma régua só decide o que aparece e se o aviso aparece; sem ela, a mesma pergunta seria
+    respondida em quatro lugares com respostas diferentes (a classe de bug das TASK-016/029).
+  */
+  const contexto = p?.context?.trim() ?? "";
+  const documento = p?.document?.trim() ?? "";
+  const resumoBemEstar = wellness?.summary?.trim() ?? "";
+  const temBemEstar = resumoBemEstar.length > 0 || habits.length > 0;
+  const temAlgo = documento.length > 0 || contexto.length > 0 || temBemEstar;
 
   return (
     <main className="stagger mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-6 pt-6">
@@ -76,23 +90,23 @@ export default function PlanoPage() {
             transforma a tela de "um plano" em "o MEU plano". Vem antes do documento porque
             é a resposta à pergunta que a pessoa tem ao abrir: "isto entendeu a minha vida?"
           */}
-          {p.context ? (
+          {contexto ? (
             <section className="mt-6 rounded-card border border-accent/25 bg-accent/[0.04] p-5">
               <p className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-accent">
                 <Quote size={13} aria-hidden /> O que entendi de você
               </p>
-              <p className="mt-2.5 max-w-[46ch] text-[15px] leading-relaxed text-ink">{p.context}</p>
+              <p className="mt-2.5 max-w-[46ch] text-[15px] leading-relaxed text-ink">{contexto}</p>
             </section>
           ) : null}
 
-          {wellness ? (
+          {temBemEstar ? (
             <section className="mt-4 rounded-card border border-line bg-surface p-5">
               <p className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-faint">
                 <Sparkles size={13} aria-hidden className="text-recovering" /> Bem-estar
               </p>
-              {wellness.summary ? (
+              {resumoBemEstar ? (
                 <p className="mt-2 max-w-[46ch] text-[15px] leading-relaxed text-muted">
-                  {wellness.summary}
+                  {resumoBemEstar}
                 </p>
               ) : null}
               {habits.length > 0 ? (
@@ -119,9 +133,9 @@ export default function PlanoPage() {
             </section>
           ) : null}
 
-          {p.document ? (
-            <section className="mt-6 border-t border-line pt-6">
-              <Markdown source={p.document} />
+          {documento ? (
+            <section aria-label="Plano por extenso" className="mt-6 border-t border-line pt-6">
+              <Markdown source={documento} />
             </section>
           ) : null}
 

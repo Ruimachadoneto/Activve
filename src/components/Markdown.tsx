@@ -1,4 +1,4 @@
-import { parseMarkdown, type Inline } from "@/lib/plan/markdown";
+import { headingTag, parseMarkdown, topHeadingLevel, type Inline } from "@/lib/plan/markdown";
 
 /**
  * Renderiza o Documento do coach (schema 1.3).
@@ -8,9 +8,13 @@ import { parseMarkdown, type Inline } from "@/lib/plan/markdown";
  * caminho a injeção não é bloqueada: ela é impossível (ver o raciocínio em `markdown.ts`).
  *
  * **Registro C — Editorial** (`DESIGN_SYSTEM` §0): medida de linha curta e entrelinha larga.
+ *
+ * `headingBase` é o nível de `<h>` em que o documento se encaixa na tela hospedeira: numa
+ * tela cujo `<h1>` já é o título da página, os títulos do documento começam em `<h2>`.
  */
-export function Markdown({ source }: { source: string }) {
+export function Markdown({ source, headingBase = 2 }: { source: string; headingBase?: number }) {
   const blocks = parseMarkdown(source);
+  const topo = topHeadingLevel(blocks);
 
   const inline = (content: Inline[]) =>
     content.map((pedaco, i) =>
@@ -28,17 +32,23 @@ export function Markdown({ source }: { source: string }) {
       {blocks.map((b, i) => {
         if (b.kind === "heading") {
           // O degrau Display (§3.1) fica reservado ao título da TELA; aqui a hierarquia
-          // interna do documento usa os degraus abaixo dele.
+          // interna do documento usa os degraus abaixo dele. O ESTILO segue o nível lógico
+          // do Markdown; a TAG segue a posição na tela (`headingTag`) — são perguntas
+          // diferentes e responder as duas com o mesmo número é o que produzia `<p>`.
+          const Tag = headingTag(b.level, topo, headingBase);
           const cls =
             b.level === 1
               ? "mt-7 first:mt-0 text-[22px] font-medium leading-tight tracking-tight text-ink"
               : b.level === 2
                 ? "mt-6 first:mt-0 text-[17px] font-medium leading-snug text-ink"
-                : "mt-5 first:mt-0 text-[11px] uppercase tracking-wider text-faint";
+                : // `text-faint` (o padrão de eyebrow do app) mede 3,3:1 sobre o fundo e
+                  // reprova no AA. Numa tela cuja tarefa é LER, um título ilegível é o
+                  // mesmo defeito por outro canal.
+                  "mt-5 first:mt-0 text-[11px] uppercase tracking-wider text-muted";
           return (
-            <p key={i} className={cls}>
+            <Tag key={i} className={cls}>
               {inline(b.content)}
-            </p>
+            </Tag>
           );
         }
         if (b.kind === "list") {
