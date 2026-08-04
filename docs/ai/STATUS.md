@@ -1,11 +1,17 @@
 # Estado atual do projeto — CHECKPOINT DE RETOMADA
 
-> Atualizado: `2026-07-28` (TASK-013 implementada e revisada, aguardando só o merge; antes disso,
-> 2026-07-27 — 4 tasks + pivô de produto; ver `CHECKPOINT DE RETOMADA`
-> no final do arquivo pra um resumo denso). Este doc + `CLAUDE.md` + `docs/ai/tasks/*` +
-> `docs/DESIGN_SYSTEM.md` + git history permitem **retomar numa sessão nova sem o histórico do
-> chat**. Leia primeiro — se estiver com pressa, leia só "Onde estamos" + o
-> "CHECKPOINT DE RETOMADA" no final.
+> **Atualizado: 2026-08-03.**
+>
+> ## ⚡ COMECE AQUI
+> Pule direto para **"⚠️ CHECKPOINT DE RETOMADA — 2026-08-03"** (busque por `2026-08-03`
+> neste arquivo). Ele responde sozinho onde estamos, o que está em voo, o que está travado
+> esperando decisão humana e qual é a próxima ação exata.
+>
+> Tudo o que vem **antes** daquele bloco é histórico de tasks já mergeadas, mantido para
+> consulta. Em caso de contradição, **o checkpoint de 2026-08-03 vence**.
+>
+> Leitura complementar, nesta ordem: `AUDITORIA_2026-08.md` → `CONSULTA_SPEC.md` →
+> `AUDITORIA_ESTRATEGICA_GPT_ACTIVVE_2026-08.md` → `REVISAO_AUDITORIA_GPT_2026-08.md`.
 
 ## O que é o Activve (pra quem está chegando agora)
 App de fitness **local-first** (Next 16 + TS + Tailwind v4 + IndexedDB, zero backend hoje) que o
@@ -554,55 +560,129 @@ Garantia total exigiria Web Push + servidor (Fase 2, contraria o local-first do 
 
 ---
 
-# ⚠️ CHECKPOINT DE RETOMADA — 2026-08-01 (leia isto primeiro depois de um `/clear`)
+# ⚠️ CHECKPOINT DE RETOMADA — 2026-08-03 (leia isto primeiro depois de um `/clear`)
+
+> Este bloco responde sozinho as 15 perguntas do `CLAUDE.md` §2.3. Se algo aqui contradisser
+> o resto do arquivo, **este bloco vence** — o que está abaixo é histórico.
 
 ## Onde exatamente estamos
 
-- **`main` = `d8d9150`, em sincronia com `origin`** — push feito, **deploy do Vercel
-  disparado**. Contém TASK-026 a **031**.
-- 📋 **`docs/ai/AUDITORIA_2026-08.md`** — auditoria completa (código medido + pesquisa de
-  mercado), com escopo aberto a pedido do usuário. **É o documento que guia o trabalho
-  agora**; as recomendações estão priorizadas em 3 faixas.
-- **Nenhuma branch de trabalho aberta.** Working tree limpo.
-- **TASK-029 MERGEADA** (`--no-ff`), gates revalidados na `main` (**292/292**), branch
-  apagada local e remotamente.
+**`main` = `a1c41a2`**, em sincronia com `origin`. Contém tudo até a TASK-031.
 
-## PRÓXIMA AÇÃO EXATA
+**Existem TRÊS branches abertas, nenhuma mergeada:**
 
-**TASK-031 MERGEADA e em produção** (`d8d9150`, 2026-08-03): **backup completo do
-aparelho** (o achado mais severo da auditoria — não existia forma de tirar o histórico
-dali) + **foco visível global** (o projeto não tinha nenhuma regra de foco; WCAG 2.2
-§2.4.11). 3 ciclos de review, 4 achados. Contrato: `docs/ai/tasks/TASK-031-backup-a11y.md`.
+| Branch | O que tem | Estado |
+|---|---|---|
+| `ai/TASK-032-personalizacao-visivel-claude` | **Schema 1.3** (`context`, `wellness`, `document`, `why`) + tela `/plano` "Meu plano" + porquê no Hoje e no Modo Treino + parser de Markdown seguro. 350 testes verdes, verificado em 390×844 | 🔶 **2 achados de review em aberto** (abaixo) |
+| `ai/TASK-033-revisao-auditoria-gpt-claude` | `docs/ai/REVISAO_AUDITORIA_GPT_2026-08.md` — parecer crítico da auditoria do GPT + este checkpoint | 🔶 Aguarda merge |
+| `ai/TASK-032-auditoria-gpt-activve-gpt` (remota) | `docs/ai/AUDITORIA_ESTRATEGICA_GPT_ACTIVVE_2026-08.md`, 1.586 linhas. **PR #2, draft** | 🔶 Aguarda decisão |
 
-**TASK-030 MERGEADA e em produção** (`a7a2647`, 2026-08-03): marca desenhada, centro de
-avisos e faixa da semana clicável. 4 ciclos de review Codex, 8 achados reais, todos
-corrigidos (acima do limite de 3 do §13 — loop interrompido e decisão levada ao usuário,
-que aprovou merge + push). Contrato: `docs/ai/tasks/TASK-030-nada-morto.md`.
-⚠️ **Gate visual de olho humano continua pendente** — o screenshot da pane falha nesta
-máquina e a verificação foi por DOM, que não prova composição.
+⚠️ **COLISÃO DE ID:** duas branches diferentes se chamam TASK-032. O `AGENTS.md` §14 define
+`ai/<task-id>-<descrição>-<agente>` e o STATUS indexa por id. **Renumerar uma antes de
+qualquer merge** — a de auditoria deveria virar TASK-034.
 
-## PRÓXIMA AÇÃO EXATA — Faixa 1, item 2: onboarding que gera plano no app
+## PRÓXIMA AÇÃO EXATA — os 2 achados que travam a Faixa A
 
-É o **achado nº1 da auditoria** e o único bloqueador de Faixa 1 que resta. A porta de
-entrada hoje é *"Escolher arquivo"* ou *"Cole aqui o conteúdo do seu plano (JSON)"* — o app
-só tem valor depois de um artefato que ele não sabe produzir. Invisível hoje porque o
-usuário é o próprio autor; parede para qualquer outra pessoa. Ativação D1 em fitness é 26%
-e a queda mais íngreme é no time-to-first-value.
+Pegos por `codex review --base main` na branch de personalização, **não corrigidos**:
 
-**Desenho aprovado na auditoria (§3.1):** 4 perguntas (objetivo, experiência, dias por
-semana, equipamento) → gera um `PlanFile` **válido** a partir de templates curados. A
-arquitetura plan-file NÃO muda: o template emite o mesmo contrato que o coach emite.
+1. **[P2] Títulos do Markdown renderizam como `<p>`** (`src/components/Markdown.tsx`). Leitor
+   de tela perde a estrutura do documento numa tela cuja tarefa é LER. É acessibilidade, que
+   este projeto trata como bloqueador de release.
+2. **[P2] `wellness: {}` vazio** (`src/app/plano/page.tsx`): `temAlgo` fica verdadeiro, a tela
+   suprime o aviso de "formato anterior" e mostra card em branco. O schema permite
+   `wellness: {}` e `{habits: []}` num plano 1.3 válido.
 
-⚠️ **A tensão a respeitar:** um intocável é *"o app não prescreve treino/dieta"*. O plano
-gerado tem de se apresentar como **ponto de partida genérico e editável**, dizendo de onde
-veio — e o coach continua sendo o caminho do plano **personalizado**, agora como upgrade e
-não como porta. Se a implementação começar a parecer prescrição personalizada, parar e
-consultar.
+Corrigir os dois → gates (`typecheck`, `lint`, `test`, `build`) → verificar em 390×844 →
+pedir merge da Faixa A.
 
-**Depois disso — Faixa 2 da auditoria:** Capacitor + Android (resolve o item 2 do feedback
-de uso real de verdade, via notificação local do SO, e abre HealthKit/Health Connect);
-testes de UI com jsdom + fake-indexeddb (a dívida mais antiga e de maior retorno); escala
-tipográfica; resolver a dieta.
+## Para onde vamos — o mapa atual
+
+Quatro documentos guiam o trabalho:
+
+- **`docs/ai/AUDITORIA_2026-08.md`** — minha auditoria (código medido + pesquisa de mercado).
+  ⚠️ A recomendação de onboarding com templates dela foi **RECUSADA pelo usuário e está
+  marcada como superada** no próprio documento: trocaria o diferencial pela commodity.
+- **`docs/ai/CONSULTA_SPEC.md`** — o desenho do portal de consulta e o diagnóstico que
+  substituiu o errado: **a personalização morre na porta**. A anamnese já pergunta orçamento,
+  onde a pessoa compra, hobbies e refúgios mentais — e nada disso tinha onde morar no
+  `PlanFile`. Não é a consulta que é rasa, é o cano.
+- **`docs/ai/AUDITORIA_ESTRATEGICA_GPT_ACTIVVE_2026-08.md`** — auditoria estratégica do GPT
+  (produto, monetização, GPT público, claim, preços, investimento).
+- **`docs/ai/REVISAO_AUDITORIA_GPT_2026-08.md`** — meu parecer sobre ela. **Ler os dois
+  juntos**: o parecer aponta o que está superado pelo código e o que está travado.
+
+### As 6 faixas do backlog (documento do GPT §20, com veredito)
+
+| Faixa | Propõe | Estado | Veredito |
+|---|---|---|---|
+| **A — corrigir o cano** | Schema 1.3, Meu Plano, porquê nas telas, atualizar gerador | ~80% pronto na branch | Aprovar. Não é construir, é **fechar** |
+| **D — qualidade técnica** | jsdom, Testing Library, fake-indexeddb, Playwright, CI, quebrar o god component | Nada existe | Aprovar e **subir na ordem** |
+| **E — PWA** | Manifest, service worker, instalação, shell offline | Nada existe | Aprovar e **subir na ordem** |
+| **B — GPT e claim** | Núcleo do coach, adaptador ChatGPT, Action, endpoint de claim, `/claim/[token]`, QR | Nada existe | **Condicionada** a decisão humana |
+| **C — beta pago** | Landing, pagamento, termos, analytics, fundadores | Nada existe | **Bloqueada** (furo abaixo) |
+| **F — portal próprio** | Consulta com API própria | — | Correto adiar |
+
+**Ordem recomendada:** `A → (decisões) → D → E → B → C → F`.
+Divergi da ordem do documento em dois pontos, com razão registrada: **D antes de B** (a Faixa
+B traz rede, tokens e um caminho de importação novo — a classe de bug que a suíte node-only
+não pega por construção) e **E antes de C** (o link do plano deve "oferecer instalação
+depois", e não dá para oferecer o que não existe).
+
+## O que está TRAVADO esperando decisão humana
+
+| # | Decisão | Por que trava |
+|---|---|---|
+| 1 | **Como cobrar num GPT público** | Um GPT público na loja **não tem como cobrar**. A Faixa C não é implementável sem isso, e a escolha muda o desenho da Action (Faixa B). 3 saídas no parecer §5.1 |
+| 2 | **Nome público: "Consulta Activve"?** | Risco regulatório no Brasil (CFN/CREF). **Precisa de advogado, não de designer.** "Activve Coach" como nome técnico é seguro |
+| 3 | **LGPD** | A consulta coleta dado sensível (dor, lesão, gestação, sofrimento psíquico) + transferência internacional ao enviar à OpenAI |
+| 4 | **Onde roda o serviço** | Não decidido. Implica custo, latência e região de processamento |
+| 5 | **Revogar o `AGENTS.md` §2** | *"Sem IA de servidor, sem chave de API, sem custo"* — as Faixas B/C/F revogam isso. **Exige ADR formal**, senão o AGENTS passa a mentir |
+
+## Correções pendentes na própria documentação
+
+- 🔴 **`AGENTS.md` §2 afirma que o app é "PWA instalável"** — não existe manifest nem service
+  worker (verificado). Mesma classe da afirmação falsa sobre backup corrigida na TASK-031.
+  **Corrigir independentemente de qualquer decisão.**
+- 🟡 `CONSULTA_SPEC.md` cita 1.2 onde o schema implementado já é 1.3.
+- 🟡 Decidir se `docs/ai/coach/` migra para a estrutura proposta pelo GPT
+  (`ACTIVVE_COACH_CORE.md` + adaptadores) ou mantém o `ACTIVVE_HEALTH_SYSTEM.md` atual.
+  **Migrar e apagar, não duplicar** — duas fontes de verdade é o que a proposta diz evitar.
+
+## Divergências de contrato a resolver antes de fechar a Faixa A
+
+| Ponto | Documento do GPT | Código hoje | Recomendação |
+|---|---|---|---|
+| Nome do campo | `rationale` (e `why` na refeição) | `why` em todos | **Manter `why`** — um conceito, um nome |
+| `context` | Objeto (`summary`, `constraints`, `preferences`…) | `string` | **Aceitar o GPT** — com string, as seções da §11 só existiriam por inferência, que a §9 proíbe |
+| Documento | Blocos estruturados | Markdown + parser seguro | **Manter Markdown**: o argumento de XSS não se aplica (injeção é impossível por construção, 13 testes), mas o de **acessibilidade procede** e é o achado nº1 acima |
+
+## O que funciona hoje em produção (`activve.vercel.app`)
+
+Importar plano → treinar (rotação, timer persistido, auto-avanço, recorde) → Corpo (mapa de
+recuperação, peso, medidas) → Relatórios (calendário, progressão, PDF) → Avisos → **Backup
+completo** (baixar/restaurar — o achado mais severo da auditoria, resolvido na TASK-031) →
+foco visível por teclado (WCAG 2.2 §2.4.11).
+
+## O que NÃO funciona / não existe
+
+- Notificação com o app minimizado (item 2 do feedback de uso real — exige PWA ou Capacitor)
+- App não é instalável (sem manifest/SW)
+- Sem marcar refeição — a dieta é meia-funcionalidade: a tela existe e o Hoje linka para ela
+- Sem busca no histórico, sem desfazer, sem registro retroativo de treino
+- **Zero testes na camada de storage** (457 linhas) — onde quase todos os bugs caros nasceram
+
+## Lição que se repetiu em TODAS as últimas tasks
+
+Os achados caros **não vêm de erro de cálculo**. Vêm de *a mesma função usada num contexto
+diferente daquele para o qual foi escrita*, ou *a mesma pergunta respondida em dois lugares
+com réguas diferentes*: `buildSessionSummary` comparando com o futuro; `movementName`
+resolvendo no plano errado; a postura de validação de PLANO aplicada a SESSÃO quando a
+fronteira de confiança mudou; ids únicos num escopo indo para um namespace global.
+**Fechar a classe é ter uma fonte só, não acertar cada ponto.**
+
+E: verificação por DOM prova estrutura, contraste e alvo de toque — **não prova composição**.
+Abrir o storage e perguntar "quem escreveu isso?" é o que pega a classe mais cara.
+
 
 ## Feedback de uso real — 6 de 7 itens resolvidos
 
@@ -818,6 +898,9 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-029 | Agenda por rotação + constância sem denominador (REPORT_SCHEMA 1.1) | MERGEADA | main (`afe80aa`) |
 | TASK-030 | Nada morto na tela (marca, centro de avisos, faixa clicável) | MERGEADA | main (`a7a2647`) |
 | TASK-031 | Backup completo do aparelho + foco visível global | MERGEADA | main (`d8d9150`) |
+| TASK-032 | Personalização visível (schema 1.3, Meu Plano, porquê nas telas) | IMPLEMENTADA — 2 achados de review em aberto | `ai/TASK-032-personalizacao-visivel-claude` |
+| TASK-032 ⚠️ | Auditoria estratégica do GPT (**colisão de id — renumerar**) | DOCUMENTO — PR #2 draft | `ai/TASK-032-auditoria-gpt-activve-gpt` |
+| TASK-033 | Revisão crítica da auditoria do GPT | DOCUMENTO — aguarda merge | `ai/TASK-033-revisao-auditoria-gpt-claude` |
 
 ---
 
