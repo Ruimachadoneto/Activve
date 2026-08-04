@@ -37,7 +37,14 @@ export default function PlanoPage() {
 
   const p = plan?.plan;
   const wellness = p?.wellness;
-  const habits = wellness?.habits ?? [];
+  /*
+    O schema aceita `title: "   "` (é `min(1)` sobre a string crua), e um hábito sem
+    título visível é uma linha em branco que ainda contaria como conteúdo. A régua é a
+    mesma dos outros campos, aplicada AQUI e não na importação: recusar o arquivo inteiro
+    por causa de um hábito em branco jogaria fora treino e dieta bons — a desproporção que
+    a TASK-013 decidiu evitar.
+  */
+  const habits = (wellness?.habits ?? []).filter((h) => h.title.trim().length > 0);
 
   /*
     CAMPO PRESENTE NÃO É CONTEÚDO.
@@ -111,20 +118,26 @@ export default function PlanoPage() {
               ) : null}
               {habits.length > 0 ? (
                 <ul className="mt-4 flex flex-col gap-3.5">
-                  {habits.map((h) => (
-                    <li key={h.id}>
-                      <p className="text-sm font-medium text-ink">
-                        {h.title}
-                        {h.when ? <span className="font-normal text-faint"> · {h.when}</span> : null}
-                      </p>
-                      {/* O `why` é o que separa "medite 10 min" de um plano de verdade. */}
-                      {h.why ? (
-                        <p className="mt-1 max-w-[44ch] text-[13px] leading-relaxed text-muted">
-                          {h.why}
+                  {habits.map((h) => {
+                    // Mesma régua nos campos auxiliares: um `when` só com espaços viraria
+                    // um "·" pendurado, e um `why` em branco, um parágrafo fantasma.
+                    const quando = h.when?.trim() ?? "";
+                    const porque = h.why?.trim() ?? "";
+                    return (
+                      <li key={h.id}>
+                        <p className="text-sm font-medium text-ink">
+                          {h.title.trim()}
+                          {quando ? <span className="font-normal text-faint"> · {quando}</span> : null}
                         </p>
-                      ) : null}
-                    </li>
-                  ))}
+                        {/* O `why` é o que separa "medite 10 min" de um plano de verdade. */}
+                        {porque ? (
+                          <p className="mt-1 max-w-[44ch] text-[13px] leading-relaxed text-muted">
+                            {porque}
+                          </p>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : null}
               <p className="mt-4 text-xs leading-relaxed text-faint">
