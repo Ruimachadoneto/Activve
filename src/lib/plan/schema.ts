@@ -186,20 +186,39 @@ export const dietSchema = z.object({
  * "leia 20 min antes de dormir" é genérico; "você disse que ler te desliga, então proteja
  * esses 20 minutos nos dias de treino pesado" é um plano.
  */
-export const wellnessSchema = z.object({
-  summary: z.string().max(600).optional(),
-  habits: z
-    .array(
-      z.object({
-        id: z.string().min(1),
-        title: z.string().min(1),
-        why: z.string().max(300).optional(),
-        /** Quando encaixa na vida da pessoa: "antes de dormir", "domingo de manhã". */
-        when: z.string().max(60).optional(),
-      }),
-    )
-    .optional(),
-});
+export const wellnessSchema = z
+  .object({
+    summary: z.string().max(600).optional(),
+    habits: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          title: z.string().min(1),
+          why: z.string().max(300).optional(),
+          /** Quando encaixa na vida da pessoa: "antes de dormir", "domingo de manhã". */
+          when: z.string().max(60).optional(),
+        }),
+      )
+      .optional(),
+  })
+  .superRefine((wellness, ctx) => {
+    // Mesma guarda que treino e exercício já têm: o id é a chave estável da linha na
+    // tela. Repetido, duas linhas viram a mesma para o React e uma pode exibir o
+    // conteúdo da outra. O escopo é a própria lista de hábitos — id de hábito não
+    // divide namespace com exercício (a lição da TASK-027 é justamente não promover
+    // id de um escopo a global).
+    const ids = new Set<string>();
+    wellness.habits?.forEach((h, i) => {
+      if (ids.has(h.id)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["habits", i, "id"],
+          message: `id de hábito duplicado: "${h.id}" (precisa ser único em wellness.habits).`,
+        });
+      }
+      ids.add(h.id);
+    });
+  });
 
 export const planFileSchema = z.object({
   schemaVersion: z.string().regex(/^\d+\.\d+$/, "schemaVersion deve ser 'major.minor' (ex.: 1.0)."),

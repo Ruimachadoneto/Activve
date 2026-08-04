@@ -108,6 +108,32 @@ describe("parsePlan", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("rejeita id de hábito duplicado (é a chave estável da linha na tela)", () => {
+    const plan = validPlan();
+    (plan as { wellness?: unknown }).wellness = {
+      habits: [
+        { id: "h1", title: "Ler antes de dormir" },
+        { id: "h1", title: "Caminhar no sol" },
+      ],
+    };
+    const result = parsePlan(JSON.stringify(plan));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.some((e) => e.message.includes("duplicado"))).toBe(true);
+    }
+  });
+
+  it("aceita hábitos com ids distintos", () => {
+    const plan = validPlan();
+    (plan as { wellness?: unknown }).wellness = {
+      habits: [
+        { id: "h1", title: "Ler antes de dormir" },
+        { id: "h2", title: "Caminhar no sol" },
+      ],
+    };
+    expect(parsePlan(JSON.stringify(plan)).ok).toBe(true);
+  });
+
   it("rejeita exercise.id duplicado no arquivo (continuidade de histórico)", () => {
     const plan = validPlan();
     const dup = JSON.parse(JSON.stringify(plan.training.workouts[0].exercises[0]));
