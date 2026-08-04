@@ -567,33 +567,98 @@ Garantia total exigiria Web Push + servidor (Fase 2, contraria o local-first do 
 
 ## Onde exatamente estamos
 
-**`main` = `a1c41a2`**, em sincronia com `origin`. Contém tudo até a TASK-031.
+**`main` = `23d9cdc`**, em sincronia com `origin`. Contém tudo até a TASK-031 + os pareceres
+(a branch de revisão da auditoria já foi mergeada).
 
-**Existem TRÊS branches abertas, nenhuma mergeada:**
+**Existem DUAS branches abertas, nenhuma mergeada:**
 
 | Branch | O que tem | Estado |
 |---|---|---|
-| `ai/TASK-032-personalizacao-visivel-claude` | **Schema 1.3** (`context`, `wellness`, `document`, `why`) + tela `/plano` "Meu plano" + porquê no Hoje e no Modo Treino + parser de Markdown seguro. 350 testes verdes, verificado em 390×844 | 🔶 **2 achados de review em aberto** (abaixo) |
-| `ai/TASK-033-revisao-auditoria-gpt-claude` | `docs/ai/REVISAO_AUDITORIA_GPT_2026-08.md` — parecer crítico da auditoria do GPT + este checkpoint | 🔶 Aguarda merge |
+| `ai/TASK-032-personalizacao-visivel-claude` | **Schema 1.3** (`context`, `wellness`, `document`, `why`) + tela `/plano` "Meu plano" + porquê no Hoje e no Modo Treino + parser de Markdown seguro + as correções dos achados. **361 testes verdes**, verificado em 390×844 | ✅ **PRONTA — aguarda só o gate humano de merge** |
 | `ai/TASK-032-auditoria-gpt-activve-gpt` (remota) | `docs/ai/AUDITORIA_ESTRATEGICA_GPT_ACTIVVE_2026-08.md`, 1.586 linhas. **PR #2, draft** | 🔶 Aguarda decisão |
 
 ⚠️ **COLISÃO DE ID:** duas branches diferentes se chamam TASK-032. O `AGENTS.md` §14 define
-`ai/<task-id>-<descrição>-<agente>` e o STATUS indexa por id. **Renumerar uma antes de
-qualquer merge** — a de auditoria deveria virar TASK-034.
+`ai/<task-id>-<descrição>-<agente>` e o STATUS indexa por id. **Renumerar a de auditoria
+(→ TASK-034) antes de mergear** — senão o histórico fica ambíguo para sempre.
 
-## PRÓXIMA AÇÃO EXATA — os 2 achados que travam a Faixa A
+## PRÓXIMA AÇÃO EXATA — aprovar (ou recusar) o merge da Faixa A
 
-Pegos por `codex review --base main` na branch de personalização, **não corrigidos**:
+Os 2 achados que travavam a faixa **foram corrigidos em 2026-08-03**, e mais 3 achados
+saíram dos ciclos de review seguintes. Detalhe em "Sessão de 2026-08-03" logo abaixo.
 
-1. **[P2] Títulos do Markdown renderizam como `<p>`** (`src/components/Markdown.tsx`). Leitor
-   de tela perde a estrutura do documento numa tela cuja tarefa é LER. É acessibilidade, que
-   este projeto trata como bloqueador de release.
-2. **[P2] `wellness: {}` vazio** (`src/app/plano/page.tsx`): `temAlgo` fica verdadeiro, a tela
-   suprime o aviso de "formato anterior" e mostra card em branco. O schema permite
-   `wellness: {}` e `{habits: []}` num plano 1.3 válido.
+```bash
+git log --oneline main..ai/TASK-032-personalizacao-visivel-claude
+```
 
-Corrigir os dois → gates (`typecheck`, `lint`, `test`, `build`) → verificar em 390×844 →
-pedir merge da Faixa A.
+Depois do merge: revalidar gates na `main`, apagar a branch, e **só então** a ordem
+`(decisões travadas) → D (testes) → E (PWA) → B (GPT e claim) → C (beta pago) → F (portal)`.
+
+---
+
+## Sessão de 2026-08-03 — fechamento da Faixa A
+
+**Os 2 achados originais**
+
+1. **[P2] Títulos do Documento renderizavam como `<p>`** (`src/components/Markdown.tsx`).
+   Corrigido separando duas perguntas que estavam coladas num número só: a **tag** vem de
+   `headingTag(level, topo, base)` (camada pura em `markdown.ts`, testável na suíte
+   node-only) e o **estilo** continua vindo do nível lógico do Markdown. O documento encaixa
+   a partir de `<h2>` porque a tela já tem o seu `<h1>`; `topHeadingLevel` ancora a
+   hierarquia no menor nível **presente**, então documento que abre em `##` não começa num
+   `<h4>` pendurado. Degrau pulado pelo próprio autor atravessa como está — inventar nível
+   seria inferir estrutura, que a §9 proíbe.
+   *Medido no browser:* outline `H1 › H2 › H3` real na tela `/plano`.
+2. **[P2] `wellness: {}`** (`src/app/plano/page.tsx`) fazia `temAlgo` verdadeiro: suprimia o
+   aviso de "formato anterior" **e** desenhava card em branco. Corrigido com uma régua só.
+
+**Mais 3 achados dos ciclos de review (Codex), todos da MESMA classe**
+
+3. **[P2] `wellness.habits[].id` sem guarda de unicidade** — `treino` e `exercício` já tinham
+   desde o início, e `/plano` usa o id como chave estável da linha. Guarda adicionada em
+   `wellnessSchema`, **com escopo na própria lista** (promover id de um escopo a namespace
+   global é a classe da TASK-027).
+4. **[P2] hábito com `title` só de espaços** contava como conteúdo e virava linha em branco.
+5. **[P3] `why` de treino e de exercício** com só espaços desenhava parágrafo fantasma no
+   Hoje e no Modo Treino.
+
+**A lição desta sessão (é a mesma de sempre, num campo novo)**
+Os 5 achados são **a mesma pergunta — "campo presente é conteúdo?" — respondida em quatro
+telas com réguas diferentes**. O `schema` aceita `"   "` em todo texto livre (`min(1)` mede
+a string crua) e `"   "` é verdadeiro em JS. A correção final não foi um terceiro `trim()`
+inline: virou **`textoVisivel()` em `labels.ts`**, uma fonte só, usada por `/plano`, Hoje e
+Modo Treino. Fechar a classe é ter uma fonte só — não acertar cada ponto.
+
+**Dois achados do review NÃO aplicados, com razão registrada**
+- *"Recusar na importação o hábito em branco"* — recusar o arquivo **inteiro** por causa de
+  um hábito de bem-estar em branco jogaria fora treino e dieta bons. É a desproporção que a
+  TASK-013 decidiu evitar (opção B do usuário: proteger na leitura, não filtrar a entrada).
+  A guarda mora onde o dado é lido.
+- *"Manter nav/backup acessíveis quando `/plano` recebe plano inválido"* — `/`,
+  `/alimentacao`, `/avisos` e `/corpo` fazem o mesmo early return; só `/mais` injeta o
+  `BackupCard`, porque é onde o backup mora. `/plano` **segue** o padrão em vez de quebrá-lo,
+  e o estado de erro tem CTA de reimportar. Se a nav deve aparecer no estado de erro, é
+  decisão para as 5 telas — não para uma.
+
+**Achado NOVO, sistêmico, fora do escopo desta branch (decisão do usuário)**
+🔴 **`--color-faint` (#5C6878) mede 3,26:1 sobre o fundo — reprova o AA (4.5:1)** para texto
+abaixo de 24px. Medido no DOM, não estimado. É o padrão de *eyebrow* do app: **37 ocorrências
+de `text-[11px]` com `text-faint`**. Nesta branch foi trocado por `text-muted` (**6,24:1**,
+medido) **apenas** no título de nível 3 do Documento — é a tela cuja tarefa é LER. As outras
+36 continuam como estão: trocar o token em todo o app é mudança visual transversal e precisa
+de aprovação. **Candidata a task própria.**
+
+**Correção de documentação feita nesta sessão**
+✅ `AGENTS.md` §2 dizia que o app é *"PWA instalável"*. Não é — não existe manifest nem
+service worker. Corrigido nesta branch (independe de qualquer decisão travada).
+
+**Gates finais:** typecheck ✓ · lint ✓ · **361/361** ✓ · build ✓.
+**Verificação em 390×844, aba nova:** outline de títulos real; contraste medido no DOM; os
+casos `wellness: {}`, `{habits: []}`, `title`/`when`/`why`/`context`/`document` só com
+espaços; `why` real voltando nas duas telas; sem erro de console; sem rolagem horizontal.
+
+⚠️ **Nota de ambiente:** rodar `npm run build` com o dev server vivo **corrompeu o cache do
+Turbopack** (arquivos `.sst` sumidos, panics no log). Cura: parar o preview, `rm -rf
+.next/dev .next/types`, subir de novo. Parar o dev antes do build evita.
 
 ## Para onde vamos — o mapa atual
 
@@ -898,9 +963,9 @@ Backlog: Fase 2 corpo realista; RTL/jsdom; `sex:"other"`; meal tracking (anel de
 | TASK-029 | Agenda por rotação + constância sem denominador (REPORT_SCHEMA 1.1) | MERGEADA | main (`afe80aa`) |
 | TASK-030 | Nada morto na tela (marca, centro de avisos, faixa clicável) | MERGEADA | main (`a7a2647`) |
 | TASK-031 | Backup completo do aparelho + foco visível global | MERGEADA | main (`d8d9150`) |
-| TASK-032 | Personalização visível (schema 1.3, Meu Plano, porquê nas telas) | IMPLEMENTADA — 2 achados de review em aberto | `ai/TASK-032-personalizacao-visivel-claude` |
+| TASK-032 | Personalização visível (schema 1.3, Meu Plano, porquê nas telas) | PRONTA — 5 achados corrigidos, 3 ciclos de review, aguarda merge | `ai/TASK-032-personalizacao-visivel-claude` |
 | TASK-032 ⚠️ | Auditoria estratégica do GPT (**colisão de id — renumerar**) | DOCUMENTO — PR #2 draft | `ai/TASK-032-auditoria-gpt-activve-gpt` |
-| TASK-033 | Revisão crítica da auditoria do GPT | DOCUMENTO — aguarda merge | `ai/TASK-033-revisao-auditoria-gpt-claude` |
+| TASK-033 | Revisão crítica da auditoria do GPT | MERGEADA | main (`6e511eb`) |
 
 ---
 
